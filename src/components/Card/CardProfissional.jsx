@@ -10,10 +10,13 @@ import {
 } from "@mui/material";
 
 import { FaStar, FaPhone, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
+import { useState } from "react";
+import ModalProfissional from "../ModalProfissional";
 
 const CardProfissional = ({ profissional, onVisualizar }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
+    const [modalOpen, setModalOpen] = useState(false);
 
     return (
         <Card
@@ -163,7 +166,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     startIcon={<FaCalendarAlt />}
                     onClick={(e) => {
                         e.stopPropagation();
-                        onVisualizar(profissional);
+                        setModalOpen(true);
                     }}
                     sx={{
                         mt: "auto",
@@ -183,6 +186,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     Visualizar
                 </Button>
             </CardContent>
+            <ModalProfissional open={modalOpen} onClose={() => setModalOpen(false)} profissional={profissional} />
         </Card>
     );
 };
