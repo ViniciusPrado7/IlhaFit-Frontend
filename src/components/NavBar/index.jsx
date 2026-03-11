@@ -20,37 +20,33 @@ const NavBar = () => {
       <AppBar elevation={1} color="default">
         <Container maxWidth="xl">
           <Toolbar sx={{ py: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Box
-                component="img"
-                src="src/assets/logo.svg"
-                alt="Logo IlhaFit"
-                sx={{ width: 48, borderRadius: 2, mr: 3 }}
-              />
+            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Box
+                  component="img"
+                  src="src/assets/logo.svg"
+                  alt="Logo IlhaFit"
+                  sx={{ width: 48, borderRadius: 2, mr: 3 }}
+                />
 
-              <Box>
-                <Typography variant="h6" fontWeight={700} lineHeight={1.1}>
-                  <ListItemButton
-                    component={Link}
-                    to="/"
-                    sx={{ px: 0, py: 0.5, minWidth: "auto", justifyContent: 'center'}}
-                  >
+                <Box>
+                  <Typography variant="h6" fontWeight={700} lineHeight={1.1}>
                     IlhaFit
-                  </ListItemButton>
-                </Typography>
+                  </Typography>
 
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 500,
-                    letterSpacing: "0.3px",
-                  }}
-                >
-                  Seu bem-estar começa aqui
-                </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: 500,
+                      letterSpacing: "0.3px",
+                    }}
+                  >
+                    Seu bem-estar começa aqui
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
+            </Link>
             <Box
               sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}
             >
