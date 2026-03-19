@@ -1,10 +1,12 @@
 import { Route, Routes } from "react-router-dom";
 import "./styles/App.css";
+import AppLayout from "./components/Layout";
 import Home from "./pages/Home/index.jsx";
 import Estabelecimento from "./pages/Estabelecimento/index.jsx";
-import AppLayout from "./components/Layout/index.jsx";
-import LoginButton from "./components/NavBar/Login/Login.jsx";
-import CadastroButton from "./components/NavBar/Cadastro/Cadastro.jsx";
+import Login from "./pages/Login/index.jsx";
+import Cadastro from "./pages/Cadastro/index.jsx";
+
+
 
 function App() {
   return (
@@ -12,8 +14,11 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/estabelecimento" element={<Estabelecimento />} />
-        <Route path="/login" element={<LoginButton/>}/>
-        <Route path="/cadastro" element={<CadastroButton/>}/>
+        <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/login" element={<Login />} />
+        {/* <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+        <Route path="/confirmar-email" element={<ConfirmarEmail />} /> */}
       </Routes>
     </AppLayout>
   );

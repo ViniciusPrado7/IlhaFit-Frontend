@@ -11,8 +11,8 @@ import {
 } from "@mui/material";
 import { FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../../services";
 import { toast } from "react-toastify";
+import { authService } from "../../service/AuthService";
 
 const Login = () => {
   const theme = useTheme();
