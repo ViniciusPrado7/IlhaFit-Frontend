@@ -10,7 +10,9 @@ import {
 import { Link } from "react-router-dom";
 import Menu from "./Menu";
 import ToggleThemeButton from "../ToggleThemeButton";
-import Entrar from "./Entrar";
+
+import LoginButton from "./Login/Login";
+import CadastroButton from "./Cadastro/Cadastro";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
@@ -53,10 +55,11 @@ const NavBar = () => {
               <Menu />
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box sx={{ display: 'flex', gap: 1.5, ml: 2 }}>
               <ToggleThemeButton />
-              <Entrar onClick={() => setOpen(true)} />
-            </Box>
+                <LoginButton onClick={() => navigate("/login")} />
+                <CadastroButton onClick={() => navigate("/cadastro")} />
+              </Box>
           </Toolbar>
         </Container>
       </AppBar>
