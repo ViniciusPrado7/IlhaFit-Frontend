@@ -3,18 +3,38 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-const rootElement = document.getElementById('root');
+const ro otElement = document.getElementById('root');
 const root = ReactDOM.createRoot(rootElement);
 
 
 
 
+//==================== AVALIAÇÕES ====================
+export const avaliacaoService = {
+    getByEstabelecimento: async (id) => {
+        const response = await api.get(`/avaliacoes/estabelecimento/${id}`);
+        return response.data;
+    },
+    getByProfissional: async (id) => {
+        const response = await api.get(`/avaliacoes/profissional/${id}`);
+        return response.data;
+    },
+    avaliar: async (data) => {
+        const response = await api.post('/avaliacoes', data);
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await api.delete(`/avaliacoes/${id}`);
+        return response.data;
+    },
+};
 
 
 
 
 
 
+// ==================== DENUNCIAS ====================
 export const denunciaService = {
     // Criar denúncia (qualquer usuário autenticado)
     criar: async (data) => {
