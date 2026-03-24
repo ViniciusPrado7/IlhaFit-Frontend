@@ -74,19 +74,17 @@ const Cadastro = () => {
         try {
             const dataToSend = { ...formData };
             
-            // Cadastro específico para aluno/usuário comum
             await authService.register(dataToSend, "aluno");
 
             try {
                 const loginData = await authService.login(formData.email, formData.senha);
-                toast.success(`Cadastro realizado! Bem-vindo(a), ${loginData.nome}! 🚀`);
+                toast.success(`Cadastro realizado! Bem-vindo(a), ${loginData.nome}!`);
                 window.dispatchEvent(new Event('storage'));
             } catch (loginErr) {
                 console.warn("Erro no login automático:", loginErr);
                 toast.success("Cadastro realizado com sucesso! Faça login para continuar.");
             }
 
-            // Força o recarregamento da página para atualizar o estado de autenticação (NavBar)
             window.location.href = "/";
         } catch (error) {
             console.error("Erro no cadastro:", error);

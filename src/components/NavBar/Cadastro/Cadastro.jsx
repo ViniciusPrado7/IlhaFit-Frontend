@@ -2,12 +2,11 @@ import React from "react";
 import { Button } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-const CadastroButton = React.forwardRef((props, ref) => {
+const CadastroButton = (props) => {
   const theme = useTheme();
 
   return (
     <Button
-      ref={ref}
       variant="contained"
       {...props}
       sx={{
@@ -21,17 +20,15 @@ const CadastroButton = React.forwardRef((props, ref) => {
         "&:hover": {
           bgcolor: theme.palette.custom?.primaryHover || "primary.dark",
           opacity: 0.9,
-          transform: 'translateY(-1px)'
+          transform: "translateY(-1px)",
         },
-        transition: 'all 0.2s',
-        ...props.sx
+        transition: "all 0.2s",
+        ...props.sx,
       }}
     >
       Cadastrar-se
     </Button>
   );
-});
-
-CadastroButton.displayName = 'CadastroButton';
+};
 
 export default CadastroButton;
