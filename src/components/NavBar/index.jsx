@@ -4,63 +4,53 @@ import {
   Container,
   Toolbar,
   Typography,
-  ListItemButton,
   Box,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Menu from "./Menu";
 import ToggleThemeButton from "../ToggleThemeButton";
-import Entrar from "./Entrar";
+
+import LoginButton from "./Login/Login";
+import CadastroButton from "./Cadastro/Cadastro";
 
 const NavBar = () => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
-    <>
-      <AppBar elevation={1} color="default">
-        <Container maxWidth="xl">
-          <Toolbar sx={{ py: 1 }}>
-            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  component="img"
-                  src="src/assets/logo.svg"
-                  alt="Logo IlhaFit"
-                  sx={{ width: 48, borderRadius: 2, mr: 3 }}
-                />
-
-                <Box>
-                  <Typography variant="h6" fontWeight={700} lineHeight={1.1}>
-                    IlhaFit
-                  </Typography>
-
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "primary.main",
-                      fontWeight: 500,
-                      letterSpacing: "0.3px",
-                    }}
-                  >
-                    Seu bem-estar começa aqui
-                  </Typography>
-                </Box>
-              </Box>
-            </Link>
-            <Box
-              sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}
-            >
-              <Menu />
-            </Box>
-
+    <AppBar elevation={1} color="default">
+      <Container maxWidth="xl">
+        <Toolbar sx={{ py: 1 }}>
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <ToggleThemeButton />
-              <Entrar onClick={() => setOpen(true)} />
+              <Box
+                component="img"
+                src="src/assets/logo.svg"
+                alt="Logo IlhaFit"
+                sx={{ width: 48, borderRadius: 2, mr: 3 }}
+              />
+
+              <Box>
+                <Typography variant="h6" fontWeight={700}>
+                  IlhaFit
+                </Typography>
+              </Box>
             </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
-    </>
+          </Link>
+
+          <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+            <Menu />
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.5, ml: 2 }}>
+            <ToggleThemeButton />
+
+            <LoginButton onClick={() => navigate("/login")} /> {/* lowercase */}
+            <CadastroButton onClick={() => navigate("/cadastro")} /> {/* lowercase */}
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 };
 
