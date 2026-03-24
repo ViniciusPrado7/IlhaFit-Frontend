@@ -1,26 +1,35 @@
-import React, { useState } from "react";
-import { TextField, Button, Box } from "@mui/material";
+import { TextField, Typography, Button, Box } from "@mui/material";
+import { useState } from "react";
 
-const CadastroUsuario = () => {
-  const [form, setForm] = useState({ nome: "", email: "", senha: "" });
+export default function CadastroUsuario() {
+  const [formData, setFormData] = useState({
+    nome: "",
+    email: "",
+    senha: "",
+    confirmarSenha: ""
+  });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = () => {
-    console.log("Cadastro usuário:", form);
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
-    <Box>
-      <TextField name="nome" label="Nome" fullWidth onChange={handleChange} />
-      <TextField name="email" label="Email" fullWidth onChange={handleChange} />
-      <TextField name="senha" label="Senha" type="password" fullWidth onChange={handleChange} />
+    <form>
+      <Typography>Nome Completo</Typography>
+      <TextField fullWidth name="nome" onChange={handleChange} />
 
-      <Button onClick={handleSubmit}>Cadastrar</Button>
-    </Box>
+      <Typography>Email</Typography>
+      <TextField fullWidth name="email" onChange={handleChange} />
+
+      <Typography>Senha</Typography>
+      <TextField fullWidth type="password" name="senha" onChange={handleChange} />
+
+      <Typography>Confirmar Senha</Typography>
+      <TextField fullWidth type="password" name="confirmarSenha" onChange={handleChange} />
+
+      <Button fullWidth variant="contained" sx={{ mt: 3 }}>
+        Cadastrar
+      </Button>
+    </form>
   );
-};
-
-export default CadastroUsuario;
+}

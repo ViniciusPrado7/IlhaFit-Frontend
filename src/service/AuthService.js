@@ -24,5 +24,23 @@ export const authService = {
     }
 
     return data;
+  },
+
+  async register(data, tipo) {
+    // Endpoint provisório para cadastro. Ajuste conforme sua API Spring Boot real.
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      // Passa o tipo de usuário se a API precisar, ou só os dados
+      body: JSON.stringify({ ...data, tipo })
+    });
+
+    if (!response.ok) {
+      throw new Error("Erro ao fazer cadastro");
+    }
+
+    return await response.json();
   }
 };
