@@ -1,10 +1,4 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css';
-
-const rootElement = document.getElementById('root');
-const root = ReactDOM.createRoot(rootElement);
+import { api } from './Api';
 
 
 
@@ -13,42 +7,24 @@ const root = ReactDOM.createRoot(rootElement);
 
 
 
+// ==================== DENUNCIAS ====================
+export const createDenuncia = (data) => {
+    return api.post('/denuncias', data);
+};
 
+export const getAllDenuncias = (status) => {
+    const params = status ? { status } : {};
+    return api.get('/denuncias', { params });
+};
 
-export const denunciaService = {
-    // Criar denúncia (qualquer usuário autenticado)
-    criar: async (data) => {
-        const response = await api.post('/denuncias', data);
-        return response.data;
-    },
+export const updateDenunciaStatus = (id, status) => {
+    return api.put(`/denuncias/${id}/status`, { status });
+};
 
-    // Listar todas as denúncias (admin)
-    getAll: async (status) => {
-        const params = status ? { status } : {};
-        const response = await api.get('/denuncias', { params });
-        return response.data;
-    },
-
-    // Atualizar status da denúncia (admin)
-    atualizarStatus: async (id, status) => {
-        const response = await api.put(`/denuncias/${id}/status`, { status });
-        return response.data;
-    },
-
-    // Excluir avaliação denunciada (admin)
-    excluirAvaliacao: async (id) => {
-        const response = await api.delete(`/denuncias/${id}/avaliacao`);
-        return response.data;
-    },
+export const deleteAvaliacaoDenuncia = (id) => {
+    return api.delete(`/denuncias/${id}/avaliacao`);
 };
 
 
 
 
-
-
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
