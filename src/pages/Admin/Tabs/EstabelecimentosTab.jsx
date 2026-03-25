@@ -21,6 +21,7 @@ import {
     CircularProgress,
     Tooltip,
     Grid,
+    TablePagination,
     useTheme,
     alpha,
 } from "@mui/material";
@@ -76,21 +77,27 @@ const EstabelecimentosTab = () => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const [estabelecimentos, setEstabelecimentos] = useState([]);
-    const [filteredEstabelecimentos, setFilteredEstabelecimentos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [deleteDialog, setDeleteDialog] = useState({ open: false, estabelecimento: null });
     const [selectedEstab, setSelectedEstab] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setPage(0);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
 
     useEffect(() => {
         loadEstabelecimentos();
     }, []);
-
-    useEffect(() => {
-        filterEstabelecimentos();
-    }, [searchTerm, selectedCategory, estabelecimentos]);
 
     const loadEstabelecimentos = async () => {
         try {
@@ -123,7 +130,7 @@ const EstabelecimentosTab = () => {
             .sort((a, b) => b.count - a.count);
     }, [estabelecimentos]);
 
-    const filterEstabelecimentos = () => {
+    const filteredEstabelecimentos = useMemo(() => {
         let filtered = estabelecimentos;
 
         if (selectedCategory) {
@@ -138,20 +145,35 @@ const EstabelecimentosTab = () => {
             }
         }
 
-        if (searchTerm) {
+        if (debouncedSearchTerm) {
             filtered = filtered.filter(
                 (e) =>
-                    e.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    e.nomeFantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    e.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                    e.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                    e.nomeFantasia?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                    e.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
             );
         }
 
-        setFilteredEstabelecimentos(filtered);
+        return filtered;
+    }, [estabelecimentos, selectedCategory, debouncedSearchTerm]);
+
+    const paginatedEstabelecimentos = useMemo(() => {
+        const startIndex = page * rowsPerPage;
+        return filteredEstabelecimentos.slice(startIndex, startIndex + rowsPerPage);
+    }, [filteredEstabelecimentos, page, rowsPerPage]);
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
     };
 
     const handleCategoryClick = (categoryName) => {
         setSelectedCategory((prev) => (prev === categoryName ? null : categoryName));
+        setPage(0);
     };
 
     const handleOpenModal = (estab) => {
@@ -203,7 +225,10 @@ const EstabelecimentosTab = () => {
                         variant="outlined"
                         size="small"
                         startIcon={<FaTimes size={12} />}
-                        onClick={() => setSelectedCategory(null)}
+                        onClick={() => {
+                            setSelectedCategory(null);
+                            setPage(0);
+                        }}
                         sx={{ borderRadius: 10, textTransform: "none", fontWeight: 600 }}
                     >
                         Limpar filtro: {selectedCategory}
@@ -345,12 +370,12 @@ const EstabelecimentosTab = () => {
                                     <CircularProgress size={32} />
                                 </TableCell>
                             </TableRow>
-                        ) : filteredEstabelecimentos.length === 0 ? (
+                        ) : paginatedEstabelecimentos.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} align="center">Nenhum estabelecimento encontrado</TableCell>
                             </TableRow>
                         ) : (
-                            filteredEstabelecimentos.map((estab) => (
+                            paginatedEstabelecimentos.map((estab) => (
                                 <TableRow
                                     key={estab.id}
                                     hover
@@ -414,6 +439,18 @@ const EstabelecimentosTab = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredEstabelecimentos.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+            />
 
             {/* Dialog de Confirmação */}
             <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, estabelecimento: null })}>

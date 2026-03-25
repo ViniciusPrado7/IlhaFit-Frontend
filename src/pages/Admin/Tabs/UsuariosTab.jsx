@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Box,
     Paper,
@@ -14,9 +14,6 @@ import {
     TextField,
     InputAdornment,
     Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Typography,
     Select,
     MenuItem,
@@ -24,6 +21,7 @@ import {
     InputLabel,
     CircularProgress,
     Tooltip,
+    TablePagination,
     useTheme,
     alpha,
 } from "@mui/material";
@@ -42,22 +40,27 @@ import { adminService } from "../../../services";
 import { useNavigate } from "react-router-dom";
 
 const UsuariosTab = () => {
-    const theme = useTheme();
     const navigate = useNavigate();
     const [users, setUsers] = useState([]);
-    const [filteredUsers, setFilteredUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [filterType, setFilterType] = useState("todos");
     const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setPage(0);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
 
     useEffect(() => {
         loadUsers();
     }, []);
-
-    useEffect(() => {
-        filterUsers();
-    }, [searchTerm, filterType, users]);
 
     const loadUsers = async () => {
         try {
@@ -72,23 +75,37 @@ const UsuariosTab = () => {
         }
     };
 
-    const filterUsers = () => {
+    const filteredUsers = useMemo(() => {
         let filtered = users;
 
         if (filterType !== "todos") {
             filtered = filtered.filter((u) => u.tipo === filterType);
         }
 
-        if (searchTerm) {
+        if (debouncedSearchTerm) {
             filtered = filtered.filter(
                 (u) =>
-                    u.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    u.nomeFantasia?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                    u.nome?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                    u.nomeFantasia?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                    u.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
             );
         }
 
-        setFilteredUsers(filtered);
+        return filtered;
+    }, [users, filterType, debouncedSearchTerm]);
+
+    const paginatedUsers = useMemo(() => {
+        const startIndex = page * rowsPerPage;
+        return filteredUsers.slice(startIndex, startIndex + rowsPerPage);
+    }, [filteredUsers, page, rowsPerPage]);
+
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
     };
 
     const handleDelete = async () => {
@@ -105,35 +122,14 @@ const UsuariosTab = () => {
         }
     };
 
-    const getTipoIcon = (tipo) => {
-        switch (tipo) {
-            case "aluno": return <FaUser size={14} />;
-            case "profissional": return <FaUserTie size={14} />;
-            case "estabelecimento": return <FaBuilding size={14} />;
-            case "admin": return <FaUserShield size={14} />;
-            default: return null;
-        }
+    const USER_ROLE_CONFIG = {
+        "aluno": { icon: FaUser, color: "primary", label: "Aluno" },
+        "profissional": { icon: FaUserTie, color: "secondary", label: "Profissional" },
+        "estabelecimento": { icon: FaBuilding, color: "warning", label: "Estabelecimento" },
+        "admin": { icon: FaUserShield, color: "error", label: "Admin" }
     };
 
-    const getTipoColor = (tipo) => {
-        switch (tipo) {
-            case "aluno": return "primary";
-            case "profissional": return "secondary";
-            case "estabelecimento": return "warning";
-            case "admin": return "error";
-            default: return "default";
-        }
-    };
-
-    const getTipoLabel = (tipo) => {
-        switch (tipo) {
-            case "aluno": return "Aluno";
-            case "profissional": return "Profissional";
-            case "estabelecimento": return "Estabelecimento";
-            case "admin": return "Admin";
-            default: return tipo;
-        }
-    };
+    const getTipoConfig = (tipo) => USER_ROLE_CONFIG[tipo] || { icon: FaUser, color: "default", label: tipo };
 
     const stats = {
         total: users.length,
@@ -184,7 +180,14 @@ const UsuariosTab = () => {
                     />
                     <FormControl sx={{ minWidth: 200 }}>
                         <InputLabel>Tipo de Usuário</InputLabel>
-                        <Select value={filterType} onChange={(e) => setFilterType(e.target.value)} label="Tipo de Usuário">
+                        <Select
+                            value={filterType}
+                            onChange={(e) => {
+                                setFilterType(e.target.value);
+                                setPage(0);
+                            }}
+                            label="Tipo de Usuário"
+                        >
                             <MenuItem value="todos">Todos</MenuItem>
                             <MenuItem value="aluno">Alunos</MenuItem>
                             <MenuItem value="profissional">Profissionais</MenuItem>
@@ -221,20 +224,26 @@ const UsuariosTab = () => {
                                     <CircularProgress size={32} />
                                 </TableCell>
                             </TableRow>
-                        ) : filteredUsers.length === 0 ? (
+                        ) : paginatedUsers.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} align="center">Nenhum usuário encontrado</TableCell>
                             </TableRow>
                         ) : (
-                            filteredUsers.map((user) => (
+                            paginatedUsers.map((user) => (
                                 <TableRow key={`${user.tipo}-${user.id}`} hover>
                                     <TableCell>
-                                        <Chip
-                                            icon={getTipoIcon(user.tipo)}
-                                            label={getTipoLabel(user.tipo)}
-                                            color={getTipoColor(user.tipo)}
-                                            size="small"
-                                        />
+                                        {(() => {
+                                            const cfg = getTipoConfig(user.tipo);
+                                            const IconComponent = cfg.icon;
+                                            return (
+                                                <Chip
+                                                    icon={IconComponent ? <IconComponent size={14} /> : null}
+                                                    label={cfg.label}
+                                                    color={cfg.color}
+                                                    size="small"
+                                                />
+                                            );
+                                        })()}
                                     </TableCell>
                                     <TableCell>{user.nome || user.nomeFantasia || "N/A"}</TableCell>
                                     <TableCell>{user.email || "N/A"}</TableCell>
@@ -256,6 +265,18 @@ const UsuariosTab = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+            
+            <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredUsers.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+            />
 
             {/* Dialog de Confirmação */}
             <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, user: null })}>
