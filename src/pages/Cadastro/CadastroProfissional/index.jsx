@@ -567,6 +567,21 @@ const CadastroProfissional = () => {
             >
                 {step === 1 ? "Continuar" : "Cadastrar"}
             </Button>
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary">
+                    Já tem conta?{" "}
+                    <Typography
+                        component="span"
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.main"
+                        sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                        onClick={() => navigate("/login")}
+                    >
+                        Entre
+                    </Typography>
+                </Typography>
+            </Box>
         </form>
     );
 };
