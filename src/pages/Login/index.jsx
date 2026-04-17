@@ -8,24 +8,72 @@ import {
   IconButton,
   useTheme,
   InputAdornment,
+  Alert,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
-import { FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { FaTimes, FaEye, FaEyeSlash, FaUser, FaBuilding } from "react-icons/fa";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authService } from "../../service/AuthService";
+import { estabelecimentoService } from "../../service/EstabelecimentoService";
+import { authSession } from "../../service/AuthSession";
+
+const isFieldErrorObject = (data) => {
+  return data && typeof data === "object" && !Array.isArray(data);
+};
+
+const getApiError = (error) => {
+  const data = error?.response?.data;
+  const status = error?.response?.status;
+
+  if (status === 403 && !data) {
+    return {
+      fieldErrors: {},
+      generalError: "Login bloqueado pelo servidor. Verifique se a rota de auth esta liberada no backend."
+    };
+  }
+
+  if (isFieldErrorObject(data)) {
+    return { fieldErrors: data, generalError: "" };
+  }
+
+  if (typeof data === "string") {
+    return { fieldErrors: {}, generalError: data };
+  }
+
+  return {
+    fieldErrors: {},
+    generalError: error?.message || "Erro ao fazer login"
+  };
+};
 
 const Login = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const isDark = theme.palette.mode === 'dark';
 
-  const [email, setEmail] = useState("");
+  const [accountType, setAccountType] = useState(location.state?.accountType || "aluno");
+  const [email, setEmail] = useState(location.state?.email || "");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [generalError, setGeneralError] = useState("");
+
+  const handleTypeChange = (_, newType) => {
+    if (newType !== null) {
+      setAccountType(newType);
+      setFieldErrors({});
+      setGeneralError("");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFieldErrors({});
+    setGeneralError("");
 
     if (!email.trim() || !senha.trim()) {
       toast.error("Preencha todos os campos");
@@ -34,12 +82,28 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const data = await authService.login(email, senha);
-      toast.success(`Bem-vindo, ${data.nome}!`);
-      window.dispatchEvent(new Event('storage'));
+      const data = accountType === "estabelecimento"
+        ? (await estabelecimentoService.loginEstabelecimento({ email, senha })).data
+        : await authService.login(email, senha);
+
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      authSession.setUser({
+        id: data?.id,
+        nome: data?.nome || email,
+        email: data?.email || email,
+        tipo: data?.tipo || (accountType === "estabelecimento" ? "ESTABELECIMENTO" : "USUARIO"),
+        role: data?.role,
+      });
+      toast.success(`Bem-vindo, ${data?.nome || email}!`);
       navigate("/");
     } catch (error) {
       console.error("Erro no login:", error);
+      const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
+      setFieldErrors(apiFieldErrors);
+      setGeneralError(apiGeneralError);
     } finally {
       setLoading(false);
     }
@@ -87,6 +151,48 @@ const Login = () => {
         </Typography>
 
         <form onSubmit={handleSubmit}>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: "text.secondary" }}>
+              Tipo de conta
+            </Typography>
+            <ToggleButtonGroup
+              value={accountType}
+              exclusive
+              onChange={handleTypeChange}
+              fullWidth
+              sx={{
+                gap: 1,
+                "& .MuiToggleButton-root": {
+                  border: "1px solid !important",
+                  borderColor: "divider !important",
+                  borderRadius: "12px !important",
+                  color: "text.secondary",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  py: 1.5,
+                  "&.Mui-selected": {
+                    bgcolor: "primary.main",
+                    color: "white",
+                    "&:hover": { bgcolor: "primary.dark" }
+                  }
+                }
+              }}
+            >
+              <ToggleButton value="aluno">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FaUser size={14} /> Aluno
+                </Box>
+              </ToggleButton>
+              <ToggleButton value="estabelecimento">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FaBuilding size={14} /> Estabelecimento
+                </Box>
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {generalError && <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert>}
+
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
             Email
           </Typography>
@@ -95,8 +201,14 @@ const Login = () => {
             name="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setFieldErrors(prev => ({ ...prev, email: "" }));
+              setGeneralError("");
+            }}
             placeholder="seu@email.com"
+            error={Boolean(fieldErrors.email)}
+            helperText={fieldErrors.email}
             sx={inputStyles}
           />
 
@@ -108,8 +220,14 @@ const Login = () => {
             name="senha"
             type={showPassword ? "text" : "password"}
             value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            placeholder="••••••••"
+            onChange={(e) => {
+              setSenha(e.target.value);
+              setFieldErrors(prev => ({ ...prev, senha: "" }));
+              setGeneralError("");
+            }}
+            placeholder="********"
+            error={Boolean(fieldErrors.senha)}
+            helperText={fieldErrors.senha}
             sx={inputStyles}
             InputProps={{
               endAdornment: (
@@ -162,14 +280,14 @@ const Login = () => {
 
           <Box sx={{ mt: 3, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">
-              Não tem conta?{" "}
+              Nao tem conta?{" "}
               <Typography
                 component="span"
                 variant="body2"
                 fontWeight={700}
                 color="primary.main"
                 sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-                onClick={() => navigate("/cadastro")}
+                onClick={() => navigate("/cadastro", { state: { accountType } })}
               >
                 Cadastre-se
               </Typography>
