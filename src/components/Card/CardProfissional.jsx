@@ -8,19 +8,45 @@ import {
     Button,
     useTheme,
 } from "@mui/material";
-
 import { FaStar, FaPhone, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
 import { useState } from "react";
 import ModalProfissional from "../ModalProfissional";
 
+const getFoto = (profissional) => profissional.fotoUrl || profissional.Imagem;
+
+const getEspecialidades = (profissional) => {
+    if (Array.isArray(profissional.especialidades) && profissional.especialidades.length > 0) {
+        return profissional.especialidades;
+    }
+
+    if (Array.isArray(profissional.gradeAtividades) && profissional.gradeAtividades.length > 0) {
+        return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+    }
+
+    if (profissional.especializacao) {
+        return [profissional.especializacao];
+    }
+
+    return [];
+};
+
 const CardProfissional = ({ profissional, onVisualizar }) => {
     const theme = useTheme();
-    const isDark = theme.palette.mode === 'dark';
+    const isDark = theme.palette.mode === "dark";
     const [modalOpen, setModalOpen] = useState(false);
+    const especialidades = getEspecialidades(profissional);
+    const abrirModal = () => {
+        onVisualizar?.(profissional);
+        setModalOpen(true);
+    };
 
     return (
         <Card
-            onClick={() => onVisualizar(profissional)}
+            onClick={() => {
+                if (!modalOpen) {
+                    abrirModal();
+                }
+            }}
             sx={{
                 width: "100%",
                 maxWidth: 400,
@@ -43,7 +69,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
         >
             <Box
                 sx={{
-                height: 135,
+                    height: 135,
                     background: isDark
                         ? `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.background.default} 100%)`
                         : "linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%)",
@@ -62,7 +88,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                 }}
             >
                 <Avatar
-                    src={profissional.Imagem}
+                    src={getFoto(profissional)}
                     alt={profissional.nome}
                     sx={{
                         width: 115,
@@ -84,7 +110,6 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     {profissional.nome}
                 </Typography>
 
-                {/* Avaliação */}
                 <Box
                     sx={{
                         display: "flex",
@@ -102,7 +127,6 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     </Typography>
                 </Box>
 
-                {/* Especialidades */}
                 <Box
                     sx={{
                         display: "flex",
@@ -112,7 +136,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         mb: 2,
                     }}
                 >
-                    {profissional.especialidades?.map((esp) => (
+                    {especialidades.map((esp) => (
                         <Chip
                             key={esp}
                             label={esp}
@@ -127,7 +151,6 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     ))}
                 </Box>
 
-                {/* Telefone */}
                 {profissional.telefone && (
                     <Box
                         sx={{
@@ -138,11 +161,12 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         }}
                     >
                         <FaPhone size={14} color={theme.palette.primary.main} />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>{profissional.telefone}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
+                            {profissional.telefone}
+                        </Typography>
                     </Box>
                 )}
 
-                {/* Email */}
                 {profissional.email && (
                     <Box
                         sx={{
@@ -159,14 +183,13 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     </Box>
                 )}
 
-                {/* Botão Visualizar */}
                 <Button
                     variant="contained"
                     fullWidth
                     startIcon={<FaCalendarAlt />}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setModalOpen(true);
+                        abrirModal();
                     }}
                     sx={{
                         mt: "auto",
@@ -179,7 +202,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         borderRadius: 3,
                         "&:hover": {
                             bgcolor: theme.palette.custom.primaryHover,
-                            boxShadow: `0 4px 12px ${isDark ? 'rgba(52, 211, 153, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+                            boxShadow: `0 4px 12px ${isDark ? "rgba(52, 211, 153, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
                         },
                     }}
                 >

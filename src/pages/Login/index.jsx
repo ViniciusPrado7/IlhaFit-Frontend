@@ -12,11 +12,12 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@mui/material";
-import { FaTimes, FaEye, FaEyeSlash, FaUser, FaBuilding } from "react-icons/fa";
+import { FaTimes, FaEye, FaEyeSlash, FaUser, FaBuilding, FaUserTie } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authService } from "../../service/AuthService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
+import { profissionalService } from "../../service/ProfissionalService";
 import { authSession } from "../../service/AuthSession";
 
 const isFieldErrorObject = (data) => {
@@ -84,6 +85,8 @@ const Login = () => {
     try {
       const data = accountType === "estabelecimento"
         ? (await estabelecimentoService.loginEstabelecimento({ email, senha })).data
+        : accountType === "profissional"
+          ? (await profissionalService.loginProfissional({ email, senha })).data
         : await authService.login(email, senha);
 
       if (data?.token) {
@@ -94,7 +97,7 @@ const Login = () => {
         id: data?.id,
         nome: data?.nome || email,
         email: data?.email || email,
-        tipo: data?.tipo || (accountType === "estabelecimento" ? "ESTABELECIMENTO" : "USUARIO"),
+        tipo: data?.tipo || (accountType === "estabelecimento" ? "ESTABELECIMENTO" : accountType === "profissional" ? "PROFISSIONAL" : "USUARIO"),
         role: data?.role,
       });
       toast.success(`Bem-vindo, ${data?.nome || email}!`);
@@ -186,6 +189,11 @@ const Login = () => {
               <ToggleButton value="estabelecimento">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <FaBuilding size={14} /> Estabelecimento
+                </Box>
+              </ToggleButton>
+              <ToggleButton value="profissional">
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FaUserTie size={14} /> Profissional
                 </Box>
               </ToggleButton>
             </ToggleButtonGroup>

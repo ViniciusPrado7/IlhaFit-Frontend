@@ -1,278 +1,245 @@
-import React, { useState } from "react";
-import {
-    Dialog,
-    DialogContent,
-    Box,
-    Typography,
-    IconButton,
-    Avatar,
-    Chip,
-    Paper,
-    Grid,
-    Button,
-    TextField,
-    useTheme,
-    alpha,
-} from "@mui/material";
+import React from "react";
+import { Box, Button, Chip, Dialog, DialogContent, Paper, Typography } from "@mui/material";
+import { FaStar, FaWhatsapp } from "react-icons/fa";
 
+const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
-import {
-    FaArrowLeft,
-    FaStar,
-    FaPhone,
-    FaEnvelope,
-    FaWhatsapp,
-    FaPaperPlane,
-} from "react-icons/fa";
+const getFoto = (profissional) => profissional?.fotoUrl || profissional?.Imagem || fallbackImage;
+const getNome = (profissional) => profissional?.nome || "Profissional";
+
+const getCategorias = (profissional) => {
+  if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
+    return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+  }
+
+  if (Array.isArray(profissional?.especialidades) && profissional.especialidades.length > 0) {
+    return profissional.especialidades;
+  }
+
+  if (profissional?.especializacao) {
+    return [profissional.especializacao];
+  }
+
+  return ["Profissional"];
+};
+
+const formatLabel = (value) => {
+  if (!value) return "";
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+
+const tagSx = {
+  bgcolor: "rgba(16,185,129,0.10)",
+  color: "primary.main",
+  fontWeight: 800,
+  borderRadius: 1.5,
+};
+
+const periodoTagSx = {
+  bgcolor: "background.paper",
+  color: "primary.main",
+  border: "1px solid",
+  borderColor: "rgba(16,185,129,0.35)",
+  fontWeight: 800,
+  borderRadius: 1.5,
+};
 
 const ModalProfissional = ({ open, onClose, profissional }) => {
-    const theme = useTheme();
-    const [nota, setNota] = useState(5);
-    const [comentario, setComentario] = useState("");
+  if (!profissional) return null;
 
-    if (!profissional) return null;
+  const categorias = getCategorias(profissional);
 
-    const nome = profissional.nome;
-    const foto = profissional.Imagem;
-    const especialidades = profissional.especialidades || [];
-    const telefone = profissional.telefone;
-    const email = profissional.email;
+  const handleClose = (_, reason) => {
+    if (reason === "backdropClick" || reason === "escapeKeyDown" || !reason) {
+      onClose();
+    }
+  };
 
-    return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            fullWidth
-            maxWidth="md"
-            PaperProps={{
-                sx: {
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    bgcolor: "background.paper",
-                },
-            }}
+  return (
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="md"
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          overflow: "hidden",
+          bgcolor: "background.paper",
+          width: "100%",
+          maxWidth: 980,
+        },
+      }}
+    >
+      <DialogContent sx={{ p: 0 }} onClick={(e) => e.stopPropagation()}>
+        <Paper
+          elevation={0}
+          sx={{
+            overflow: "hidden",
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
         >
-            {/* HEADER */}
+          <Box sx={{ position: "relative", height: { xs: 230, md: 330 } }}>
             <Box
-                sx={{
-                    p: 4,
-                    pb: 2,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                }}
+              component="img"
+              src={getFoto(profissional)}
+              alt={getNome(profissional)}
+              sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                background: "linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0.08) 60%)",
+              }}
+            />
+            <Button
+              onClick={onClose}
+              type="button"
+              sx={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                zIndex: 2,
+                bgcolor: "background.paper",
+                color: "text.primary",
+                "&:hover": { bgcolor: "background.paper" },
+              }}
             >
-                <Typography variant="h4" fontWeight={800}>
-                    Detalhes do Profissional
-                </Typography>
+              Fechar
+            </Button>
+          </Box>
 
-                {/* SETA */}
-                <IconButton
-                    onClick={onClose}
-                    sx={{
-                        bgcolor: alpha(theme.palette.primary.main, 0.12),
-                        border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-                        "&:hover": {
-                            bgcolor: alpha(theme.palette.primary.main, 0.18),
-                        },
-                        width: 46,
-                        height: 46,
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                    }}
+          <Box sx={{ p: { xs: 2.5, md: 4 } }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+              <Box>
+                <Typography variant="h4" fontWeight={900} sx={{ color: "text.primary", mb: 0.75 }}>
+                  {getNome(profissional)}
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
+                  <FaStar color="#FBBF24" />
+                  <Typography variant="body2" fontWeight={800}>
+                    {profissional.avaliacao ?? 0} avaliacao
+                  </Typography>
+                </Box>
+              </Box>
+              {profissional.telefone && (
+                <Button
+                  variant="contained"
+                  startIcon={<FaWhatsapp />}
+                  href={`https://wa.me/55${String(profissional.telefone).replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  sx={{ borderRadius: 2, alignSelf: "flex-start", fontWeight: 800 }}
                 >
-                    <FaArrowLeft size={20} color={theme.palette.primary.main} />
-                </IconButton>
+                  WhatsApp
+                </Button>
+              )}
             </Box>
 
-            <DialogContent sx={{ p: 4, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                {/* PERFIL */}
-                <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 4 }}>
-                    <Avatar
-                        src={foto}
-                        sx={{
-                            width: 110,
-                            height: 110,
-                            border: `4px solid ${theme.palette.primary.main}`,
-                        }}
-                    />
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", my: 2.5 }}>
+              {categorias.map((categoria) => (
+                <Chip key={categoria} label={categoria} size="small" sx={tagSx} />
+              ))}
+            </Box>
 
-                    <Box sx={{ flex: 1 }}>
-                        <Typography variant="h5" fontWeight={800}>
-                            {nome}
-                        </Typography>
+            <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+              Sobre
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
+              {`${getNome(profissional)} atende a comunidade IlhaFit com foco em ${categorias.join(", ")}.`}
+            </Typography>
 
-                        {/* Avaliação */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
-                            <FaStar size={18} color="#FBBF24" />
-                            <Typography fontWeight={700}>
-                                {profissional.avaliacao}
-                            </Typography>
-                        </Box>
-                    </Box>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+                Informações
+              </Typography>
+              <Box sx={{ display: "grid", gap: 1, color: "text.secondary", mb: 3 }}>
+                <Typography variant="body2"><strong>Email:</strong> {profissional.email || "Nao informado"}</Typography>
+                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone || "Nao informado"}</Typography>
+                <Typography variant="body2"><strong>Genero:</strong> {formatLabel(profissional.sexo || profissional.genero) || "Nao informado"}</Typography>
+                <Typography variant="body2"><strong>CREF:</strong> {profissional.registroCref || "Nao informado"}</Typography>
+              </Box>
 
-                    {/* WhatsApp */}
-                    <IconButton
-                        sx={{
-                            bgcolor: theme.palette.primary.main,
-                            color: "white",
-                            "&:hover": { bgcolor: theme.palette.custom.primaryHover },
-                            width: 48,
-                            height: 48,
-                        }}
-                    >
-                     
-                        <FaWhatsapp size={22} />
-                    </IconButton>
-                </Box>
+            </Box>
 
-                {/* ESPECIALIDADES */}
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>
-                        Especialidades
+            <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+              Atividades oferecidas
+            </Typography>
+            <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
+              {(profissional.gradeAtividades || []).map((grade, index) => (
+                <Box
+                  key={`${grade.atividade}-${index}`}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                    p: 2.25,
+                    display: "grid",
+                    gap: 2,
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+                    <Typography variant="subtitle1" fontWeight={900} color="text.primary">
+                      {grade.atividade}
                     </Typography>
+                    {grade.exclusivoMulheres && (
+                      <Chip label="Exclusiva para mulheres" size="small" sx={tagSx} />
+                    )}
+                  </Box>
 
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                        {especialidades.map((esp, i) => (
-                            <Chip
-                                key={i}
-                                label={esp}
-                                sx={{
-                                    fontWeight: 700,
-                                    bgcolor: alpha(theme.palette.primary.main, 0.15),
-                                    color: theme.palette.primary.main,
-                                }}
-                            />
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                        Dias oferecidos
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {grade.diasSemana?.map((dia) => (
+                          <Chip key={dia} label={formatLabel(dia)} size="small" sx={tagSx} />
                         ))}
+                      </Box>
                     </Box>
-                </Box>
 
-                {/* CONTATOS */}
-                <Grid container spacing={2} sx={{ mb: 4 }}>
-                    <Grid item xs={12} sm={6}>
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 2,
-                                borderRadius: 3,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 2,
-                            }}
-                        >
-                            <FaEnvelope color={theme.palette.primary.main} />
-                            <Box>
-                                <Typography
-                                    variant="caption"
-                                    fontWeight={700}
-                                    color="text.secondary"
-                                >
-                                    Email
-                                </Typography>
-                                <Typography fontWeight={700}>{email}</Typography>
-                            </Box>
-                        </Paper>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <Paper
-                            variant="outlined"
-                            sx={{
-                                p: 2,
-                                borderRadius: 3,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 2,
-                            }}
-                        >
-                            <FaPhone color={theme.palette.primary.main} />
-                            <Box>
-                                <Typography
-                                    variant="caption"
-                                    fontWeight={700}
-                                    color="text.secondary"
-                                >
-                                    Telefone
-                                </Typography>
-                                <Typography fontWeight={700}>{telefone}</Typography>
-                            </Box>
-                        </Paper>
-                    </Grid>
-                </Grid>
-
-                {/* MAPA — APENAS RESERVA VISUAL */}
-                <Box sx={{ mb: 5 }}>
-                    <Typography variant="h6" fontWeight={800} mb={2}>
-                        Localização
-                    </Typography>
-
-                    <Box
-                        sx={{
-                            width: "100%",
-                            height: 250,
-                            borderRadius: 3,
-                            border: "2px dashed #e5e7eb",
-                            bgcolor: "#f8fafc",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#94a3b8",
-                            fontWeight: 600,
-                            fontSize: "1.1rem",
-                        }}
-                    >
-                        Mapa em desenvolvimento
+                    <Box>
+                      <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                        Periodos oferecidos
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                        {grade.periodos?.map((periodo) => (
+                          <Chip key={periodo} label={formatLabel(periodo)} size="small" sx={periodoTagSx} />
+                        ))}
+                      </Box>
                     </Box>
+                  </Box>
                 </Box>
+              ))}
+            </Box>
 
-                {/* AVALIAÇÃO */}
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" fontWeight={800} mb={2}>
-                        Avaliar profissional
-                    </Typography>
-
-                    <Paper sx={{ p: 3, borderRadius: 3 }} elevation={0}>
-                        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                                <FaStar
-                                    key={star}
-                                    size={28}
-                                    color={star <= nota ? "#FBBF24" : "#E5E7EB"}
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => setNota(star)}
-                                />
-                            ))}
-                        </Box>
-
-                        <TextField
-                            fullWidth
-                            multiline
-                            rows={3}
-                            placeholder="Escreva um comentário..."
-                            value={comentario}
-                            onChange={(e) => setComentario(e.target.value)}
-                            sx={{ mb: 2 }}
-                        />
-
-                        <Button
-                            fullWidth
-                            variant="contained"
-                            startIcon={<FaPaperPlane />}
-                            sx={{
-                                borderRadius: 3,
-                                textTransform: "none",
-                                fontSize: "1.1rem",
-                                py: 1.2,
-                            }}
-                        >
-                            Enviar avaliação
-                        </Button>
-                    </Paper>
-                </Box>
-            </DialogContent>
-        </Dialog>
-    );
+            <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+              Avaliacoes
+            </Typography>
+            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, textAlign: "center", color: "text.secondary" }}>
+              Faca login para deixar uma avaliacao
+            </Box>
+          </Box>
+        </Paper>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default ModalProfissional;
