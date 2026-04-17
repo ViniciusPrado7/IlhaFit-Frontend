@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authService } from "../../service/AuthService";
 import CadastroEstabelecimento from "./CadastroEstabelecimento";
+import CadastroProfissional from "./CadastroProfissional";
 
 const alunoInicial = { nome: "", email: "", senha: "", confirmarSenha: "" };
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
@@ -25,7 +26,8 @@ const Cadastro = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const isDark = theme.palette.mode === "dark";
-    const tipoInicial = location.state?.accountType === "estabelecimento" ? "estabelecimento" : "aluno";
+    const tiposValidos = ["aluno", "estabelecimento", "profissional"];
+    const tipoInicial = tiposValidos.includes(location.state?.accountType) ? location.state.accountType : "aluno";
 
     const [accountType, setAccountType] = useState(tipoInicial);
     const [formData, setFormData] = useState(alunoInicial);
@@ -253,11 +255,11 @@ const Cadastro = () => {
                     </ToggleButtonGroup>
                 </Box>
 
-                {accountType === "profissional" && <Box sx={{ minHeight: "20px" }} />}
                 {accountType === "aluno" && alunoForm()}
                 {accountType === "estabelecimento" && <CadastroEstabelecimento />}
+                {accountType === "profissional" && <CadastroProfissional />}
 
-                {accountType !== "profissional" && (
+                {(accountType === "aluno" || accountType === "estabelecimento" || accountType === "profissional") && (
                     <Box sx={{ mt: 3, textAlign: "center" }}>
                         <Typography variant="body2" color="text.secondary">
                             Ja tem conta?{" "}
