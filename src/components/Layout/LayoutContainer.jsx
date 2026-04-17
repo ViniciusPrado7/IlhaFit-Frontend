@@ -3,9 +3,10 @@ import { Container } from "@mui/material";
 const LayoutContainer = ({ children }) => {
   return (
     <Container
-      maxWidth="xl"
+      maxWidth={false}
       sx={{
-        px: { xs: 2, sm: 3, md: 4 }, 
+        maxWidth: "1680px",
+        px: { xs: 2, sm: 3, md: 4, xl: 5 },
       }}
     >
       {children}
