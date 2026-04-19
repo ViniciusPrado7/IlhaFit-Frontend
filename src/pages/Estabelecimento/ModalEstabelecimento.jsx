@@ -78,7 +78,7 @@ const getErrorMessage = (error) => {
   return "Nao foi possivel carregar o estabelecimento.";
 };
 
-export const EstabelecimentoDetalheContent = ({ estabelecimento, onClose, closeLabel = "Voltar" }) => {
+export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar" }) => {
   const categorias = getCategorias(estabelecimento);
 
   return (
@@ -256,7 +256,7 @@ export const EstabelecimentoDetalheContent = ({ estabelecimento, onClose, closeL
   );
 };
 
-const EstabelecimentoDetalhe = () => {
+const ModalEstabelecimento = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [estabelecimento, setEstabelecimento] = useState(null);
@@ -305,7 +305,7 @@ const EstabelecimentoDetalhe = () => {
 
   return (
     <Box sx={{ maxWidth: 980, mx: "auto", pb: 6 }}>
-      <EstabelecimentoDetalheContent
+      <ModalEstabelecimentoContent
         estabelecimento={estabelecimento}
         onClose={() => navigate("/estabelecimento")}
       />
@@ -313,4 +313,4 @@ const EstabelecimentoDetalhe = () => {
   );
 };
 
-export default EstabelecimentoDetalhe;
+export default ModalEstabelecimento;

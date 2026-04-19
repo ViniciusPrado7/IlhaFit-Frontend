@@ -1,7 +1,7 @@
 import { Alert, Box, CircularProgress, Dialog, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import { EstabelecimentoDetalheContent } from "./Detalhe";
+import { ModalEstabelecimentoContent } from "./ModalEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const getErrorMessage = (error) => {
@@ -142,7 +142,7 @@ const Estabelecimento = () => {
         }}
       >
         {selectedEstabelecimento && (
-          <EstabelecimentoDetalheContent
+          <ModalEstabelecimentoContent
             estabelecimento={selectedEstabelecimento}
             onClose={() => setSelectedEstabelecimento(null)}
             closeLabel="Fechar"
