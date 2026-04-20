@@ -23,7 +23,7 @@ import {
   FaSearch,
 } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import { ModalEstabelecimentoContent } from "../Estabelecimento/ModalEstabelecimento";
+import { ModalEstabelecimentoContent } from "../Estabelecimento/components/ModalEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const normalizeList = (data) => {
@@ -128,7 +128,6 @@ const Home = () => {
       <Box
         sx={{
           minHeight: { xs: "auto", md: 680 },
-          px: { xs: 2, sm: 3, md: 4, xl: 5 },
           pt: { xs: 3, md: 8 },
           pb: { xs: 8, md: 11 },
           background: isDark
@@ -136,7 +135,14 @@ const Home = () => {
             : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.14)} 0%, ${theme.palette.background.default} 48%, ${alpha("#06B6D4", 0.16)} 100%)`,
         }}
       >
-        <Box sx={{ maxWidth: 1680, mx: "auto", textAlign: "center" }}>
+        <Box
+          sx={{
+            maxWidth: "1680px",
+            mx: "auto",
+            px: { xs: 2, sm: 3, md: 4, xl: 8 },
+            textAlign: "center",
+          }}
+        >
           <Box
             sx={{
               display: "inline-flex",
@@ -357,12 +363,17 @@ const Home = () => {
 
       <Box
         sx={{
-          px: { xs: 2, sm: 3, md: 4, xl: 5 },
           py: { xs: 7, md: 9 },
           bgcolor: alpha(theme.palette.primary.main, isDark ? 0.04 : 0.06),
         }}
       >
-        <Box sx={{ maxWidth: 1680, mx: "auto" }}>
+        <Box
+          sx={{
+            maxWidth: "1680px",
+            mx: "auto",
+            px: { xs: 2, sm: 3, md: 4, xl: 8 },
+          }}
+        >
           <Box
             sx={{
               display: "flex",
