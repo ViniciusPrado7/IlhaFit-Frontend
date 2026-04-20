@@ -1,16 +1,11 @@
 import {
-  Alert,
   Box,
   Button,
   Chip,
-  CircularProgress,
   Paper,
   Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
 import { FaMapMarkerAlt, FaStar, FaWhatsapp } from "react-icons/fa";
-import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -69,13 +64,6 @@ const periodoTagSx = {
   borderColor: "rgba(16,185,129,0.35)",
   fontWeight: 800,
   borderRadius: 1.5,
-};
-
-const getErrorMessage = (error) => {
-  const data = error?.response?.data;
-  if (typeof data === "string") return data;
-  if (data && typeof data === "object") return Object.values(data).filter(Boolean).join(" ");
-  return "Nao foi possivel carregar o estabelecimento.";
 };
 
 export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar" }) => {
@@ -256,61 +244,4 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
   );
 };
 
-const ModalEstabelecimento = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [estabelecimento, setEstabelecimento] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-
-    const carregar = async () => {
-      try {
-        const response = await estabelecimentoService.buscarEstabelecimentoPorId(id);
-        if (mounted) {
-          setEstabelecimento(response.data);
-          setError("");
-        }
-      } catch (err) {
-        if (mounted) setError(getErrorMessage(err));
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    carregar();
-
-    return () => {
-      mounted = false;
-    };
-  }, [id]);
-
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert severity="error" action={<Button onClick={() => navigate("/estabelecimento")}>Voltar</Button>}>
-        {error}
-      </Alert>
-    );
-  }
-
-  return (
-    <Box sx={{ maxWidth: 980, mx: "auto", pb: 6 }}>
-      <ModalEstabelecimentoContent
-        estabelecimento={estabelecimento}
-        onClose={() => navigate("/estabelecimento")}
-      />
-    </Box>
-  );
-};
-
-export default ModalEstabelecimento;
+export default ModalEstabelecimentoContent;
