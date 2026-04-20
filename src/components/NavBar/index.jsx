@@ -53,7 +53,7 @@ const NavBar = () => {
   const handleSettings = () => {
     setAnchorEl(null);
     if (user?.tipo === "ESTABELECIMENTO" && user?.id) {
-      navigate(`/estabelecimento/${user.id}`);
+      navigate("/estabelecimento/configuracoes");
       return;
     }
 
