@@ -1,17 +1,17 @@
 import { Alert, Box, Button, CircularProgress } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ModalEstabelecimentoContent from "./components/ModalEstabelecimento";
+import ModalEstabelecimentoContent from "../../components/ModalEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
   if (typeof data === "string") return data;
   if (data && typeof data === "object") return Object.values(data).filter(Boolean).join(" ");
-  return "Nao foi possivel carregar o estabelecimento.";
+  return "Não foi possível carregar o estabelecimento.";
 };
 
-const DetalheEstabelecimento = () => {
+const PerfilEstabelecimento = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [estabelecimento, setEstabelecimento] = useState(null);
@@ -68,4 +68,4 @@ const DetalheEstabelecimento = () => {
   );
 };
 
-export default DetalheEstabelecimento;
+export default PerfilEstabelecimento;

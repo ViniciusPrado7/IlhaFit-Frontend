@@ -23,7 +23,7 @@ import {
   FaSearch,
 } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import { ModalEstabelecimentoContent } from "../Estabelecimento/components/ModalEstabelecimento";
+import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const normalizeList = (data) => {

@@ -1,7 +1,7 @@
 import { Alert, Box, CircularProgress, Dialog, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import { ModalEstabelecimentoContent } from "./components/ModalEstabelecimento";
+import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const getErrorMessage = (error) => {
