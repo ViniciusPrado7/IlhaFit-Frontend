@@ -43,7 +43,7 @@ const formInicial = {
   cep: "",
 };
 
-const gradeInicial = { atividade: "", diasSemana: [], periodos: [] };
+const gradeInicial = { id: null, atividade: "", diasSemana: [], periodos: [] };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
 
@@ -75,6 +75,14 @@ const getCategoriaNome = (categoria) => {
 
 const getApiError = (error) => {
   const data = error?.response?.data;
+  const status = error?.response?.status;
+
+  if (status === 401 || status === 403) {
+    return {
+      fieldErrors: {},
+      generalError: "Sessao invalida ou sem permissao. Faca login novamente.",
+    };
+  }
 
   if (data && typeof data === "object" && !Array.isArray(data)) {
     const { erro, ...fieldErrors } = data;
@@ -86,6 +94,8 @@ const getApiError = (error) => {
     generalError: typeof data === "string" ? data : error?.message || "Não foi possível concluir a operação.",
   };
 };
+
+const isSessionError = (error) => [401, 403].includes(error?.response?.status);
 
 const normalizeForm = (estabelecimento) => ({
   nome: estabelecimento?.nome || "",
@@ -106,6 +116,7 @@ const normalizeGrade = (gradeAtividades) => {
   if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [gradeInicial];
 
   return gradeAtividades.map((item) => ({
+    id: item.id || null,
     atividade: item.atividade || "",
     diasSemana: Array.isArray(item.diasSemana) ? item.diasSemana : [],
     periodos: Array.isArray(item.periodos) ? item.periodos : [],
@@ -139,7 +150,7 @@ const ConfiguracaoEstabelecimento = () => {
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
   const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [gradeInicial] });
 
-  const estabelecimentoId = user?.tipo === "ESTABELECIMENTO" ? user.id : null;
+  const estabelecimentoId = authSession.isEstabelecimentoAuthenticated() ? user?.id : null;
 
   useEffect(() => {
     if (!estabelecimentoId) {
@@ -317,6 +328,41 @@ const ConfiguracaoEstabelecimento = () => {
     ...overrides,
   });
 
+  const buildGradePayload = () => ({
+    gradeAtividades: gradeAtividades
+      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .map((item) => ({
+        id: item.id,
+        atividade: item.atividade,
+        diasSemana: item.diasSemana,
+        periodos: item.periodos,
+      })),
+  });
+
+  const toGradeRequest = (item) => ({
+    atividade: item.atividade,
+    diasSemana: item.diasSemana,
+    periodos: item.periodos,
+  });
+
+  const extractGradeResponse = (data, fallback) => data?.atividade || data || fallback;
+
+  const handleProtectedError = (error, setErrors = true) => {
+    const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
+
+    if (setErrors) {
+      setFieldErrors(apiFieldErrors);
+    }
+
+    setGeneralError(apiGeneralError);
+
+    if (isSessionError(error)) {
+      authSession.clear();
+      toast.error(apiGeneralError);
+      navigate("/login", { state: { accountType: "estabelecimento" } });
+    }
+  };
+
   const validarAtividades = () => {
     const gradeInvalida = gradeAtividades.some((item) => (
       !item.atividade ||
@@ -352,9 +398,7 @@ const ConfiguracaoEstabelecimento = () => {
       setIsEditingDados(false);
       toast.success("Dados atualizados com sucesso!");
     } catch (error) {
-      const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
-      setFieldErrors(apiFieldErrors);
-      setGeneralError(apiGeneralError);
+      handleProtectedError(error);
     } finally {
       setSaving(false);
     }
@@ -367,18 +411,33 @@ const ConfiguracaoEstabelecimento = () => {
 
     setSaving(true);
     try {
-      const response = await estabelecimentoService.atualizarEstabelecimento(estabelecimentoId, buildPayload());
-      const estabelecimentoAtualizado = response.data;
-      const nextGradeAtividades = normalizeGrade(estabelecimentoAtualizado?.gradeAtividades || gradeAtividades);
+      const gradePayload = buildGradePayload();
+      const nextIds = new Set(gradePayload.gradeAtividades.map((item) => item.id).filter(Boolean));
+      const removedIds = savedDados.gradeAtividades
+        .map((item) => item.id)
+        .filter((id) => id && !nextIds.has(id));
+
+      await Promise.all(removedIds.map((id) => estabelecimentoService.excluirGradeAtividade(id)));
+
+      const responses = await Promise.all(
+        gradePayload.gradeAtividades.map((item) => {
+          const request = toGradeRequest(item);
+          return item.id
+            ? estabelecimentoService.atualizarGradeAtividade(item.id, request)
+            : estabelecimentoService.cadastrarGradeEstabelecimento(estabelecimentoId, request);
+        })
+      );
+
+      const nextGradeAtividades = normalizeGrade(
+        responses.map((response, index) => extractGradeResponse(response.data, gradePayload.gradeAtividades[index]))
+      );
 
       setGradeAtividades(nextGradeAtividades);
       setSavedDados((prev) => ({ ...prev, gradeAtividades: nextGradeAtividades }));
       setIsEditingAtividades(false);
       toast.success("Atividades atualizadas com sucesso!");
     } catch (error) {
-      const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
-      setFieldErrors(apiFieldErrors);
-      setGeneralError(apiGeneralError);
+      handleProtectedError(error);
     } finally {
       setSaving(false);
     }
@@ -420,7 +479,7 @@ const ConfiguracaoEstabelecimento = () => {
       setFotosUrl(Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl);
       toast.success("Galeria atualizada com sucesso!");
     } catch (error) {
-      setGeneralError(getApiError(error).generalError);
+      handleProtectedError(error, false);
     } finally {
       setSaving(false);
     }
@@ -436,7 +495,7 @@ const ConfiguracaoEstabelecimento = () => {
       toast.success("Conta excluída com sucesso.");
       navigate("/");
     } catch (error) {
-      setGeneralError(getApiError(error).generalError);
+      handleProtectedError(error, false);
     } finally {
       setSaving(false);
     }
