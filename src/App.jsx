@@ -8,6 +8,7 @@ import PerfilEstabelecimento from "./pages/Estabelecimento/Perfil.jsx";
 import Login from "./pages/Login/index.jsx";
 import Cadastro from "./pages/Cadastro/index.jsx";
 import Profissional from "./pages/Profissional/index.jsx";
+import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
 
 
 
@@ -17,7 +18,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/estabelecimento" element={<Estabelecimento />} />
-        <Route path="/estabelecimento/configuracoes" element={<ConfiguracaoEstabelecimento />} />
+        <Route
+          path="/estabelecimento/configuracoes"
+          element={(
+            <EstabelecimentoRoute>
+              <ConfiguracaoEstabelecimento />
+            </EstabelecimentoRoute>
+          )}
+        />
         <Route path="/estabelecimento/:id" element={<PerfilEstabelecimento />} />
         <Route path="/profissional" element={<Profissional />} />
         <Route path="/cadastro" element={<Cadastro />} />

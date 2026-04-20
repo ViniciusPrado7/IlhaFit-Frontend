@@ -9,15 +9,11 @@ import {
   useTheme,
   InputAdornment,
   Alert,
-  ToggleButton,
-  ToggleButtonGroup,
 } from "@mui/material";
-import { FaTimes, FaEye, FaEyeSlash, FaUser, FaBuilding, FaUserTie } from "react-icons/fa";
+import { FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authService } from "../../service/AuthService";
-import { estabelecimentoService } from "../../service/EstabelecimentoService";
-import { profissionalService } from "../../service/ProfissionalService";
 import { authSession } from "../../service/AuthSession";
 
 const isFieldErrorObject = (data) => {
@@ -28,6 +24,13 @@ const getApiError = (error) => {
   const data = error?.response?.data;
   const status = error?.response?.status;
 
+  if (status === 401 || status === 403) {
+    return {
+      fieldErrors: {},
+      generalError: status === 401 ? "Email ou senha invalidos." : "Sessao invalida ou sem permissao. Faca login novamente."
+    };
+  }
+
   if (status === 403 && !data) {
     return {
       fieldErrors: {},
@@ -36,7 +39,8 @@ const getApiError = (error) => {
   }
 
   if (isFieldErrorObject(data)) {
-    return { fieldErrors: data, generalError: "" };
+    const { erro, ...fieldErrors } = data;
+    return { fieldErrors, generalError: erro || "" };
   }
 
   if (typeof data === "string") {
@@ -49,27 +53,45 @@ const getApiError = (error) => {
   };
 };
 
+const requireEstabelecimentoLogin = (data) => {
+  if (!data?.token) {
+    throw new Error("Nao foi possivel iniciar a sessao do estabelecimento. Tente novamente.");
+  }
+
+  return data;
+};
+
+const normalizeTipo = (tipo) => {
+  if (tipo === "ALUNO") return "USUARIO";
+  return tipo || "USUARIO";
+};
+
+const getRedirectPath = (data, from) => {
+  const tipo = normalizeTipo(data?.tipo);
+
+  if (tipo === "ESTABELECIMENTO") {
+    return from || "/estabelecimento/configuracoes";
+  }
+
+  if (tipo === "PROFISSIONAL") {
+    return "/profissional";
+  }
+
+  return "/";
+};
+
 const Login = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const isDark = theme.palette.mode === 'dark';
 
-  const [accountType, setAccountType] = useState(location.state?.accountType || "aluno");
   const [email, setEmail] = useState(location.state?.email || "");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
-
-  const handleTypeChange = (_, newType) => {
-    if (newType !== null) {
-      setAccountType(newType);
-      setFieldErrors({});
-      setGeneralError("");
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,28 +105,28 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const data = accountType === "estabelecimento"
-        ? (await estabelecimentoService.loginEstabelecimento({ email, senha })).data
-        : accountType === "profissional"
-          ? (await profissionalService.loginProfissional({ email, senha })).data
-        : await authService.login(email, senha);
+      const data = await authService.login(email, senha);
+      const tipo = normalizeTipo(data?.tipo);
 
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
+      if (tipo === "ESTABELECIMENTO") {
+        authSession.setSession(requireEstabelecimentoLogin(data));
+      } else {
+        authSession.setUser({
+          id: data?.id,
+          nome: data?.nome || email,
+          email: data?.email || email,
+          tipo,
+          role: data?.role,
+        });
       }
 
-      authSession.setUser({
-        id: data?.id,
-        nome: data?.nome || email,
-        email: data?.email || email,
-        tipo: data?.tipo || (accountType === "estabelecimento" ? "ESTABELECIMENTO" : accountType === "profissional" ? "PROFISSIONAL" : "USUARIO"),
-        role: data?.role,
-      });
       toast.success(`Bem-vindo, ${data?.nome || email}!`);
-      navigate("/");
+      navigate(getRedirectPath(data, location.state?.from));
     } catch (error) {
       console.error("Erro no login:", error);
-      const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
+      const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = error?.response
+        ? getApiError(error)
+        : { fieldErrors: {}, generalError: error?.message || "Erro ao fazer login" };
       setFieldErrors(apiFieldErrors);
       setGeneralError(apiGeneralError);
     } finally {
@@ -119,23 +141,28 @@ const Login = () => {
       "& fieldset": { borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(16, 185, 129, 0.2)" },
       "&:hover fieldset": { borderColor: theme.palette.primary.main },
     },
-    mb: 2
+    "& .MuiInputBase-input": {
+      py: 1.65,
+    },
+    mb: 2.5
   };
 
   return (
     <Box sx={{
-      minHeight: "100vh",
+      minHeight: "calc(100vh - 112px)",
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       bgcolor: "background.default",
-      py: 4,
+      pt: { xs: 2, sm: 3, md: 4 },
+      pb: { xs: 4, md: 6 },
       px: 2
     }}>
       <Paper elevation={0} sx={{
         width: "100%",
-        maxWidth: 600,
-        p: 4,
+        maxWidth: 720,
+        minHeight: { md: 560 },
+        p: { xs: 3, sm: 5, md: 6 },
         borderRadius: 4,
         border: "1px solid",
         borderColor: "divider",
@@ -149,56 +176,11 @@ const Login = () => {
           <FaTimes size={20} />
         </IconButton>
 
-        <Typography variant="h4" fontWeight={800} sx={{ mb: 3, color: "text.primary" }}>
+        <Typography variant="h3" fontWeight={800} sx={{ mb: 4.5, color: "text.primary", fontSize: { xs: "2rem", md: "2.45rem" } }}>
           Entrar
         </Typography>
 
         <form onSubmit={handleSubmit}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5, color: "text.secondary" }}>
-              Tipo de conta
-            </Typography>
-            <ToggleButtonGroup
-              value={accountType}
-              exclusive
-              onChange={handleTypeChange}
-              fullWidth
-              sx={{
-                gap: 1,
-                "& .MuiToggleButton-root": {
-                  border: "1px solid !important",
-                  borderColor: "divider !important",
-                  borderRadius: "12px !important",
-                  color: "text.secondary",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  py: 1.5,
-                  "&.Mui-selected": {
-                    bgcolor: "primary.main",
-                    color: "white",
-                    "&:hover": { bgcolor: "primary.dark" }
-                  }
-                }
-              }}
-            >
-              <ToggleButton value="aluno">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FaUser size={14} /> Aluno
-                </Box>
-              </ToggleButton>
-              <ToggleButton value="estabelecimento">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FaBuilding size={14} /> Estabelecimento
-                </Box>
-              </ToggleButton>
-              <ToggleButton value="profissional">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <FaUserTie size={14} /> Profissional
-                </Box>
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
           {generalError && <Alert severity="error" sx={{ mb: 2 }}>{generalError}</Alert>}
 
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
@@ -252,7 +234,7 @@ const Login = () => {
             }}
           />
 
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 1, mb: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 1.5, mb: 3 }}>
             <Typography
               variant="body2"
               color="primary.main"
@@ -270,7 +252,7 @@ const Login = () => {
             fullWidth
             disabled={loading}
             sx={{
-              py: 1.5,
+              py: 1.75,
               borderRadius: 3,
               fontWeight: 700,
               fontSize: "1rem",
@@ -286,7 +268,7 @@ const Login = () => {
             {loading ? "Entrando..." : "Entrar"}
           </Button>
 
-          <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Box sx={{ mt: 4, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">
               Nao tem conta?{" "}
               <Typography
@@ -295,7 +277,7 @@ const Login = () => {
                 fontWeight={700}
                 color="primary.main"
                 sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-                onClick={() => navigate("/cadastro", { state: { accountType } })}
+                onClick={() => navigate("/cadastro")}
               >
                 Cadastre-se
               </Typography>

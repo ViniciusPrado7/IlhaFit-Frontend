@@ -184,18 +184,19 @@ const Cadastro = () => {
 
     return (
         <Box sx={{
-            minHeight: "100vh",
+            minHeight: "calc(100vh - 112px)",
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             justifyContent: "center",
             bgcolor: "background.default",
-            py: 4,
+            pt: { xs: 2, sm: 3, md: 4 },
+            pb: { xs: 4, md: 6 },
             px: 2
         }}>
             <Paper elevation={0} sx={{
                 width: "100%",
                 maxWidth: 760,
-                p: 4,
+                p: { xs: 3, sm: 4 },
                 borderRadius: 4,
                 border: "1px solid",
                 borderColor: "divider",
