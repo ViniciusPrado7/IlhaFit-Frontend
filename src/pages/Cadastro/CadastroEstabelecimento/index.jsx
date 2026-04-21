@@ -25,8 +25,8 @@ const PERIODOS = ["MANHA", "TARDE", "NOITE"];
 const NOVA_CATEGORIA_VALUE = "__nova_categoria__";
 
 const formInicial = {
-  nome: "",
   nomeFantasia: "",
+  razaoSocial: "",
   email: "",
   senha: "",
   confirmarSenha: "",
@@ -42,7 +42,7 @@ const formInicial = {
   fotoUrl: "",
 };
 
-const gradeInicial = { atividade: "", diasSemana: [], periodos: [] };
+const gradeInicial = { atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
 
 const onlyDigits = (value) => value.replace(/\D/g, "");
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
@@ -199,8 +199,8 @@ const CadastroEstabelecimento = () => {
   const validarEtapaUm = () => {
     const errors = {};
 
-    if (!formData.nome.trim()) errors.nome = "Informe o nome";
     if (!formData.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia";
+    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razao social";
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
@@ -237,8 +237,8 @@ const CadastroEstabelecimento = () => {
   };
 
   const payload = () => ({
-    nome: formData.nome,
     nomeFantasia: formData.nomeFantasia,
+    razaoSocial: formData.razaoSocial,
     email: formData.email,
     senha: formData.senha,
     telefone: formData.telefone,
@@ -256,6 +256,7 @@ const CadastroEstabelecimento = () => {
       .filter(item => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
       .map(item => ({
       atividade: item.atividade,
+      exclusivoMulheres: Boolean(item.exclusivoMulheres),
       diasSemana: item.diasSemana,
       periodos: item.periodos,
     })),
@@ -347,12 +348,12 @@ const CadastroEstabelecimento = () => {
     <>
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
-          {label("Nome")}
-          <TextField fullWidth name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Academia IlhaFit" error={Boolean(fieldErrors.nome)} helperText={fieldErrors.nome} sx={inputStyles} required />
+          {label("Nome fantasia")}
+          <TextField fullWidth name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} placeholder="IlhaFit Centro" error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
-          {label("Nome Fantasia")}
-          <TextField fullWidth name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} placeholder="IlhaFit Centro" error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} required />
+          {label("Razao social")}
+          <TextField fullWidth name="razaoSocial" value={formData.razaoSocial} onChange={handleInputChange} placeholder="IlhaFit Academia LTDA" error={Boolean(fieldErrors.razaoSocial)} helperText={fieldErrors.razaoSocial} sx={inputStyles} required />
         </Box>
       </Box>
 
