@@ -40,6 +40,30 @@ const getApiError = (error, fallback) => {
   return error?.message || fallback;
 };
 
+const getAvaliacaoSubmitError = (error) => {
+  if (error?.response?.status === 422) {
+    return "Nao foi possivel enviar sua avaliacao porque o comentario contem conteudo ofensivo ou inadequado.";
+  }
+
+  if (error?.response?.status === 503) {
+    return "Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.";
+  }
+
+  return getApiError(error, "Nao foi possivel enviar a avaliacao.");
+};
+
+const getDenunciaSubmitError = (error) => {
+  if (error?.response?.status === 422) {
+    return "Nao foi possivel enviar sua denuncia porque a descricao contem conteudo ofensivo ou inadequado.";
+  }
+
+  if (error?.response?.status === 503) {
+    return "Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.";
+  }
+
+  return getApiError(error, "Nao foi possivel enviar a denuncia.");
+};
+
 const formatDate = (date) => {
   if (!date) return "";
   const parsed = new Date(date);
@@ -136,7 +160,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
       toast.success("Avaliacao enviada com sucesso.");
       await carregarAvaliacoes();
     } catch (err) {
-      toast.error(getApiError(err, "Nao foi possivel enviar a avaliacao."));
+      toast.error(getAvaliacaoSubmitError(err));
     } finally {
       setSaving(false);
     }
@@ -172,7 +196,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
       toast.success("Denuncia enviada com sucesso.");
       setDenunciaOpen(false);
     } catch (err) {
-      toast.error(getApiError(err, "Nao foi possivel enviar a denuncia."));
+      toast.error(getDenunciaSubmitError(err));
     } finally {
       setDenunciando(false);
     }

@@ -15,7 +15,7 @@ import {
     alpha,
 } from '@mui/material';
 import { FaFlag, FaExclamationTriangle } from 'react-icons/fa';
-import { denunciaService } from '../../services';
+import { denunciaService } from '../../service/DenunciaService';
 import { toast } from 'react-toastify';
 
 const MOTIVOS = [
@@ -25,6 +25,18 @@ const MOTIVOS = [
     { value: 'INFORMACAO_FALSA', label: 'Informação Falsa' },
     { value: 'OUTROS', label: 'Outros' },
 ];
+
+const getDenunciaSubmitError = (error) => {
+    if (error?.response?.status === 422) {
+        return 'Nao foi possivel enviar sua denuncia porque a descricao contem conteudo ofensivo ou inadequado.';
+    }
+
+    if (error?.response?.status === 503) {
+        return 'Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.';
+    }
+
+    return error.response?.data?.erro || 'Erro ao enviar denuncia.';
+};
 
 const ModalDenuncia = ({ open, onClose, avaliacaoId, onSuccess }) => {
     const theme = useTheme();
@@ -40,7 +52,7 @@ const ModalDenuncia = ({ open, onClose, avaliacaoId, onSuccess }) => {
 
         setLoading(true);
         try {
-            await denunciaService.criar({
+            await denunciaService.criarDenuncia({
                 avaliacaoId,
                 motivo,
                 descricaoAdicional: descricaoAdicional.trim() || null,
@@ -51,8 +63,7 @@ const ModalDenuncia = ({ open, onClose, avaliacaoId, onSuccess }) => {
             onSuccess?.();
             onClose();
         } catch (error) {
-            const msg = error.response?.data?.erro || 'Erro ao enviar denúncia.';
-            toast.error(msg);
+            toast.error(getDenunciaSubmitError(error));
         } finally {
             setLoading(false);
         }
