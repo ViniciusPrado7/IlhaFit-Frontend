@@ -23,7 +23,7 @@ import logo from "../../assets/logo.svg";
 
 const getDisplayName = (user) => {
   if (!user) return "";
-  return user.tipo === "ESTABELECIMENTO" ? user.nome : user.nome || user.email;
+  return user.tipo === "ESTABELECIMENTO" ? user.nomeFantasia || user.email : user.nome || user.email;
 };
 
 const NavBar = () => {

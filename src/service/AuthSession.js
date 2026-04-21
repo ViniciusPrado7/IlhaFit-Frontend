@@ -2,14 +2,20 @@ const AUTH_USER_KEY = "ilhaFitAuthUser";
 const AUTH_TOKEN_KEY = "token";
 const AUTH_TOKEN_TYPE_KEY = "tokenType";
 
-const normalizeUser = (user) => ({
-  id: user?.id,
-  nome: user?.nome,
-  email: user?.email,
-  tipo: user?.tipo,
-  role: user?.role,
-  tokenType: user?.tokenType,
-});
+const normalizeUser = (user) => {
+  const isEstabelecimento = user?.tipo === "ESTABELECIMENTO";
+
+  return {
+    id: user?.id,
+    nome: isEstabelecimento ? undefined : user?.nome,
+    nomeFantasia: isEstabelecimento ? user?.nomeFantasia : undefined,
+    razaoSocial: isEstabelecimento ? user?.razaoSocial : undefined,
+    email: user?.email,
+    tipo: user?.tipo,
+    role: user?.role,
+    tokenType: user?.tokenType,
+  };
+};
 
 export const authSession = {
   getUser() {

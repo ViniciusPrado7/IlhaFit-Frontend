@@ -20,7 +20,7 @@ const getFoto = (estabelecimento) => {
   return estabelecimento.Imagem || fallbackImage;
 };
 
-const getNome = (estabelecimento) => estabelecimento.nomeFantasia || estabelecimento.nome || "Estabelecimento";
+const getNome = (estabelecimento) => estabelecimento.nomeFantasia || "Estabelecimento";
 
 const getLocalizacao = (estabelecimento) => {
   const endereco = estabelecimento.endereco;
