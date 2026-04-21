@@ -29,8 +29,8 @@ const NOVA_CATEGORIA_VALUE = "__nova_categoria__";
 const MAX_FOTOS = 6;
 
 const formInicial = {
-  nome: "",
   nomeFantasia: "",
+  razaoSocial: "",
   email: "",
   telefone: "",
   cnpj: "",
@@ -43,7 +43,7 @@ const formInicial = {
   cep: "",
 };
 
-const gradeInicial = { id: null, atividade: "", diasSemana: [], periodos: [] };
+const gradeInicial = { id: null, atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
 
@@ -98,8 +98,8 @@ const getApiError = (error) => {
 const isSessionError = (error) => [401, 403].includes(error?.response?.status);
 
 const normalizeForm = (estabelecimento) => ({
-  nome: estabelecimento?.nome || "",
   nomeFantasia: estabelecimento?.nomeFantasia || "",
+  razaoSocial: estabelecimento?.razaoSocial || "",
   email: estabelecimento?.email || "",
   telefone: onlyDigits(estabelecimento?.telefone || ""),
   cnpj: onlyDigits(estabelecimento?.cnpj || ""),
@@ -118,6 +118,7 @@ const normalizeGrade = (gradeAtividades) => {
   return gradeAtividades.map((item) => ({
     id: item.id || null,
     atividade: item.atividade || "",
+    exclusivoMulheres: Boolean(item.exclusivoMulheres),
     diasSemana: Array.isArray(item.diasSemana) ? item.diasSemana : [],
     periodos: Array.isArray(item.periodos) ? item.periodos : [],
   }));
@@ -286,8 +287,8 @@ const ConfiguracaoEstabelecimento = () => {
   const validarDados = () => {
     const errors = {};
 
-    if (!formData.nome.trim()) errors.nome = "Informe o nome";
     if (!formData.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia";
+    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razao social";
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
@@ -303,8 +304,8 @@ const ConfiguracaoEstabelecimento = () => {
   };
 
   const buildPayload = (overrides = {}) => ({
-    nome: formData.nome,
     nomeFantasia: formData.nomeFantasia,
+    razaoSocial: formData.razaoSocial,
     email: formData.email,
     telefone: formData.telefone,
     cnpj: formData.cnpj,
@@ -321,6 +322,7 @@ const ConfiguracaoEstabelecimento = () => {
       .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
       .map((item) => ({
         atividade: item.atividade,
+        exclusivoMulheres: Boolean(item.exclusivoMulheres),
         diasSemana: item.diasSemana,
         periodos: item.periodos,
       })),
@@ -334,6 +336,7 @@ const ConfiguracaoEstabelecimento = () => {
       .map((item) => ({
         id: item.id,
         atividade: item.atividade,
+        exclusivoMulheres: Boolean(item.exclusivoMulheres),
         diasSemana: item.diasSemana,
         periodos: item.periodos,
       })),
@@ -341,11 +344,20 @@ const ConfiguracaoEstabelecimento = () => {
 
   const toGradeRequest = (item) => ({
     atividade: item.atividade,
+    exclusivoMulheres: Boolean(item.exclusivoMulheres),
     diasSemana: item.diasSemana,
     periodos: item.periodos,
   });
 
   const extractGradeResponse = (data, fallback) => data?.atividade || data || fallback;
+
+  const syncGradeFromEstabelecimento = (estabelecimentoAtualizado) => {
+    if (!Array.isArray(estabelecimentoAtualizado?.gradeAtividades)) return;
+
+    const nextGradeAtividades = normalizeGrade(estabelecimentoAtualizado.gradeAtividades);
+    setGradeAtividades(nextGradeAtividades);
+    setSavedDados((prev) => ({ ...prev, gradeAtividades: nextGradeAtividades }));
+  };
 
   const handleProtectedError = (error, setErrors = true) => {
     const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
@@ -392,7 +404,13 @@ const ConfiguracaoEstabelecimento = () => {
     try {
       const response = await estabelecimentoService.atualizarEstabelecimento(estabelecimentoId, buildPayload());
       const estabelecimentoAtualizado = response.data;
-      authSession.setUser({ ...user, nome: formData.nomeFantasia || formData.nome, email: formData.email });
+      authSession.setUser({
+        ...user,
+        nomeFantasia: formData.nomeFantasia,
+        razaoSocial: formData.razaoSocial,
+        email: formData.email,
+      });
+      syncGradeFromEstabelecimento(estabelecimentoAtualizado);
       setSavedDados((prev) => ({ ...prev, formData }));
       setFotosUrl(Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl);
       setIsEditingDados(false);
@@ -476,6 +494,7 @@ const ConfiguracaoEstabelecimento = () => {
       const response = await estabelecimentoService.atualizarEstabelecimento(estabelecimentoId, buildPayload({ fotosUrl }));
       const estabelecimentoAtualizado = response.data;
 
+      syncGradeFromEstabelecimento(estabelecimentoAtualizado);
       setFotosUrl(Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl);
       toast.success("Galeria atualizada com sucesso!");
     } catch (error) {
@@ -563,12 +582,12 @@ const ConfiguracaoEstabelecimento = () => {
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box>
-          {label("Nome")}
-          <TextField fullWidth disabled={!isEditingDados} name="nome" value={formData.nome} onChange={handleInputChange} error={Boolean(fieldErrors.nome)} helperText={fieldErrors.nome} sx={inputStyles} />
-        </Box>
-        <Box>
           {label("Nome fantasia")}
           <TextField fullWidth disabled={!isEditingDados} name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} />
+        </Box>
+        <Box>
+          {label("Razao social")}
+          <TextField fullWidth disabled={!isEditingDados} name="razaoSocial" value={formData.razaoSocial} onChange={handleInputChange} error={Boolean(fieldErrors.razaoSocial)} helperText={fieldErrors.razaoSocial} sx={inputStyles} />
         </Box>
       </Box>
 
