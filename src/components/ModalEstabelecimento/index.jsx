@@ -6,6 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import { FaMapMarkerAlt, FaStar, FaWhatsapp } from "react-icons/fa";
+import AvaliacoesPanel from "../AvaliacoesPanel";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -17,7 +18,7 @@ const getFoto = (estabelecimento) => {
   return fallbackImage;
 };
 
-const getNome = (estabelecimento) => estabelecimento?.nomeFantasia || estabelecimento?.nome || "Estabelecimento";
+const getNome = (estabelecimento) => estabelecimento?.nomeFantasia || "Estabelecimento";
 
 const getEndereco = (estabelecimento) => {
   const endereco = estabelecimento?.endereco;
@@ -151,7 +152,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
             Sobre
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
-            {estabelecimento.nome} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
+            {getNome(estabelecimento)} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
           </Typography>
 
           <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
@@ -236,9 +237,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
             Avaliacoes
           </Typography>
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, textAlign: "center", color: "text.secondary" }}>
-            Faca login para deixar uma avaliacao
-          </Box>
+          <AvaliacoesPanel targetType="estabelecimento" targetId={estabelecimento.id} />
         </Box>
       </Paper>
   );
