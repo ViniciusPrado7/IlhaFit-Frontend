@@ -66,19 +66,7 @@ const normalizeTipo = (tipo) => {
   return tipo || "USUARIO";
 };
 
-const getRedirectPath = (data, from) => {
-  const tipo = normalizeTipo(data?.tipo);
-
-  if (tipo === "ESTABELECIMENTO") {
-    return from || "/estabelecimento/configuracoes";
-  }
-
-  if (tipo === "PROFISSIONAL") {
-    return "/profissional";
-  }
-
-  return "/";
-};
+const getRedirectPath = (from) => from || "/";
 
 const Login = () => {
   const theme = useTheme();
@@ -120,8 +108,8 @@ const Login = () => {
         });
       }
 
-      toast.success(`Bem-vindo, ${data?.nome || email}!`);
-      navigate(getRedirectPath(data, location.state?.from));
+      toast.success(`Bem-vindo, ${data?.nomeFantasia || data?.nome || email}!`);
+      navigate(getRedirectPath(location.state?.from));
     } catch (error) {
       console.error("Erro no login:", error);
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = error?.response

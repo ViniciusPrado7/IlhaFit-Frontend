@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Button, Chip, Dialog, DialogContent, Paper, Typography } from "@mui/material";
 import { FaStar, FaWhatsapp } from "react-icons/fa";
+import AvaliacoesPanel from "../AvaliacoesPanel";
 
 const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
@@ -232,9 +233,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
               Avaliacoes
             </Typography>
-            <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, textAlign: "center", color: "text.secondary" }}>
-              Faca login para deixar uma avaliacao
-            </Box>
+            <AvaliacoesPanel targetType="profissional" targetId={profissional.id} />
           </Box>
         </Paper>
       </DialogContent>
