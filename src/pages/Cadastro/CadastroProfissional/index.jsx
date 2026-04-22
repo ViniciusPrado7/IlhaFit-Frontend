@@ -223,11 +223,10 @@ const CadastroProfissional = () => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cpf.trim()) errors.cpf = "Informe o CPF";
-    if (!formData.registroCref.trim()) errors.registroCref = "Informe o CREF";
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a regiao";
+    if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
     if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
     if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas nao coincidem";
     if (!validarSenha(formData.senha)) {
@@ -265,7 +264,8 @@ const CadastroProfissional = () => {
     telefone: formData.telefone,
     cpf: formData.cpf,
     sexo: formData.genero,
-    registroCref: formData.registroCref,
+    registroCref: formData.registroCref.trim() || null,
+    regiao: formData.regiao.trim(),
     exclusivoMulheres: generoFeminino && gradeAtividades.some((item) => item.exclusivoMulheres),
     gradeAtividades: gradeAtividades
       .filter(item => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
@@ -275,7 +275,7 @@ const CadastroProfissional = () => {
         diasSemana: item.diasSemana,
         periodos: item.periodos,
       })),
-    fotoUrl: formData.fotoUrl,
+    fotoUrl: formData.fotoUrl || null,
   });
 
   const handleSubmit = async (e) => {
@@ -416,7 +416,7 @@ const CadastroProfissional = () => {
 
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
-          {label("Regiao")}
+          {label("Região")}
           <TextField fullWidth name="regiao" value={formData.regiao} onChange={handleInputChange} placeholder="Zona Sul" error={Boolean(fieldErrors.regiao)} helperText={fieldErrors.regiao} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
@@ -430,7 +430,6 @@ const CadastroProfissional = () => {
             error={Boolean(fieldErrors.registroCref)}
             helperText={fieldErrors.registroCref}
             sx={inputStyles}
-            required
           />
         </Box>
       </Box>
