@@ -7,10 +7,12 @@ import ConfiguracaoEstabelecimento from "./pages/Estabelecimento/Configuracao/in
 import PerfilEstabelecimento from "./pages/Estabelecimento/Perfil.jsx";
 import Login from "./pages/Login/index.jsx";
 import EsqueciSenha from "./pages/Login/EsqueciSenha/index.jsx";
+import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Cadastro/index.jsx";
 import Profissional from "./pages/Profissional/index.jsx";
 import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.jsx";
 import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
+import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
 
 
 
@@ -34,6 +36,14 @@ function App() {
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </AppLayout>
   );

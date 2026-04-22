@@ -30,7 +30,7 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { estabelecimentoService } from "../../../services";
-import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento";
+import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento/index.jsx";
 
 const EstabelecimentosTab = () => {
     const theme = useTheme();
@@ -53,7 +53,8 @@ const EstabelecimentosTab = () => {
     const loadEstabelecimentos = async () => {
         try {
             setLoading(true);
-            const data = await estabelecimentoService.getAll();
+            const res = await estabelecimentoService.listarEstabelecimentos();
+            const data = res.data || res;
             setEstabelecimentos(data);
         } catch (error) {
             console.error("Erro ao carregar estabelecimentos:", error);
@@ -97,7 +98,7 @@ const EstabelecimentosTab = () => {
         if (!deleteDialog.estabelecimento) return;
 
         try {
-            await estabelecimentoService.delete(deleteDialog.estabelecimento.id);
+            await estabelecimentoService.excluirEstabelecimento(deleteDialog.estabelecimento.id);
             toast.success("Estabelecimento excluído com sucesso!");
             loadEstabelecimentos();
             setDeleteDialog({ open: false, estabelecimento: null });

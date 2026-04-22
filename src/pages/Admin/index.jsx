@@ -14,7 +14,7 @@ import {
     FaChartLine,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { authService } from "../../services";
+import { authSession } from "../../service/AuthSession";
 import { useNavigate } from "react-router-dom";
 
 import UsuariosTab from "./Tabs/UsuariosTab";
@@ -47,7 +47,7 @@ const Admin = () => {
     const [tabValue, setTabValue] = useState(0);
 
     useEffect(() => {
-        const userInfo = authService.getUserInfo();
+        const userInfo = authSession.getUser();
         if (!userInfo || userInfo.role !== "ADMIN") {
             toast.error("Acesso negado! Apenas administradores podem acessar esta página.");
             navigate("/");

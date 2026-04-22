@@ -1,0 +1,8 @@
+export { authService } from "../service/AuthService";
+export { authSession } from "../service/AuthSession";
+export { avaliacaoService } from "../service/AvaliacaoService";
+export { categoriaService } from "../service/CategoriaService";
+export { denunciaService } from "../service/DenunciaService";
+export { estabelecimentoService } from "../service/EstabelecimentoService";
+export { profissionalService } from "../service/ProfissionalService";
+export { adminService } from "../service/AdminService";
