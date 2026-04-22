@@ -11,9 +11,10 @@ import {
 import { CiTimer } from "react-icons/ci";
 import { FaArrowRight, FaStar } from "react-icons/fa";
 
-const CardEstabelecimento = ({ estabelecimento }) => {
+const CardEstabelecimento = ({ estabelecimento, onClick }) => {
   return (
     <Card
+      onClick={onClick}
       sx={{
         width: "100%",
         height: "100%",
