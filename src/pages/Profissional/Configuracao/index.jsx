@@ -298,7 +298,7 @@ const ConfiguracaoProfissional = () => {
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a regiao";
+    if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -594,7 +594,7 @@ const ConfiguracaoProfissional = () => {
         </Box>
       </Box>
 
-      {label("Regiao")}
+      {label("Região")}
       <TextField
         fullWidth
         disabled={!isEditingDados}

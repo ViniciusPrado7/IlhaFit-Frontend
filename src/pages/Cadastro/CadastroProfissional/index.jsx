@@ -226,7 +226,7 @@ const CadastroProfissional = () => {
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a regiao";
+    if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
     if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
     if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas nao coincidem";
     if (!validarSenha(formData.senha)) {
@@ -416,7 +416,7 @@ const CadastroProfissional = () => {
 
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
-          {label("Regiao")}
+          {label("Região")}
           <TextField fullWidth name="regiao" value={formData.regiao} onChange={handleInputChange} placeholder="Zona Sul" error={Boolean(fieldErrors.regiao)} helperText={fieldErrors.regiao} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
