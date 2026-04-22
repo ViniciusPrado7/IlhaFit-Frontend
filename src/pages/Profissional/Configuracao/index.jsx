@@ -99,7 +99,7 @@ const normalizeForm = (profissional) => ({
   cpf: onlyDigits(profissional?.cpf || ""),
   genero: profissional?.sexo || "",
   registroCref: profissional?.registroCref || "",
-  regiao: profissional?.regiao || "",
+  regiao: profissional?.zona || profissional?.regiao || "",
   fotoUrl: profissional?.fotoUrl || "",
 });
 
@@ -295,11 +295,10 @@ const ConfiguracaoProfissional = () => {
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cpf.trim()) errors.cpf = "Informe o CPF";
     if (!formData.genero.trim()) errors.genero = "Informe o gênero";
-    if (!formData.registroCref.trim()) errors.registroCref = "Informe o CREF";
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a região";
+    if (!formData.regiao.trim()) errors.regiao = "Informe a regiao";
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -311,8 +310,8 @@ const ConfiguracaoProfissional = () => {
     telefone: formData.telefone,
     cpf: formData.cpf,
     sexo: formData.genero,
-    registroCref: formData.registroCref,
-    regiao: formData.regiao,
+    registroCref: formData.registroCref.trim() || null,
+    regiao: formData.regiao.trim(),
     gradeAtividades: gradeAtividades
       .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
       .map((item) => ({
@@ -321,7 +320,7 @@ const ConfiguracaoProfissional = () => {
         diasSemana: item.diasSemana,
         periodos: item.periodos,
       })),
-    fotoUrl,
+    fotoUrl: fotoUrl || null,
     exclusivoMulheres: isFeminino && gradeAtividades.some((item) => item.exclusivoMulheres),
     ...overrides,
   });
@@ -595,7 +594,7 @@ const ConfiguracaoProfissional = () => {
         </Box>
       </Box>
 
-      {label("Região")}
+      {label("Regiao")}
       <TextField
         fullWidth
         disabled={!isEditingDados}
@@ -1002,3 +1001,4 @@ const ConfiguracaoProfissional = () => {
 };
 
 export default ConfiguracaoProfissional;
+
