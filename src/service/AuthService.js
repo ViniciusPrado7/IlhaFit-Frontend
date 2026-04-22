@@ -16,5 +16,10 @@ export const authService = {
     const response = await api.post("/auth/register", { ...data, tipo });
     return response.data;
   },
+
+  async esqueciSenha(email) {
+    const response = await api.post("/auth/esqueci-senha", { email });
+    return response.data;
+  },
 };
 
