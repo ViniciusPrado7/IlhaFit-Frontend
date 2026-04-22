@@ -9,6 +9,7 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TablePagination,
     IconButton,
     Chip,
     Button,
@@ -79,7 +80,10 @@ const AvaliacoesTab = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("PENDENTE");
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [deleteDialog, setDeleteDialog] = useState({ open: false, denuncia: null });
+    const [statusDialog, setStatusDialog] = useState({ open: false, denuncia: null, novoStatus: null });
 
     useEffect(() => {
         loadDenuncias();
@@ -88,6 +92,10 @@ const AvaliacoesTab = () => {
     useEffect(() => {
         applyFilter();
     }, [searchTerm, filterStatus, denuncias]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [searchTerm, filterStatus]);
 
     const loadDenuncias = async () => {
         try {
@@ -122,10 +130,14 @@ const AvaliacoesTab = () => {
         setFiltered(result);
     };
 
-    const handleUpdateStatus = async (denuncia, novoStatus) => {
+    const handleConfirmStatus = async () => {
+        const { denuncia, novoStatus } = statusDialog;
+        if (!denuncia || !novoStatus) return;
+
         try {
             await adminService.updateDenunciaStatus(denuncia.id, novoStatus);
             toast.success(`Denúncia marcada como ${novoStatus.toLowerCase()}`);
+            setStatusDialog({ open: false, denuncia: null, novoStatus: null });
             loadDenuncias();
         } catch (error) {
             console.error("Erro ao atualizar status:", error);
@@ -149,6 +161,12 @@ const AvaliacoesTab = () => {
     const pendentes = denuncias.filter((d) => d.status === "PENDENTE").length;
     const resolvidas = denuncias.filter((d) => d.status === "RESOLVIDA").length;
     const rejeitadas = denuncias.filter((d) => d.status === "REJEITADA").length;
+
+    const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+    const statusDialogConfig = statusDialog.novoStatus === "RESOLVIDA"
+        ? { color: "success", label: "Resolver", desc: "A denúncia será marcada como resolvida e a avaliação será mantida." }
+        : { color: "warning", label: "Rejeitar", desc: "A denúncia será rejeitada. A avaliação continuará visível." };
 
     return (
         <Box>
@@ -201,108 +219,149 @@ const AvaliacoesTab = () => {
             </Paper>
 
             {/* Tabela */}
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell><strong>Status</strong></TableCell>
-                            <TableCell><strong>Motivo</strong></TableCell>
-                            <TableCell><strong>Autor da Avaliação</strong></TableCell>
-                            <TableCell><strong>Nota</strong></TableCell>
-                            <TableCell><strong>Comentário</strong></TableCell>
-                            <TableCell><strong>Data</strong></TableCell>
-                            <TableCell align="right"><strong>Ações</strong></TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
                             <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
-                                    <CircularProgress size={32} />
-                                </TableCell>
+                                <TableCell><strong>Status</strong></TableCell>
+                                <TableCell><strong>Motivo</strong></TableCell>
+                                <TableCell><strong>Autor da Avaliação</strong></TableCell>
+                                <TableCell><strong>Nota</strong></TableCell>
+                                <TableCell><strong>Comentário</strong></TableCell>
+                                <TableCell><strong>Data</strong></TableCell>
+                                <TableCell align="right"><strong>Ações</strong></TableCell>
                             </TableRow>
-                        ) : filtered.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                                    Nenhuma denúncia encontrada
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            filtered.map((denuncia) => (
-                                <TableRow key={denuncia.id} hover>
-                                    <TableCell>
-                                        <Chip
-                                            label={denuncia.status}
-                                            color={getStatusColor(denuncia.status)}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {getMotivoLabel(denuncia.motivo)}
-                                        </Typography>
-                                        {denuncia.descricaoAdicional && (
-                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                                                {denuncia.descricaoAdicional}
-                                            </Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{denuncia.avaliacao?.nomeAutor || "—"}</TableCell>
-                                    <TableCell>
-                                        <Rating value={Number(denuncia.avaliacao?.nota) || 0} readOnly size="small" />
-                                    </TableCell>
-                                    <TableCell sx={{ maxWidth: 220 }}>
-                                        <Typography variant="body2" noWrap title={denuncia.avaliacao?.comentario}>
-                                            {denuncia.avaliacao?.comentario || "—"}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>{formatDate(denuncia.dataDenuncia || denuncia.createdAt)}</TableCell>
-                                    <TableCell align="right">
-                                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                                            {denuncia.status === "PENDENTE" && (
-                                                <>
-                                                    <Tooltip title="Resolver (manter avaliação)">
-                                                        <IconButton
-                                                            size="small"
-                                                            color="success"
-                                                            onClick={() => handleUpdateStatus(denuncia, "RESOLVIDA")}
-                                                            sx={{ bgcolor: alpha(theme.palette.success.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.2) } }}
-                                                        >
-                                                            <FaCheck size={13} />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip title="Rejeitar denúncia">
-                                                        <IconButton
-                                                            size="small"
-                                                            color="warning"
-                                                            onClick={() => handleUpdateStatus(denuncia, "REJEITADA")}
-                                                            sx={{ bgcolor: alpha(theme.palette.warning.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.2) } }}
-                                                        >
-                                                            <FaTimes size={13} />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                </>
-                                            )}
-                                            <Tooltip title="Excluir avaliação denunciada">
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                    onClick={() => setDeleteDialog({ open: true, denuncia })}
-                                                    sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2) } }}
-                                                >
-                                                    <FaTrash size={13} />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 5 }}>
+                                        <CircularProgress size={32} />
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                            ) : paginated.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                                        Nenhuma denúncia encontrada
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginated.map((denuncia) => (
+                                    <TableRow key={denuncia.id} hover>
+                                        <TableCell>
+                                            <Chip
+                                                label={denuncia.status}
+                                                color={getStatusColor(denuncia.status)}
+                                                size="small"
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {getMotivoLabel(denuncia.motivo)}
+                                            </Typography>
+                                            {denuncia.descricaoAdicional && (
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                                    {denuncia.descricaoAdicional}
+                                                </Typography>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>{denuncia.avaliacao?.nomeAutor || "—"}</TableCell>
+                                        <TableCell>
+                                            <Rating value={Number(denuncia.avaliacao?.nota) || 0} readOnly size="small" />
+                                        </TableCell>
+                                        <TableCell sx={{ maxWidth: 220 }}>
+                                            <Typography variant="body2" noWrap title={denuncia.avaliacao?.comentario}>
+                                                {denuncia.avaliacao?.comentario || "—"}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell>{formatDate(denuncia.dataDenuncia || denuncia.createdAt)}</TableCell>
+                                        <TableCell align="right">
+                                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                                                {denuncia.status === "PENDENTE" && (
+                                                    <>
+                                                        <Tooltip title="Resolver (manter avaliação)">
+                                                            <IconButton
+                                                                size="small"
+                                                                color="success"
+                                                                onClick={() => setStatusDialog({ open: true, denuncia, novoStatus: "RESOLVIDA" })}
+                                                                sx={{ bgcolor: alpha(theme.palette.success.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.2) } }}
+                                                            >
+                                                                <FaCheck size={13} />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Rejeitar denúncia">
+                                                            <IconButton
+                                                                size="small"
+                                                                color="warning"
+                                                                onClick={() => setStatusDialog({ open: true, denuncia, novoStatus: "REJEITADA" })}
+                                                                sx={{ bgcolor: alpha(theme.palette.warning.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.warning.main, 0.2) } }}
+                                                            >
+                                                                <FaTimes size={13} />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    </>
+                                                )}
+                                                <Tooltip title="Excluir avaliação denunciada">
+                                                    <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={() => setDeleteDialog({ open: true, denuncia })}
+                                                        sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2) } }}
+                                                    >
+                                                        <FaTrash size={13} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    component="div"
+                    count={filtered.length}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                    rowsPerPageOptions={[10, 25, 50]}
+                    labelRowsPerPage="Linhas por página:"
+                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                />
+            </Paper>
 
-            {/* Dialog de Confirmação */}
+            {/* Dialog: Confirmar resolver/rejeitar */}
+            <Dialog
+                open={statusDialog.open}
+                onClose={() => setStatusDialog({ open: false, denuncia: null, novoStatus: null })}
+            >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <FaExclamationTriangle color={theme.palette[statusDialogConfig.color]?.main} />
+                    {statusDialogConfig.label} denúncia
+                </DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Tem certeza que deseja <strong>{statusDialogConfig.label.toLowerCase()}</strong> a denúncia de{" "}
+                        <strong>{statusDialog.denuncia?.avaliacao?.nomeAutor || "autor desconhecido"}</strong>?
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {statusDialogConfig.desc}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setStatusDialog({ open: false, denuncia: null, novoStatus: null })}>
+                        Cancelar
+                    </Button>
+                    <Button onClick={handleConfirmStatus} color={statusDialogConfig.color} variant="contained">
+                        {statusDialogConfig.label}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog: Confirmar exclusão da avaliação */}
             <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, denuncia: null })}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FaExclamationTriangle color={theme.palette.error.main} />

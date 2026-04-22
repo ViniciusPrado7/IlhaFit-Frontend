@@ -9,6 +9,7 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TablePagination,
     IconButton,
     Chip,
     Button,
@@ -38,6 +39,8 @@ const EstabelecimentosTab = () => {
     const [filteredEstabelecimentos, setFilteredEstabelecimentos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [deleteDialog, setDeleteDialog] = useState({ open: false, estabelecimento: null });
     const [selectedEstab, setSelectedEstab] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,6 +52,10 @@ const EstabelecimentosTab = () => {
     useEffect(() => {
         filterEstabelecimentos();
     }, [searchTerm, estabelecimentos]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [searchTerm]);
 
     const loadEstabelecimentos = async () => {
         try {
@@ -143,64 +150,81 @@ const EstabelecimentosTab = () => {
             </Paper>
 
             {/* Tabela */}
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell><strong>Nome Fantasia</strong></TableCell>
-                            <TableCell><strong>Email</strong></TableCell>
-                            <TableCell><strong>Telefone</strong></TableCell>
-                            <TableCell><strong>Exclusivo Mulheres</strong></TableCell>
-                            <TableCell align="right"><strong>Ações</strong></TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
                             <TableRow>
-                                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
-                                    <CircularProgress size={32} />
-                                </TableCell>
+                                <TableCell><strong>Nome Fantasia</strong></TableCell>
+                                <TableCell><strong>Email</strong></TableCell>
+                                <TableCell><strong>Telefone</strong></TableCell>
+                                <TableCell><strong>Exclusivo Mulheres</strong></TableCell>
+                                <TableCell align="right"><strong>Ações</strong></TableCell>
                             </TableRow>
-                        ) : filteredEstabelecimentos.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={5} align="center">Nenhum estabelecimento encontrado</TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredEstabelecimentos.map((estab) => (
-                                <TableRow
-                                    key={estab.id}
-                                    hover
-                                    onClick={() => handleOpenModal(estab)}
-                                    sx={{ cursor: 'pointer' }}
-                                >
-                                    <TableCell>{estab.nomeFantasia || estab.nome || "N/A"}</TableCell>
-                                    <TableCell>{estab.email || "N/A"}</TableCell>
-                                    <TableCell>{estab.telefone || "N/A"}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={estab.exclusivoMulheres ? "Sim" : "Não"}
-                                            color={estab.exclusivoMulheres ? "secondary" : "default"}
-                                            size="small"
-                                        />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Tooltip title="Excluir">
-                                            <IconButton
-                                                size="small"
-                                                color="error"
-                                                onClick={(e) => { e.stopPropagation(); setDeleteDialog({ open: true, estabelecimento: estab }); }}
-                                                sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
-                                            >
-                                                <FaTrash size={14} />
-                                            </IconButton>
-                                        </Tooltip>
+                        </TableHead>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
+                                        <CircularProgress size={32} />
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                            ) : filteredEstabelecimentos.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                                        Nenhum estabelecimento encontrado
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredEstabelecimentos
+                                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                                    .map((estab) => (
+                                        <TableRow
+                                            key={estab.id}
+                                            hover
+                                            onClick={() => handleOpenModal(estab)}
+                                            sx={{ cursor: 'pointer' }}
+                                        >
+                                            <TableCell>{estab.nomeFantasia || estab.nome || "N/A"}</TableCell>
+                                            <TableCell>{estab.email || "N/A"}</TableCell>
+                                            <TableCell>{estab.telefone || "N/A"}</TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={estab.exclusivoMulheres ? "Sim" : "Não"}
+                                                    color={estab.exclusivoMulheres ? "secondary" : "default"}
+                                                    size="small"
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <Tooltip title="Excluir">
+                                                    <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={(e) => { e.stopPropagation(); setDeleteDialog({ open: true, estabelecimento: estab }); }}
+                                                        sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
+                                                    >
+                                                        <FaTrash size={14} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+                <TablePagination
+                    component="div"
+                    count={filteredEstabelecimentos.length}
+                    page={page}
+                    onPageChange={(_, newPage) => setPage(newPage)}
+                    rowsPerPage={rowsPerPage}
+                    onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                    rowsPerPageOptions={[10, 25, 50]}
+                    labelRowsPerPage="Linhas por página:"
+                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                />
+            </Paper>
 
             {/* Dialog de Confirmação */}
             <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, estabelecimento: null })}>
