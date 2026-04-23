@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
-import { FaCog, FaSignOutAlt, FaUser, FaUserShield } from "react-icons/fa";
+import { FaCog, FaSignOutAlt, FaUser } from "react-icons/fa";
 import Menu from "./Menu";
 import ToggleThemeButton from "../ToggleThemeButton";
 import LoginButton from "./Login/Login";
@@ -49,8 +49,6 @@ const NavBar = () => {
     setAnchorEl(null);
     navigate("/");
   };
-
-  const handleMenuClose = () => setAnchorEl(null);
 
   const handleSettings = () => {
     setAnchorEl(null);
@@ -148,12 +146,6 @@ const NavBar = () => {
                   anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                {user.role === 'ADMIN' && (
-                  <MenuItem component={Link} to="/admin" onClick={handleMenuClose}>
-                    <ListItemIcon><FaUserShield size={18} /></ListItemIcon>
-                    Painel Admin
-                  </MenuItem>
-                )}
                   <Box sx={{ px: 2, py: 1 }}>
                     <Typography variant="subtitle2" fontWeight={800}>
                       {getDisplayName(user)}
@@ -163,12 +155,14 @@ const NavBar = () => {
                     </Typography>
                   </Box>
                   <Divider />
-                  <MenuItem onClick={handleSettings}>
-                    <ListItemIcon>
-                      <FaCog size={16} />
-                    </ListItemIcon>
-                    Configuracoes
-                  </MenuItem>
+                  {user.role !== "ADMIN" && (
+                    <MenuItem onClick={handleSettings}>
+                      <ListItemIcon>
+                        <FaCog size={16} />
+                      </ListItemIcon>
+                      Configuracoes
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon>
                       <FaSignOutAlt size={16} />
