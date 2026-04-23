@@ -1,46 +1,27 @@
-import { Alert, Box, CircularProgress, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import CardProfissional from "../../components/Card/CardProfissional";
 import { profissionalService } from "../../service/ProfissionalService";
 
-const getErrorMessage = (error) => {
-  const data = error?.response?.data;
-  if (typeof data === "string") return data;
-  if (data && typeof data === "object") return Object.values(data).filter(Boolean).join(" ");
-  return error?.message || "Nao foi possivel carregar os profissionais.";
-};
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&auto=format&fit=crop&q=60";
+
+const mapProfissional = (p) => ({
+  ...p,
+  Imagem: p.fotosUrl?.[0] || p.foto || FALLBACK_IMAGE,
+  especialidades: p.especialidade ? [p.especialidade] : (p.especialidades || []),
+  avaliacao: p.avaliacao ?? 0,
+});
 
 const Profissional = () => {
   const [profissionais, setProfissionais] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   useEffect(() => {
-    let mounted = true;
-
-    const carregarProfissionais = async () => {
-      try {
-        const response = await profissionalService.listarProfissionais();
-        if (mounted) {
-          setProfissionais(Array.isArray(response.data) ? response.data : []);
-          setError("");
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    carregarProfissionais();
-
-    return () => {
-      mounted = false;
-    };
+    profissionalService.listarProfissionais()
+      .then((res) => setProfissionais((res.data || []).map(mapProfissional)))
+      .catch(() => toast.error("Erro ao carregar profissionais"))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -52,25 +33,15 @@ const Profissional = () => {
         Profissionais com as melhores notas da comunidade
       </Typography>
 
-      {loading && (
+      {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress />
         </Box>
-      )}
-
-      {!loading && error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {!loading && !error && profissionais.length === 0 && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Nenhum profissional encontrado.
-        </Alert>
-      )}
-
-      {!loading && !error && profissionais.length > 0 && (
+      ) : profissionais.length === 0 ? (
+        <Typography color="text.secondary" textAlign="center" py={8}>
+          Nenhum profissional cadastrado ainda.
+        </Typography>
+      ) : (
         <Box
           sx={{
             display: "grid",

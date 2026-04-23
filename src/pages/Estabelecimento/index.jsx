@@ -1,72 +1,31 @@
-import { Alert, Box, CircularProgress, Dialog, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
+import ModalDetalhesEstabelecimento from "../../components/ModalDetalhesEstabelecimento";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
-const getErrorMessage = (error) => {
-  const data = error?.response?.data;
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    return Object.values(data).filter(Boolean).join(" ");
-  }
-
-  return error?.message || "Nao foi possivel carregar os estabelecimentos.";
-};
-
-const normalizeList = (data) => {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.content)) {
-    return data.content;
-  }
-
-  if (Array.isArray(data?.data)) {
-    return data.data;
-  }
-
-  return [];
-};
+const mapEstabelecimento = (e) => ({
+  ...e,
+  nome: e.nomeFantasia || e.razaoSocial || e.nome || "Estabelecimento",
+  Imagem: e.fotosUrl?.[0] || FALLBACK_IMAGE,
+  categorias: e.atividadesOferecidas || [],
+  avaliacao: e.avaliacao ?? 0,
+  aberto: true,
+});
 
 const Estabelecimento = () => {
   const [estabelecimentos, setEstabelecimentos] = useState([]);
-  const [selectedEstabelecimento, setSelectedEstabelecimento] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const carregarEstabelecimentos = async () => {
-      try {
-        const response = await estabelecimentoService.listarEstabelecimentos();
-
-        if (isMounted) {
-          setEstabelecimentos(normalizeList(response.data));
-          setError("");
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    carregarEstabelecimentos();
-
-    return () => {
-      isMounted = false;
-    };
+    estabelecimentoService.listarEstabelecimentos()
+      .then((res) => setEstabelecimentos((res.data || []).map(mapEstabelecimento)))
+      .catch(() => toast.error("Erro ao carregar estabelecimentos"))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -78,25 +37,15 @@ const Estabelecimento = () => {
         Locais com as melhores notas da comunidade
       </Typography>
 
-      {loading && (
+      {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress />
         </Box>
-      )}
-
-      {!loading && error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {!loading && !error && estabelecimentos.length === 0 && (
-        <Alert severity="info">
-          Nenhum estabelecimento encontrado.
-        </Alert>
-      )}
-
-      {!loading && !error && estabelecimentos.length > 0 && (
+      ) : estabelecimentos.length === 0 ? (
+        <Typography color="text.secondary" textAlign="center" py={8}>
+          Nenhum estabelecimento cadastrado ainda.
+        </Typography>
+      ) : (
         <Box
           sx={{
             display: "grid",
@@ -104,51 +53,25 @@ const Estabelecimento = () => {
             gridTemplateColumns: {
               xs: "1fr",
               sm: "repeat(2, 1fr)",
-              lg: "repeat(3, minmax(0, 1fr))",
+              md: "repeat(3, 1fr)",
             },
           }}
         >
           {estabelecimentos.map((item) => (
             <CardEstabelecimento
-              key={item.id || item.cnpj || item.email}
+              key={item.id}
               estabelecimento={item}
-              onClick={() => setSelectedEstabelecimento(item)}
+              onClick={() => setSelected(item)}
             />
           ))}
         </Box>
       )}
 
-      <Dialog
-        open={Boolean(selectedEstabelecimento)}
-        onClose={() => setSelectedEstabelecimento(null)}
-        fullWidth
-        maxWidth="md"
-        scroll="body"
-        slotProps={{
-          backdrop: {
-            sx: {
-              bgcolor: "rgba(2, 6, 23, 0.72)",
-              backdropFilter: "blur(2px)",
-            },
-          },
-          paper: {
-            sx: {
-              borderRadius: 2,
-              bgcolor: "transparent",
-              boxShadow: "none",
-              overflow: "visible",
-            },
-          },
-        }}
-      >
-        {selectedEstabelecimento && (
-          <ModalEstabelecimentoContent
-            estabelecimento={selectedEstabelecimento}
-            onClose={() => setSelectedEstabelecimento(null)}
-            closeLabel="Fechar"
-          />
-        )}
-      </Dialog>
+      <ModalDetalhesEstabelecimento
+        open={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        estabelecimento={selected}
+      />
     </Box>
   );
 };

@@ -10,48 +10,7 @@ import {
 import { FaArrowRight, FaMapMarkerAlt, FaStar } from "react-icons/fa";
 import { CiTimer } from "react-icons/ci";
 
-const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80";
-
-const getFoto = (estabelecimento) => {
-  if (Array.isArray(estabelecimento.fotosUrl) && estabelecimento.fotosUrl.length > 0) {
-    return estabelecimento.fotosUrl[0];
-  }
-
-  return estabelecimento.Imagem || fallbackImage;
-};
-
-const getNome = (estabelecimento) => estabelecimento.nomeFantasia || "Estabelecimento";
-
-const getLocalizacao = (estabelecimento) => {
-  const endereco = estabelecimento.endereco;
-  if (!endereco) return estabelecimento.telefone || "Localizacao nao informada";
-
-  return [endereco.bairro, endereco.cidade].filter(Boolean).join(", ") || endereco.rua || "Localizacao nao informada";
-};
-
-const getCategorias = (estabelecimento) => {
-  if (Array.isArray(estabelecimento.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
-  }
-
-  return ["Estabelecimento"];
-};
-
-const getDescricao = (estabelecimento) => {
-  const categorias = getCategorias(estabelecimento);
-  if (categorias.length > 0 && categorias[0] !== "Estabelecimento") {
-    return `Espaco com atividades de ${categorias.join(", ")}.`;
-  }
-
-  return estabelecimento.email || "Conheca este estabelecimento da comunidade IlhaFit.";
-};
-
 const CardEstabelecimento = ({ estabelecimento, onClick }) => {
-  const foto = getFoto(estabelecimento);
-  const nome = getNome(estabelecimento);
-  const avaliacao = estabelecimento.avaliacao ?? 0;
-  const categorias = getCategorias(estabelecimento);
-
   return (
     <Card
       onClick={onClick}
