@@ -23,7 +23,8 @@ api.interceptors.response.use(
         const status = error?.response?.status;
         const url = error?.config?.url || "";
 
-        if ((status === 401 || status === 403) && !url.includes("/auth/login")) {
+        // Só desloga em 401 (token expirado/inválido), nunca em 403 (sem permissão para aquela ação)
+        if (status === 401 && !url.includes("/auth/login")) {
             authSession.clear();
         }
 

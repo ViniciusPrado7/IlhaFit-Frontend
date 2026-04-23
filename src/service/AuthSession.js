@@ -3,13 +3,11 @@ const AUTH_TOKEN_KEY = "token";
 const AUTH_TOKEN_TYPE_KEY = "tokenType";
 
 const normalizeUser = (user) => {
-  const isEstabelecimento = user?.tipo === "ESTABELECIMENTO";
-
   return {
     id: user?.id,
-    nome: isEstabelecimento ? undefined : user?.nome,
-    nomeFantasia: isEstabelecimento ? user?.nomeFantasia : undefined,
-    razaoSocial: isEstabelecimento ? user?.razaoSocial : undefined,
+    nome: user?.nome,
+    nomeFantasia: user?.nomeFantasia || (user?.tipo === "ESTABELECIMENTO" ? user?.nome : undefined),
+    razaoSocial: user?.razaoSocial,
     email: user?.email,
     tipo: user?.tipo,
     role: user?.role,
@@ -43,6 +41,19 @@ export const authSession = {
     return Boolean(user?.tipo === "ESTABELECIMENTO" && this.getToken());
   },
 
+  isProfissionalAuthenticated() {
+    const user = this.getUser();
+    return Boolean(user?.tipo === "PROFISSIONAL" && this.getToken());
+  },
+
+  isAuthenticated() {
+    const user = this.getUser();
+    return Boolean(
+      (user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") &&
+        this.getToken()
+    );
+  },
+
   setSession(authData) {
     if (authData?.token) {
       localStorage.setItem(AUTH_TOKEN_KEY, authData.token);
@@ -58,7 +69,8 @@ export const authSession = {
   setUser(user) {
     const normalizedUser = normalizeUser(user);
 
-    if (normalizedUser.tipo !== "ESTABELECIMENTO") {
+    const tiposComToken = ["ESTABELECIMENTO", "PROFISSIONAL"];
+    if (!tiposComToken.includes(normalizedUser.tipo)) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_TOKEN_TYPE_KEY);
     }
