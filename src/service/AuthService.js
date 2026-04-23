@@ -2,14 +2,27 @@ import { api } from "./Api";
 
 export const authService = {
   async login(email, senha) {
-    const response = await api.post("/auth/login", { email, senha });
-    const data = response.data;
+    let lastError;
 
-    if (data?.token) {
-      localStorage.setItem("token", data.token);
+    // Tenta login como usuário comum (aluno)
+    try {
+      const response = await api.post("/usuarios/login", { email, senha });
+      const data = response.data;
+      if (data?.token) localStorage.setItem("token", data.token);
+      return data;
+    } catch (error) {
+      lastError = error;
     }
 
-    return data;
+    // Tenta login como administrador
+    try {
+      const response = await api.post("/administradores/login", { email, senha });
+      return response.data;
+    } catch (error) {
+      lastError = error;
+    }
+
+    throw lastError;
   },
 
   async register(data, tipo) {

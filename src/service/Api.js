@@ -23,7 +23,8 @@ api.interceptors.response.use(
         const status = error?.response?.status;
         const url = error?.config?.url || "";
 
-        if ((status === 401 || status === 403) && !url.includes("/auth/login")) {
+        const isLoginRoute = url.includes("/login");
+        if ((status === 401 || status === 403) && !isLoginRoute) {
             authSession.clear();
         }
 
