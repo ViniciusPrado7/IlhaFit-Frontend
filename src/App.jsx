@@ -11,6 +11,7 @@ import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Cadastro/index.jsx";
 import Profissional from "./pages/Profissional/index.jsx";
 import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.jsx";
+import ConfiguracaoUsuario from "./pages/Usuario/Configuracao/index.jsx";
 import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
 import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
 
@@ -33,6 +34,7 @@ function App() {
         <Route path="/estabelecimento/:id" element={<PerfilEstabelecimento />} />
         <Route path="/profissional" element={<Profissional />} />
         <Route path="/profissional/configuracoes" element={<ConfiguracaoProfissional />} />
+        <Route path="/usuario/configuracoes" element={<ConfiguracaoUsuario />} />
         <Route path="/cadastro" element={<Cadastro />} />
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />

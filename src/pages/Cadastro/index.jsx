@@ -240,7 +240,7 @@ const Cadastro = () => {
                     >
                         <ToggleButton value="aluno">
                             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <FaUser size={14} /> Aluno
+                                <FaUser size={14} /> Usuário
                             </Box>
                         </ToggleButton>
                         <ToggleButton value="estabelecimento">

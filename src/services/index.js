@@ -5,4 +5,5 @@ export { categoriaService } from "../service/CategoriaService";
 export { denunciaService } from "../service/DenunciaService";
 export { estabelecimentoService } from "../service/EstabelecimentoService";
 export { profissionalService } from "../service/ProfissionalService";
+export { usuarioService } from "../service/UsuarioService";
 export { adminService } from "../service/AdminService";
