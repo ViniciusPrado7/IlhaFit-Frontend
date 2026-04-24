@@ -34,7 +34,7 @@ const getApiError = (error, fallback) => {
   if (data?.erro) return data.erro;
   if (typeof data === "string") return data;
   if ([401, 403].includes(error?.response?.status)) {
-    return "Sessao invalida ou sem permissao. Faca login novamente.";
+    return "Sessao invalida ou sem permissao. Saia da conta e faca login novamente.";
   }
 
   return error?.message || fallback;
@@ -96,8 +96,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
 
   const [user, setUser] = useState(() => authSession.getUser());
   const token = authSession.getToken();
-  const isEstabelecimentoAutenticado = user?.tipo === "ESTABELECIMENTO" && Boolean(token);
-  const isAutenticado = (user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") && Boolean(token);
+  const isAutenticado = ["USUARIO", "ESTABELECIMENTO", "PROFISSIONAL"].includes(user?.tipo) && Boolean(token);
 
   useEffect(() => {
     const onAuthChange = () => {
@@ -112,7 +111,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
     (targetType === "profissional" && user?.tipo === "PROFISSIONAL" && Number(user?.id) === Number(targetId));
 
   const authMessage = useMemo(() => {
-    if (!isAutenticado) return "Entre como estabelecimento ou profissional para avaliar ou denunciar.";
+    if (!isAutenticado) return "Faca login para avaliar.";
     if (isSelfTarget) return user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.";
     return "";
   }, [isAutenticado, isSelfTarget, user]);
@@ -145,7 +144,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
     event.preventDefault();
 
     if (!isAutenticado) {
-      toast.warning("Entre como estabelecimento ou profissional para avaliar.");
+      toast.warning("Faca login para avaliar.");
       return;
     }
 
@@ -181,7 +180,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
 
   const abrirDenuncia = (avaliacao) => {
     if (!isAutenticado) {
-      toast.warning("Entre como estabelecimento ou profissional para denunciar.");
+      toast.warning("Faca login para denunciar.");
       return;
     }
 
@@ -285,7 +284,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
                 <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, mb: 1, flexWrap: "wrap" }}>
                   <Box>
                     <Typography variant="subtitle2" fontWeight={900}>
-                      {avaliacao.nomeAutor || "Estabelecimento"}
+                      {avaliacao.nomeAutor || "Usuario"}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {formatDate(avaliacao.dataAvaliacao)}

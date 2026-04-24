@@ -73,17 +73,8 @@ const Cadastro = () => {
         setLoading(true);
         try {
             await authService.register(formData);
-
-            try {
-                const loginData = await authService.login(formData.email, formData.senha);
-                toast.success(`Usuario cadastrado com sucesso! Bem-vindo(a), ${loginData.nome}!`);
-                window.dispatchEvent(new Event("storage"));
-            } catch (loginErr) {
-                console.warn("Erro no login automatico:", loginErr);
-                toast.success("Usuario cadastrado com sucesso! Faca login para continuar.");
-            }
-
-            navigate("/");
+            toast.success("Usuario cadastrado com sucesso!");
+            navigate("/login", { state: { accountType: "aluno", email: formData.email } });
         } catch (error) {
             console.error("Erro no cadastro:", error);
             const data = error?.response?.data;

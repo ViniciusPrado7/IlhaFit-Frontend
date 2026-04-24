@@ -53,7 +53,7 @@ const getApiError = (error) => {
   };
 };
 
-const requireEstabelecimentoLogin = (data) => {
+const requireTokenLogin = (data) => {
   if (!data?.token) {
     throw new Error("Nao foi possivel iniciar a sessao. Tente novamente.");
   }
@@ -96,8 +96,8 @@ const Login = () => {
       const data = await authService.login(email, senha);
       const tipo = normalizeTipo(data?.tipo);
 
-      if (tipo === "ESTABELECIMENTO" || tipo === "PROFISSIONAL") {
-        authSession.setSession(requireEstabelecimentoLogin(data));
+      if (data?.token) {
+        authSession.setSession(requireTokenLogin(data));
       } else {
         authSession.setUser({
           id: data?.id,
