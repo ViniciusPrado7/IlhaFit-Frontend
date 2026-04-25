@@ -99,13 +99,7 @@ const Login = () => {
       if (tipo === "ESTABELECIMENTO") {
         authSession.setSession(requireEstabelecimentoLogin(data));
       } else {
-        authSession.setUser({
-          id: data?.id,
-          nome: data?.nome || email,
-          email: data?.email || email,
-          tipo,
-          role: data?.role,
-        });
+        authSession.setSession({ ...data, tipo });
       }
 
       toast.success(`Bem-vindo, ${data?.nomeFantasia || data?.nome || email}!`);
