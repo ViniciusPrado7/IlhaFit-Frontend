@@ -77,8 +77,8 @@ const formatDate = (date) => {
 };
 
 const isOwnReview = (avaliacao, user) => {
-  if (!user) return false;
-  return avaliacao?.tipoAutor === "ESTABELECIMENTO" && avaliacao?.nomeAutor === user.nomeFantasia;
+  if (!user || !avaliacao) return false;
+  return Number(avaliacao.autorId) === Number(user.id) && avaliacao.tipoAutor === user.tipo;
 };
 
 const AvaliacoesPanel = ({ targetType, targetId }) => {
@@ -94,15 +94,28 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   const [descricaoAdicional, setDescricaoAdicional] = useState("");
   const [denunciando, setDenunciando] = useState(false);
 
-  const user = authSession.getUser();
-  const isEstabelecimentoAutenticado = authSession.isEstabelecimentoAuthenticated();
-  const isSelfTarget = targetType === "estabelecimento" && user?.tipo === "ESTABELECIMENTO" && Number(user?.id) === Number(targetId);
+  const [user, setUser] = useState(() => authSession.getUser());
+  const token = authSession.getToken();
+  const isEstabelecimentoAutenticado = user?.tipo === "ESTABELECIMENTO" && Boolean(token);
+  const isAutenticado = (user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") && Boolean(token);
+
+  useEffect(() => {
+    const onAuthChange = () => {
+      setUser(authSession.getUser());
+    };
+    window.addEventListener("auth-change", onAuthChange);
+    return () => window.removeEventListener("auth-change", onAuthChange);
+  }, []);
+
+  const isSelfTarget =
+    (targetType === "estabelecimento" && user?.tipo === "ESTABELECIMENTO" && Number(user?.id) === Number(targetId)) ||
+    (targetType === "profissional" && user?.tipo === "PROFISSIONAL" && Number(user?.id) === Number(targetId));
 
   const authMessage = useMemo(() => {
-    if (!isEstabelecimentoAutenticado) return "Entre como estabelecimento para avaliar ou denunciar.";
-    if (isSelfTarget) return "Voce nao pode avaliar seu proprio estabelecimento.";
+    if (!isAutenticado) return "Entre como estabelecimento ou profissional para avaliar ou denunciar.";
+    if (isSelfTarget) return user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.";
     return "";
-  }, [isEstabelecimentoAutenticado, isSelfTarget]);
+  }, [isAutenticado, isSelfTarget, user]);
 
   const carregarAvaliacoes = useCallback(async () => {
     if (!targetId) {
@@ -131,13 +144,13 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   const handleCriarAvaliacao = async (event) => {
     event.preventDefault();
 
-    if (!isEstabelecimentoAutenticado) {
-      toast.warning("Entre como estabelecimento para avaliar.");
+    if (!isAutenticado) {
+      toast.warning("Entre como estabelecimento ou profissional para avaliar.");
       return;
     }
 
     if (isSelfTarget) {
-      toast.warning("Voce nao pode avaliar seu proprio estabelecimento.");
+      toast.warning(user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.");
       return;
     }
 
@@ -167,8 +180,8 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   };
 
   const abrirDenuncia = (avaliacao) => {
-    if (!isEstabelecimentoAutenticado) {
-      toast.warning("Entre como estabelecimento para denunciar.");
+    if (!isAutenticado) {
+      toast.warning("Entre como estabelecimento ou profissional para denunciar.");
       return;
     }
 
@@ -222,7 +235,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
         </Alert>
       )}
 
-      {isEstabelecimentoAutenticado && !isSelfTarget && (
+      {isAutenticado && !isSelfTarget && (
         <Paper
           component="form"
           onSubmit={handleCriarAvaliacao}
@@ -287,7 +300,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
                   </Typography>
                 )}
 
-                {isEstabelecimentoAutenticado && (
+                {isAutenticado && (
                   <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
                     {ownReview ? (
                       <Button size="small" color="error" onClick={() => handleDeletar(avaliacao)}>

@@ -7,6 +7,7 @@ import ConfiguracaoEstabelecimento from "./pages/Estabelecimento/Configuracao/in
 import PerfilEstabelecimento from "./pages/Estabelecimento/Perfil.jsx";
 import Login from "./pages/Login/index.jsx";
 import EsqueciSenha from "./pages/Login/EsqueciSenha/index.jsx";
+import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Cadastro/index.jsx";
 import Profissional from "./pages/Profissional/index.jsx";
 import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.jsx";

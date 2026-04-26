@@ -55,7 +55,7 @@ const getApiError = (error) => {
 
 const requireEstabelecimentoLogin = (data) => {
   if (!data?.token) {
-    throw new Error("Nao foi possivel iniciar a sessao do estabelecimento. Tente novamente.");
+    throw new Error("Nao foi possivel iniciar a sessao. Tente novamente.");
   }
 
   return data;
@@ -96,7 +96,7 @@ const Login = () => {
       const data = await authService.login(email, senha);
       const tipo = normalizeTipo(data?.tipo);
 
-      if (tipo === "ESTABELECIMENTO") {
+      if (tipo === "ESTABELECIMENTO" || tipo === "PROFISSIONAL") {
         authSession.setSession(requireEstabelecimentoLogin(data));
       } else {
         authSession.setSession({ ...data, tipo });
