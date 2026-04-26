@@ -12,8 +12,12 @@ export const authService = {
     return data;
   },
 
-  async register(data, tipo) {
-    const response = await api.post("/auth/register", { ...data, tipo });
+  async register(data) {
+    const { confirmarSenha, ...rest } = data;
+    const response = await api.post("/usuarios/cadastrar", {
+      ...rest,
+      confirmacaoSenha: data.confirmacaoSenha || confirmarSenha,
+    });
     return response.data;
   },
 

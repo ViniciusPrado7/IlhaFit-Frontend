@@ -49,7 +49,7 @@ export const authSession = {
   isAuthenticated() {
     const user = this.getUser();
     return Boolean(
-      (user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") &&
+      (user?.tipo === "USUARIO" || user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") &&
         this.getToken()
     );
   },
@@ -70,7 +70,7 @@ export const authSession = {
   setUser(user) {
     const normalizedUser = normalizeUser(user);
 
-    const tiposComToken = ["ESTABELECIMENTO", "PROFISSIONAL"];
+    const tiposComToken = ["USUARIO", "ESTABELECIMENTO", "PROFISSIONAL"];
     if (!tiposComToken.includes(normalizedUser.tipo)) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_TOKEN_TYPE_KEY);

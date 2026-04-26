@@ -72,21 +72,21 @@ const Cadastro = () => {
 
         setLoading(true);
         try {
-            await authService.register({ ...formData }, "aluno");
-
-            try {
-                const loginData = await authService.login(formData.email, formData.senha);
-                toast.success(`Cadastro realizado! Bem-vindo(a), ${loginData.nome}!`);
-                window.dispatchEvent(new Event("storage"));
-            } catch (loginErr) {
-                console.warn("Erro no login automatico:", loginErr);
-                toast.success("Cadastro realizado com sucesso! Faca login para continuar.");
-            }
-
-            window.location.href = "/";
+            await authService.register(formData);
+            toast.success("Usuario cadastrado com sucesso!");
+            navigate("/login", { state: { accountType: "aluno", email: formData.email } });
         } catch (error) {
             console.error("Erro no cadastro:", error);
-            toast.error("Ocorreu um erro ao realizar o cadastro.");
+            const data = error?.response?.data;
+            const message =
+                data?.erro ||
+                data?.email ||
+                data?.senha ||
+                data?.confirmacaoSenha ||
+                (typeof data === "string" ? data : null) ||
+                "Ocorreu um erro ao realizar o cadastro.";
+
+            toast.error(message);
         } finally {
             setLoading(false);
         }
