@@ -1,131 +1,128 @@
 import React, { useState, useEffect } from "react";
 import {
     Box,
-    Typography,
     Container,
+    Tab,
+    Tabs,
+    Typography,
+    Badge,
     useTheme,
     alpha,
-    Button,
 } from "@mui/material";
 import {
+    FaChartPie,
     FaUsers,
-    FaStore,
-    FaStar,
-    FaChartLine,
-    FaUserTie,
+    FaBuilding,
+    FaFlag,
+    FaTags,
+    FaBell,
 } from "react-icons/fa";
-import { toast } from "react-toastify";
-import { authSession } from "../../service/AuthSession";
-import { useNavigate } from "react-router-dom";
-
+import DashboardTab from "./Tabs/DashboardTab";
 import UsuariosTab from "./Tabs/UsuariosTab";
 import EstabelecimentosTab from "./Tabs/EstabelecimentosTab";
 import AvaliacoesTab from "./Tabs/AvaliacoesTab";
-import DashboardTab from "./Tabs/DashboardTab";
-import ProfissionaisTab from "./Tabs/ProfissionaisTab";
+import CategoriasTab from "./Tabs/CategoriasTab";
+import SolicitacoesCategoriasTab from "./Tabs/SolicitacoesCategoriasTab";
+import { solicitacaoCategoriaService } from "../../services";
 
-function TabPanel(props) {
-    const { children, value, index, ...other } = props;
+const TabPanel = ({ children, value, index }) => (
+    <Box role="tabpanel" hidden={value !== index} sx={{ pt: 3 }}>
+        {value === index && children}
+    </Box>
+);
 
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`admin-tabpanel-${index}`}
-            aria-labelledby={`admin-tab-${index}`}
-            {...other}
-        >
-            {value === index && (
-                <Box sx={{ py: 3 }}>
-                    {children}
-                </Box>
-            )}
-        </div>
-    );
-}
+const TABS = [
+    { label: "Dashboard",        icon: FaChartPie  },
+    { label: "Usuários",         icon: FaUsers     },
+    { label: "Estabelecimentos", icon: FaBuilding  },
+    { label: "Denúncias",        icon: FaFlag      },
+    { label: "Categorias",       icon: FaTags      },
+    { label: "Solicitações",     icon: FaBell      },
+];
 
-const Admin = () => {
-    const navigate = useNavigate();
-    const [tabValue, setTabValue] = useState(0);
+const AdminPanel = () => {
+    const theme = useTheme();
+    const [tab, setTab] = useState(0);
+    const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {
-        const userInfo = authSession.getUser();
-        if (!userInfo || userInfo.role !== "ADMIN") {
-            toast.error("Acesso negado! Apenas administradores podem acessar esta página.");
-            navigate("/");
-            return;
-        }
-    }, [navigate]);
-
-    const theme = useTheme();
-
-    const tabs = [
-        { label: "Visão Geral", icon: <FaChartLine size={14} /> },
-        { label: "Usuários", icon: <FaUsers size={14} /> },
-        { label: "Estabelecimentos", icon: <FaStore size={14} /> },
-        { label: "Profissionais", icon: <FaUserTie size={14} /> },
-        { label: "Avaliações", icon: <FaStar size={14} /> },
-    ];
+        solicitacaoCategoriaService
+            .getAll("PENDENTE")
+            .then((data) => setPendingCount(data.length))
+            .catch(() => {});
+    }, []);
 
     return (
-        <Container maxWidth="xl" sx={{ py: 6, px: { xs: 2, md: 3 } }}>
-            {/* Header */}
-            <Box sx={{ mb: 5 }}>
-                <Typography variant="h4" fontWeight={900} sx={{
-                    color: 'text.primary',
-                    mb: 1,
-                    letterSpacing: '-0.02em',
-                }}>
-                    Painel de Administração
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+            <Box sx={{ mb: 4 }}>
+                <Typography variant="h4" fontWeight={800}>
+                    Painel Administrativo
                 </Typography>
-                <Typography variant="body1" color="text.secondary" fontWeight={500}>
-                    Gerencie usuários, estabelecimentos e avaliações do sistema.
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Gerencie usuários, categorias e moderação da plataforma IlhaFit.
                 </Typography>
             </Box>
 
-            {/* Tabs estilizadas como no Perfil */}
-            <Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                {tabs.map((tab, index) => (
-                    <Button
-                        key={index}
-                        onClick={() => setTabValue(index)}
-                        startIcon={tab.icon}
-                        sx={{
-                            borderRadius: 10,
-                            textTransform: 'none',
-                            px: 3,
-                            fontWeight: 700,
-                            bgcolor: tabValue === index ? 'primary.main' : 'transparent',
-                            color: tabValue === index ? 'white' : 'text.primary',
-                            border: '1px solid',
-                            borderColor: tabValue === index ? 'primary.main' : 'divider',
-                            '&:hover': {
-                                bgcolor: tabValue === index ? 'primary.main' : alpha(theme.palette.divider, 0.1),
+            <Box
+                sx={{
+                    borderBottom: 1,
+                    borderColor: "divider",
+                    bgcolor: alpha(theme.palette.background.paper, 0.8),
+                    borderRadius: "12px 12px 0 0",
+                    px: 1,
+                }}
+            >
+                <Tabs
+                    value={tab}
+                    onChange={(_, v) => setTab(v)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{ "& .MuiTab-root": { minHeight: 56, textTransform: "none", fontWeight: 600 } }}
+                >
+                    {TABS.map(({ label, icon: Icon }, i) => (
+                        <Tab
+                            key={label}
+                            label={
+                                i === 5 ? (
+                                    <Badge badgeContent={pendingCount} color="error" max={99}>
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: pendingCount > 0 ? 1.5 : 0 }}>
+                                            <Icon size={16} />
+                                            {label}
+                                        </Box>
+                                    </Badge>
+                                ) : (
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Icon size={16} />
+                                        {label}
+                                    </Box>
+                                )
                             }
-                        }}
-                    >
-                        {tab.label}
-                    </Button>
-                ))}
+                        />
+                    ))}
+                </Tabs>
             </Box>
 
-            <TabPanel value={tabValue} index={0}>
-                <DashboardTab />
-            </TabPanel>
-            <TabPanel value={tabValue} index={1}>
-                <UsuariosTab />
-            </TabPanel>
-            <TabPanel value={tabValue} index={2}>
-                <EstabelecimentosTab />
-            </TabPanel>
-            <TabPanel value={tabValue} index={3}>
-                <ProfissionaisTab />
-            </TabPanel>
-            <TabPanel value={tabValue} index={4}>
-                <AvaliacoesTab />
-            </TabPanel>
+            <Box
+                sx={{
+                    border: 1,
+                    borderTop: 0,
+                    borderColor: "divider",
+                    borderRadius: "0 0 12px 12px",
+                    p: 3,
+                    bgcolor: "background.paper",
+                }}
+            >
+                <TabPanel value={tab} index={0}><DashboardTab /></TabPanel>
+                <TabPanel value={tab} index={1}><UsuariosTab /></TabPanel>
+                <TabPanel value={tab} index={2}><EstabelecimentosTab /></TabPanel>
+                <TabPanel value={tab} index={3}><AvaliacoesTab /></TabPanel>
+                <TabPanel value={tab} index={4}><CategoriasTab /></TabPanel>
+                <TabPanel value={tab} index={5}>
+                    <SolicitacoesCategoriasTab onCountChange={setPendingCount} />
+                </TabPanel>
+            </Box>
         </Container>
     );
 };
 
-export default Admin;
+export default AdminPanel;

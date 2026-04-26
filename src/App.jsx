@@ -13,6 +13,7 @@ import Profissional from "./pages/Profissional/index.jsx";
 import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.jsx";
 import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
 import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
+import AdminPanel from "./pages/Admin/index.jsx";
 
 
 
@@ -38,11 +39,11 @@ function App() {
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
         <Route
           path="/admin"
-          element={
+          element={(
             <AdminRoute>
-              <Admin />
+              <AdminPanel />
             </AdminRoute>
-          }
+          )}
         />
       </Routes>
     </AppLayout>
