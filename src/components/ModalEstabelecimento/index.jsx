@@ -22,7 +22,7 @@ const getNome = (estabelecimento) => estabelecimento?.nomeFantasia || "Estabelec
 
 const getEndereco = (estabelecimento) => {
   const endereco = estabelecimento?.endereco;
-  if (!endereco) return "Endereco nao informado";
+  if (!endereco) return "Endereço não informado";
 
   return [
     endereco.rua,
@@ -119,7 +119,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
                 <FaStar color="#FBBF24" />
                 <Typography variant="body2" fontWeight={800}>
-                  {estabelecimento.avaliacao ?? 0} avaliacao
+                  {estabelecimento.avaliacao ?? 0} avaliação
                 </Typography>
               </Box>
             </Box>
@@ -156,7 +156,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           </Typography>
 
           <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Localizacao
+            Localização
           </Typography>
           <Box sx={{ display: "flex", gap: 1, color: "text.secondary", mb: 2 }}>
             <FaMapMarkerAlt color="#EF4444" />
@@ -221,7 +221,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
 
                   <Box>
                     <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                      Periodos oferecidos
+                      Períodos oferecidos
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                       {grade.periodos?.map((periodo) => (
@@ -235,7 +235,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           </Box>
 
           <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Avaliacoes
+            Avaliações
           </Typography>
           <AvaliacoesPanel targetType="estabelecimento" targetId={estabelecimento.id} />
         </Box>

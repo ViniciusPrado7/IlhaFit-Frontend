@@ -28,14 +28,14 @@ const MOTIVOS = [
 
 const getDenunciaSubmitError = (error) => {
     if (error?.response?.status === 422) {
-        return 'Nao foi possivel enviar sua denuncia porque a descricao contem conteudo ofensivo ou inadequado.';
+        return 'Não foi possível enviar sua denúncia porque a descrição contém conteúdo ofensivo ou inadequado.';
     }
 
     if (error?.response?.status === 503) {
-        return 'Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.';
+        return 'Não foi possível validar sua mensagem no momento. Tente novamente em instantes.';
     }
 
-    return error.response?.data?.erro || 'Erro ao enviar denuncia.';
+    return error.response?.data?.erro || 'Erro ao enviar denúncia.';
 };
 
 const ModalDenuncia = ({ open, onClose, avaliacaoId, onSuccess }) => {

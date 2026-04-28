@@ -80,7 +80,7 @@ const getApiError = (error) => {
   if (status === 401 || status === 403) {
     return {
       fieldErrors: {},
-      generalError: "Sessao invalida ou sem permissao. Faca login novamente.",
+      generalError: "Sessão inválida ou sem permissão. Faça login novamente.",
     };
   }
 
@@ -288,12 +288,12 @@ const ConfiguracaoEstabelecimento = () => {
     const errors = {};
 
     if (!formData.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia";
-    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razao social";
+    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razão social";
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
-    if (!formData.numero.trim()) errors.numero = "Informe o numero";
+    if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
@@ -586,7 +586,7 @@ const ConfiguracaoEstabelecimento = () => {
           <TextField fullWidth disabled={!isEditingDados} name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} />
         </Box>
         <Box>
-          {label("Razao social")}
+          {label("Razão social")}
           <TextField fullWidth disabled={!isEditingDados} name="razaoSocial" value={formData.razaoSocial} onChange={handleInputChange} error={Boolean(fieldErrors.razaoSocial)} helperText={fieldErrors.razaoSocial} sx={inputStyles} />
         </Box>
       </Box>
@@ -803,7 +803,7 @@ const ConfiguracaoEstabelecimento = () => {
       </Typography>
 
       <Alert severity="warning" sx={{ mb: 3 }}>
-        Para confirmar a exclusao, digite EXCLUIR no campo abaixo.
+        Para confirmar a exclusão, digite EXCLUIR no campo abaixo.
       </Alert>
 
       {label("Confirmação")}

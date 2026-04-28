@@ -142,7 +142,7 @@ const CadastroProfissional = () => {
   );
 
   const limparErro = (name) => {
-    setFieldErrors(prev => ({ ...prev, [name]: "" }));
+    setFieldErrors((prev) => ({ ...prev, [name]: "" }));
     setGeneralError("");
   };
 
@@ -157,10 +157,10 @@ const CadastroProfissional = () => {
         regiao: value.slice(0, 60),
       }[name] ?? value;
 
-    setFormData(prev => {
+    setFormData((prev) => {
       const nextData = { ...prev, [name]: nextValue };
       if (name === "genero" && nextValue !== "FEMININO") {
-        setGradeAtividades(current => current.map((item) => ({ ...item, exclusivoMulheres: false })));
+        setGradeAtividades((current) => current.map((item) => ({ ...item, exclusivoMulheres: false })));
       }
       return nextData;
     });
@@ -173,20 +173,20 @@ const CadastroProfissional = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      setFormData(prev => ({ ...prev, fotoUrl: reader.result || "" }));
-      setFieldErrors(prev => ({ ...prev, fotoUrl: "" }));
+      setFormData((prev) => ({ ...prev, fotoUrl: reader.result || "" }));
+      setFieldErrors((prev) => ({ ...prev, fotoUrl: "" }));
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
   const removerFoto = () => {
-    setFormData(prev => ({ ...prev, fotoUrl: "" }));
+    setFormData((prev) => ({ ...prev, fotoUrl: "" }));
     limparErro("fotoUrl");
   };
 
   const handleGradeChange = (index, name, value) => {
-    setGradeAtividades(prev => prev.map((item, itemIndex) => (
+    setGradeAtividades((prev) => prev.map((item, itemIndex) => (
       itemIndex === index ? { ...item, [name]: value } : item
     )));
     limparErro("gradeAtividades");
@@ -202,15 +202,15 @@ const CadastroProfissional = () => {
       const categoriaCriada = response.data?.categoria || response.data || { nome };
       const nomeCriado = getCategoriaNome(categoriaCriada) || nome;
 
-      setCategorias(prev => [...prev, categoriaCriada]);
-      setGradeAtividades(prev => prev.map((item, index) => (
+      setCategorias((prev) => [...prev, categoriaCriada]);
+      setGradeAtividades((prev) => prev.map((item, index) => (
         index === gradeIndex ? { ...item, atividade: nomeCriado } : item
       )));
       setNovaCategoria("");
       toast.success("Categoria cadastrada!");
     } catch (error) {
       const { generalError: apiGeneralError } = getApiError(error);
-      setGeneralError(apiGeneralError || "Nao foi possivel cadastrar a categoria.");
+      setGeneralError(apiGeneralError || "Não foi possível cadastrar a categoria.");
     } finally {
       setCategoriaLoading(false);
     }
@@ -228,9 +228,9 @@ const CadastroProfissional = () => {
     }
     if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
     if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
-    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas nao coincidem";
+    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
     if (!validarSenha(formData.senha)) {
-      errors.senha = "Senha deve ter no minimo 8 caracteres, 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial";
+      errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
     }
 
     setFieldErrors(errors);
@@ -240,9 +240,9 @@ const CadastroProfissional = () => {
   const validarGrade = () => {
     const errors = {};
 
-    if (!formData.genero) errors.genero = "Selecione o genero";
+    if (!formData.genero) errors.genero = "Selecione o gênero";
 
-    const invalida = gradeAtividades.some(item => (
+    const invalida = gradeAtividades.some((item) => (
       !item.atividade ||
       item.atividade === NOVA_CATEGORIA_VALUE ||
       !item.diasSemana.length ||
@@ -250,10 +250,10 @@ const CadastroProfissional = () => {
     ));
 
     if (invalida) {
-      errors.gradeAtividades = "Informe atividade, dias da semana e periodo em todas as atividades.";
+      errors.gradeAtividades = "Informe atividade, dias da semana e período em todas as atividades.";
     }
 
-    setFieldErrors(prev => ({ ...prev, ...errors }));
+    setFieldErrors((prev) => ({ ...prev, ...errors }));
     return Object.keys(errors).length === 0;
   };
 
@@ -268,8 +268,8 @@ const CadastroProfissional = () => {
     regiao: formData.regiao.trim(),
     exclusivoMulheres: generoFeminino && gradeAtividades.some((item) => item.exclusivoMulheres),
     gradeAtividades: gradeAtividades
-      .filter(item => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
-      .map(item => ({
+      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .map((item) => ({
         atividade: item.atividade,
         exclusivoMulheres: generoFeminino ? item.exclusivoMulheres : false,
         diasSemana: item.diasSemana,
@@ -362,7 +362,7 @@ const CadastroProfissional = () => {
   const toggleGradeItem = (index, field, value) => {
     const selected = gradeAtividades[index][field];
     const nextValue = selected.includes(value)
-      ? selected.filter(item => item !== value)
+      ? selected.filter((item) => item !== value)
       : [...selected, value];
 
     handleGradeChange(index, field, nextValue);
@@ -476,7 +476,7 @@ const CadastroProfissional = () => {
         Perfil profissional
       </Typography>
 
-      {label("Genero")}
+      {label("Gênero")}
       <ToggleButtonGroup
         value={formData.genero}
         exclusive
@@ -524,7 +524,7 @@ const CadastroProfissional = () => {
               Atividade {index + 1}
             </Typography>
             {gradeAtividades.length > 1 && (
-              <Button type="button" color="error" size="small" onClick={() => setGradeAtividades(prev => prev.filter((_, itemIndex) => itemIndex !== index))}>
+              <Button type="button" color="error" size="small" onClick={() => setGradeAtividades((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}>
                 Remover
               </Button>
             )}
@@ -570,7 +570,7 @@ const CadastroProfissional = () => {
                   onChange={(e) => handleGradeChange(index, "exclusivoMulheres", e.target.checked)}
                 />
               }
-              label="Esta atividade e exclusiva para mulheres"
+              label="Esta atividade é exclusiva para mulheres"
               sx={{ mb: 1, color: "text.secondary" }}
             />
           )}
@@ -578,12 +578,12 @@ const CadastroProfissional = () => {
           {label("Dias da semana")}
           {tagSelector(index, "diasSemana", DIAS_SEMANA)}
 
-          {label("Periodos")}
+          {label("Períodos")}
           {tagSelector(index, "periodos", PERIODOS)}
         </Box>
       ))}
 
-      <Button type="button" variant="outlined" onClick={() => setGradeAtividades(prev => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
+      <Button type="button" variant="outlined" onClick={() => setGradeAtividades((prev) => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
         Adicionar atividade
       </Button>
     </>

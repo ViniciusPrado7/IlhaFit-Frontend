@@ -167,7 +167,7 @@ const NavBar = () => {
                     <ListItemIcon>
                       <FaCog size={16} />
                     </ListItemIcon>
-                    Configuracoes
+                    Configurações
                   </MenuItem>
                   <MenuItem onClick={handleLogout}>
                     <ListItemIcon>

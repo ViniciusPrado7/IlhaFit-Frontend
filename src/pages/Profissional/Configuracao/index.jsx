@@ -298,7 +298,7 @@ const ConfiguracaoProfissional = () => {
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
+    if (!formData.regiao.trim()) errors.regiao = "Informe a região";
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;

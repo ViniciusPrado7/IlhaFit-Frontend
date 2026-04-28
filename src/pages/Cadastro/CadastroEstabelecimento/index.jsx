@@ -190,7 +190,7 @@ const CadastroEstabelecimento = () => {
       toast.success("Categoria cadastrada!");
     } catch (error) {
       const { generalError: apiGeneralError } = getApiError(error);
-      setGeneralError(apiGeneralError || "Nao foi possivel cadastrar a categoria.");
+      setGeneralError(apiGeneralError || "Não foi possível cadastrar a categoria.");
     } finally {
       setCategoriaLoading(false);
     }
@@ -200,20 +200,20 @@ const CadastroEstabelecimento = () => {
     const errors = {};
 
     if (!formData.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia";
-    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razao social";
+    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razão social";
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
-    if (!formData.numero.trim()) errors.numero = "Informe o numero";
+    if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
     if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
-    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas nao coincidem";
+    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
     if (!validarSenha(formData.senha)) {
-      errors.senha = "Senha deve ter no minimo 8 caracteres, 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial";
+      errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
     }
 
     setFieldErrors(errors);
@@ -231,7 +231,7 @@ const CadastroEstabelecimento = () => {
 
     setFieldErrors(prev => ({
       ...prev,
-      gradeAtividades: "Informe categoria, dias da semana e periodo em todas as atividades.",
+      gradeAtividades: "Informe categoria, dias da semana e período em todas as atividades.",
     }));
     return false;
   };
@@ -352,7 +352,7 @@ const CadastroEstabelecimento = () => {
           <TextField fullWidth name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} placeholder="IlhaFit Centro" error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
-          {label("Razao social")}
+          {label("Razão social")}
           <TextField fullWidth name="razaoSocial" value={formData.razaoSocial} onChange={handleInputChange} placeholder="IlhaFit Academia LTDA" error={Boolean(fieldErrors.razaoSocial)} helperText={fieldErrors.razaoSocial} sx={inputStyles} required />
         </Box>
       </Box>
@@ -372,7 +372,7 @@ const CadastroEstabelecimento = () => {
       </Box>
 
       <Typography variant="h6" fontWeight={800} sx={{ mb: 2, color: "text.primary" }}>
-        Endereco
+        Endereço
       </Typography>
 
       {label("Rua")}
@@ -380,7 +380,7 @@ const CadastroEstabelecimento = () => {
 
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
-          {label("Numero")}
+          {label("Número")}
           <TextField fullWidth name="numero" value={formData.numero} onChange={handleInputChange} placeholder="100" error={Boolean(fieldError("numero"))} helperText={fieldError("numero")} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
@@ -395,11 +395,11 @@ const CadastroEstabelecimento = () => {
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
           {label("Cidade")}
-          <TextField fullWidth name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Sao Paulo" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} required />
+          <TextField fullWidth name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Florianópolis" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
           {label("Estado")}
-          <TextField fullWidth name="estado" value={formData.estado} onChange={handleInputChange} placeholder="SP" error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} required />
+          <TextField fullWidth name="estado" value={formData.estado} onChange={handleInputChange} placeholder="SC" error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
           {label("CEP")}
@@ -530,7 +530,7 @@ const CadastroEstabelecimento = () => {
           {label("Dias da semana")}
           {tagSelector(index, "diasSemana", DIAS_SEMANA)}
 
-          {label("Periodos")}
+          {label("Períodos")}
           {tagSelector(index, "periodos", PERIODOS)}
         </Box>
       ))}
