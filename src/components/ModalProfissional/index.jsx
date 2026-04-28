@@ -128,7 +128,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
                   <FaStar color="#FBBF24" />
                   <Typography variant="body2" fontWeight={800}>
-                    {profissional.avaliacao ?? 0} avaliacao
+                    {profissional.avaliacao ?? 0} avaliação
                   </Typography>
                 </Box>
               </Box>
@@ -164,10 +164,10 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 Informações
               </Typography>
               <Box sx={{ display: "grid", gap: 1, color: "text.secondary", mb: 3 }}>
-                <Typography variant="body2"><strong>Email:</strong> {profissional.email || "Nao informado"}</Typography>
-                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone || "Nao informado"}</Typography>
-                <Typography variant="body2"><strong>Genero:</strong> {formatLabel(profissional.sexo || profissional.genero) || "Nao informado"}</Typography>
-                <Typography variant="body2"><strong>CREF:</strong> {profissional.registroCref || "Nao informado"}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {profissional.email || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Gênero:</strong> {formatLabel(profissional.sexo || profissional.genero) || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>CREF:</strong> {profissional.registroCref || "Não informado"}</Typography>
               </Box>
 
             </Box>
@@ -217,7 +217,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
 
                     <Box>
                       <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                        Periodos oferecidos
+                        Períodos oferecidos
                       </Typography>
                       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                         {grade.periodos?.map((periodo) => (
@@ -231,7 +231,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             </Box>
 
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-              Avaliacoes
+              Avaliações
             </Typography>
             <AvaliacoesPanel targetType="profissional" targetId={profissional.id} />
           </Box>

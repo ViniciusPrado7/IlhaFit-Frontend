@@ -27,14 +27,14 @@ const getApiError = (error) => {
   if (status === 401 || status === 403) {
     return {
       fieldErrors: {},
-      generalError: status === 401 ? "Email ou senha invalidos." : "Sessao invalida ou sem permissao. Faca login novamente."
+      generalError: status === 401 ? "Email ou senha inválidos." : "Sessão inválida ou sem permissão. Faça login novamente."
     };
   }
 
   if (status === 403 && !data) {
     return {
       fieldErrors: {},
-      generalError: "Login bloqueado pelo servidor. Verifique se a rota de auth esta liberada no backend."
+      generalError: "Login bloqueado pelo servidor. Verifique se a rota de auth está liberada no backend."
     };
   }
 
@@ -55,7 +55,7 @@ const getApiError = (error) => {
 
 const requireTokenLogin = (data) => {
   if (!data?.token) {
-    throw new Error("Nao foi possivel iniciar a sessao. Tente novamente.");
+    throw new Error("Não foi possível iniciar a sessão. Tente novamente.");
   }
 
   return data;
@@ -252,7 +252,7 @@ const Login = () => {
 
           <Box sx={{ mt: 4, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">
-              Nao tem conta?{" "}
+              Não tem conta?{" "}
               <Typography
                 component="span"
                 variant="body2"
