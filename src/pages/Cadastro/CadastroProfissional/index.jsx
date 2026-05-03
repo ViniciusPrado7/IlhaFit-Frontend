@@ -537,7 +537,16 @@ const CadastroProfissional = () => {
                 const nome = getCategoriaNome(categoria);
                 return nome ? <MenuItem key={categoria.id || nome} value={nome}>{nome}</MenuItem> : null;
               })}
-              <MenuItem value={NOVA_CATEGORIA_VALUE}>Adicionar nova categoria</MenuItem>
+              <MenuItem
+                value={NOVA_CATEGORIA_VALUE}
+                sx={{
+                  color: "primary.main",
+                  fontWeight: 800,
+                  bgcolor: "rgba(16, 185, 129, 0.08)",
+                }}
+              >
+                + Adicionar nova categoria
+              </MenuItem>
             </Select>
           </FormControl>
 
