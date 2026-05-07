@@ -15,6 +15,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import AvaliacoesPanel from "../AvaliacoesPanel";
+import MapComponent from "../MapComponent";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -79,11 +80,37 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
   const categorias = getCategorias(estabelecimento);
   const fotos = getFotos(estabelecimento);
   const [fotoAtual, setFotoAtual] = useState(0);
+  const [coords, setCoords] = useState({ 
+    lat: estabelecimento.endereco?.latitude || null, 
+    lng: estabelecimento.endereco?.longitude || null 
+  });
   const temMultiplasFotos = fotos.length > 1;
 
   useEffect(() => {
     setFotoAtual(0);
-  }, [estabelecimento?.id, estabelecimento?.fotosUrl]);
+    // Reset and try to find coords if missing
+    const initialLat = estabelecimento.endereco?.latitude || null;
+    const initialLng = estabelecimento.endereco?.longitude || null;
+    setCoords({ lat: initialLat, lng: initialLng });
+
+    if (!initialLat || !initialLng) {
+      const addr = estabelecimento.endereco;
+      if (addr && (addr.rua || addr.cep)) {
+        const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.length > 0) {
+              setCoords({
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+              });
+            }
+          })
+          .catch(err => console.warn("Erro ao geocodificar no modal:", err));
+      }
+    }
+  }, [estabelecimento?.id, estabelecimento?.endereco]);
 
   const irParaFoto = (index) => {
     setFotoAtual(index);
@@ -258,21 +285,43 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         </Box>
         <Box
           sx={{
-            height: 190,
+            height: 250,
             borderRadius: 2,
-            bgcolor: "action.hover",
+            overflow: "hidden",
             border: "1px solid",
             borderColor: "divider",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "text.secondary",
             mb: 3,
           }}
         >
-          <Typography variant="body2" fontWeight={700}>
-            Mapa integrado aqui
-          </Typography>
+          {coords.lat && coords.lng ? (
+            <MapComponent
+              lat={coords.lat}
+              lng={coords.lng}
+              zoom={15}
+              markers={[{
+                id: estabelecimento.id,
+                lat: coords.lat,
+                lng: coords.lng,
+                title: getNome(estabelecimento)
+              }]}
+              autoFit={false}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "action.hover",
+                color: "text.secondary",
+              }}
+            >
+              <Typography variant="body2" fontWeight={700}>
+                Coordenadas não disponíveis para este estabelecimento.
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
