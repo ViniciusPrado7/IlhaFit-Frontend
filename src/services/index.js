@@ -21,6 +21,10 @@ export const estabelecimentoService = {
             exclusivoMulheres: (e.gradeAtividades || []).some(g => g.exclusivoMulheres),
         }));
     },
+    async getById(id) {
+        const res = await api.get(`/estabelecimentos/estabelecimentos/${id}`);
+        return res.data;
+    },
     async delete(id) {
         await api.delete(`/admin/users/${id}`, { params: { tipo: 'estabelecimento' } });
     },
