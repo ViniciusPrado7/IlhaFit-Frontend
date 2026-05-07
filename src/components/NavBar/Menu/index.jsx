@@ -6,6 +6,7 @@ import { authSession } from "../../../service/AuthSession";
 const baseLinks = [
   { name: "Estabelecimento", path: "/estabelecimento" },
   { name: "Profissional", path: "/profissional" },
+  { name: "Mapa", path: "/mapa" },
 ];
 
 const adminLink = { name: "Admin", path: "/admin" };

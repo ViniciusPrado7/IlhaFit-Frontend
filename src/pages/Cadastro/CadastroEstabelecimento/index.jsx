@@ -40,6 +40,8 @@ const formInicial = {
   estado: "",
   cep: "",
   fotoUrl: "",
+  latitude: null,
+  longitude: null,
 };
 
 const gradeInicial = { atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
@@ -66,6 +68,30 @@ const formatCnpj = (value) => {
 const formatCep = (value) => {
   const digits = onlyDigits(value).slice(0, 8);
   return digits.replace(/^(\d{5})(\d)/, "$1-$2");
+};
+
+const hasAddressFields = (address) =>
+  Boolean(
+    address.rua?.trim() &&
+    address.numero?.trim() &&
+    address.bairro?.trim() &&
+    address.cidade?.trim() &&
+    address.estado?.trim()
+  );
+
+const buildGeocodeQuery = (address) => {
+  const street = [address.rua?.trim(), address.numero?.trim()].filter(Boolean).join(", ");
+
+  return [
+    street,
+    address.bairro?.trim(),
+    address.cidade?.trim(),
+    address.estado?.trim(),
+    address.cep ? formatCep(address.cep) : "",
+    "Brasil",
+  ]
+    .filter(Boolean)
+    .join(", ");
 };
 
 const getCategoriaNome = (categoria) => {
@@ -104,6 +130,7 @@ const CadastroEstabelecimento = () => {
   const [loading, setLoading] = useState(false);
   const [categoriaLoading, setCategoriaLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
 
   useEffect(() => {
     const carregarCategorias = async () => {
@@ -140,6 +167,44 @@ const CadastroEstabelecimento = () => {
   };
 
   const fieldError = (name) => fieldErrors[name] || fieldErrors[`endereco.${name}`] || "";
+
+  const atualizarCoordenadas = async (address) => {
+    if (!hasAddressFields(address)) return false;
+
+    setGeocodeLoading(true);
+    try {
+      const query = buildGeocodeQuery(address);
+      const geoResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(query)}`
+      );
+
+      if (!geoResponse.ok) {
+        throw new Error("Falha ao buscar coordenadas.");
+      }
+
+      const geoData = await geoResponse.json();
+      if (!geoData || geoData.length === 0) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          rua: prev.rua || "Nao foi possivel localizar esse endereco com precisao.",
+        }));
+        return false;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        latitude: parseFloat(geoData[0].lat),
+        longitude: parseFloat(geoData[0].lon),
+      }));
+
+      return true;
+    } catch (geoError) {
+      console.warn("Erro ao buscar coordenadas:", geoError);
+      return false;
+    } finally {
+      setGeocodeLoading(false);
+    }
+  };
 
   const preencherEnderecoPorCep = async (cep) => {
     const cepLimpo = onlyDigits(cep);
@@ -186,6 +251,7 @@ const CadastroEstabelecimento = () => {
         estado: "",
         "endereco.estado": "",
       }));
+
     } catch (error) {
       setFieldErrors((prev) => ({
         ...prev,
@@ -206,7 +272,13 @@ const CadastroEstabelecimento = () => {
       estado: value.toUpperCase().slice(0, 2),
     }[name] ?? value;
 
-    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: nextValue,
+      ...(["rua", "numero", "bairro", "cidade", "estado", "cep", "complemento"].includes(name)
+        ? { latitude: null, longitude: null }
+        : {}),
+    }));
     limparErro(name);
   };
 
@@ -310,6 +382,8 @@ const CadastroEstabelecimento = () => {
       cidade: formData.cidade,
       estado: formData.estado,
       cep: formData.cep,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
     },
     gradeAtividades: gradeAtividades
       .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
@@ -328,6 +402,11 @@ const CadastroEstabelecimento = () => {
 
     if (step === 0) {
       if (validarEtapaUm()) {
+        const coordenadasOk = await atualizarCoordenadas(formData);
+        if (!coordenadasOk) {
+          setGeneralError("Revise o endereco e o numero para encontrarmos a localizacao correta do estabelecimento.");
+          return;
+        }
         setStep(1);
         setFieldErrors({});
       }
@@ -338,6 +417,13 @@ const CadastroEstabelecimento = () => {
 
     setLoading(true);
     try {
+      if (!formData.latitude || !formData.longitude) {
+        const coordenadasOk = await atualizarCoordenadas(formData);
+        if (!coordenadasOk) {
+          setGeneralError("Nao foi possivel confirmar a localizacao do endereco informado.");
+          return;
+        }
+      }
       await estabelecimentoService.cadastrarEstabelecimento(payload());
       toast.success("Estabelecimento cadastrado com sucesso!");
       navigate("/login", { state: { accountType: "estabelecimento", email: formData.email } });
@@ -448,6 +534,12 @@ const CadastroEstabelecimento = () => {
         required
       />
 
+      {geocodeLoading && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Validando a localização exata do endereço informado...
+        </Alert>
+      )}
+
       {label("Rua")}
       <TextField fullWidth name="rua" value={formData.rua} onChange={handleInputChange} placeholder="Rua A" error={Boolean(fieldError("rua"))} helperText={fieldError("rua")} sx={inputStyles} required />
 
@@ -475,7 +567,7 @@ const CadastroEstabelecimento = () => {
           <TextField fullWidth name="complemento" value={formData.complemento} onChange={handleInputChange} placeholder="Sala 1" error={Boolean(fieldError("complemento"))} helperText={fieldError("complemento")} sx={inputStyles} />
         </Box>
       </Box>
-
+      
       {passwordFields()}
 
       <Box sx={{ mb: 2 }}>
