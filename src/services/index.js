@@ -12,14 +12,20 @@ export const adminService = {
 };
 
 // ==================== ESTABELECIMENTOS ====================
+const mapEstabelecimento = (e) => ({
+    ...e,
+    categorias: (e.gradeAtividades || []).map(g => ({ id: g.id, nome: g.atividade })),
+    exclusivoMulheres: (e.gradeAtividades || []).some(g => g.exclusivoMulheres),
+});
+
 export const estabelecimentoService = {
     async getAll() {
         const res = await api.get('/estabelecimentos/estabelecimentos');
-        return res.data.map(e => ({
-            ...e,
-            categorias: (e.gradeAtividades || []).map(g => ({ id: g.id, nome: g.atividade })),
-            exclusivoMulheres: (e.gradeAtividades || []).some(g => g.exclusivoMulheres),
-        }));
+        return res.data.map(mapEstabelecimento);
+    },
+    async getById(id) {
+        const res = await api.get(`/estabelecimentos/estabelecimentos/${id}`);
+        return mapEstabelecimento(res.data);
     },
     async delete(id) {
         await api.delete(`/admin/users/${id}`, { params: { tipo: 'estabelecimento' } });
@@ -58,6 +64,21 @@ export const categoriaService = {
     },
     async excluir(id) {
         await api.delete(`/categorias/deletar/${id}`);
+    },
+};
+
+// ==================== PROFISSIONAIS ====================
+export const profissionalService = {
+    async listarProfissionais() {
+        const res = await api.get('/profissionais/profissionais');
+        return res.data;
+    },
+    async buscarProfissionalPorId(id) {
+        const res = await api.get(`/profissionais/profissionais/${id}`);
+        return res.data;
+    },
+    async excluirProfissional(id) {
+        await api.delete(`/profissionais/deletar/${id}`);
     },
 };
 
