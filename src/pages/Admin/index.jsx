@@ -112,7 +112,7 @@ const AdminPanel = () => {
                     bgcolor: "background.paper",
                 }}
             >
-                <TabPanel value={tab} index={0}><DashboardTab /></TabPanel>
+                <TabPanel value={tab} index={0}><DashboardTab onTabChange={setTab} /></TabPanel>
                 <TabPanel value={tab} index={1}><UsuariosTab /></TabPanel>
                 <TabPanel value={tab} index={2}><EstabelecimentosTab /></TabPanel>
                 <TabPanel value={tab} index={3}><AvaliacoesTab /></TabPanel>
