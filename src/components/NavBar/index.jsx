@@ -62,6 +62,10 @@ const NavBar = () => {
       navigate("/profissional/configuracoes");
       return;
     }
+    if (user?.tipo === "USUARIO" && user?.id) {
+      navigate("/usuario/configuracoes");
+      return;
+    }
 
     navigate("/");
   };
