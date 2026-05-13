@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Box,
     Typography,
@@ -9,9 +9,12 @@ import {
     TableContainer,
     TableHead,
     TableRow,
+    TablePagination,
     IconButton,
     Chip,
     Button,
+    TextField,
+    InputAdornment,
     CircularProgress,
     Tooltip,
     Dialog,
@@ -30,6 +33,7 @@ import {
     FaExclamationTriangle,
     FaEye,
     FaExternalLinkAlt,
+    FaSearch,
 } from "react-icons/fa";
 import { denunciaService } from "../../../services";
 import { toast } from "react-toastify";
@@ -46,6 +50,7 @@ const STATUS_CONFIG = {
     PENDENTE: { label: "Pendente", color: "warning" },
     REVISADO: { label: "Revisado", color: "success" },
     IGNORADO: { label: "Ignorado", color: "default" },
+    EXCLUIDO: { label: "Excluída", color: "error" },
 };
 
 const AvaliacoesTab = () => {
@@ -54,12 +59,25 @@ const AvaliacoesTab = () => {
     const [denuncias, setDenuncias] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState("PENDENTE");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [detailDialog, setDetailDialog] = useState({ open: false, denuncia: null });
     const [deleteDialog, setDeleteDialog] = useState({ open: false, denuncia: null });
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
+        setPage(0);
         loadDenuncias();
     }, [filterStatus]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setPage(0);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
 
     const loadDenuncias = async () => {
         try {
@@ -100,6 +118,53 @@ const AvaliacoesTab = () => {
 
     const pendentes = denuncias.filter(d => d.status === "PENDENTE").length;
 
+    const denunciaCountMap = useMemo(() => {
+        const map = {};
+        denuncias.forEach(d => {
+            map[d.avaliacaoId] = (map[d.avaliacaoId] || 0) + 1;
+        });
+        return map;
+    }, [denuncias]);
+
+    const alertCount = useMemo(() => {
+        const avaliacoesAlerta = new Set(
+            Object.entries(denunciaCountMap)
+                .filter(([, count]) => count >= 10)
+                .map(([id]) => id)
+        );
+        return avaliacoesAlerta.size;
+    }, [denunciaCountMap]);
+
+    const filteredDenuncias = useMemo(() => {
+        let list = denuncias;
+        if (debouncedSearchTerm) {
+            const term = debouncedSearchTerm.toLowerCase();
+            list = list.filter(d =>
+                d.comentarioAvaliacao?.toLowerCase().includes(term) ||
+                d.nomeAutorAvaliacao?.toLowerCase().includes(term) ||
+                d.denuncianteEmail?.toLowerCase().includes(term) ||
+                d.estabelecimentoNome?.toLowerCase().includes(term) ||
+                d.profissionalNome?.toLowerCase().includes(term) ||
+                MOTIVO_LABELS[d.motivo]?.toLowerCase().includes(term)
+            );
+        }
+        return [...list].sort((a, b) => {
+            const countA = denunciaCountMap[a.avaliacaoId] || 1;
+            const countB = denunciaCountMap[b.avaliacaoId] || 1;
+            const aAlert = countA >= 10;
+            const bAlert = countB >= 10;
+            if (aAlert && !bAlert) return -1;
+            if (!aAlert && bAlert) return 1;
+            if (aAlert && bAlert) return countB - countA;
+            return 0;
+        });
+    }, [denuncias, debouncedSearchTerm, denunciaCountMap]);
+
+    const paginatedDenuncias = useMemo(() => {
+        const start = page * rowsPerPage;
+        return filteredDenuncias.slice(start, start + rowsPerPage);
+    }, [filteredDenuncias, page, rowsPerPage]);
+
     const formatDate = (dateStr) => {
         if (!dateStr) return "—";
         const d = new Date(dateStr);
@@ -132,6 +197,31 @@ const AvaliacoesTab = () => {
                 </Box>
             </Box>
 
+            {/* Busca */}
+            <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
+                <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+                    <TextField
+                        placeholder="Buscar por avaliação, autor, motivo, denunciante ou contexto..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        size="small"
+                        sx={{ flex: 1, minWidth: 280 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <FaSearch size={16} />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    {debouncedSearchTerm && (
+                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                            {filteredDenuncias.length} resultado{filteredDenuncias.length !== 1 ? "s" : ""}
+                        </Typography>
+                    )}
+                </Box>
+            </Paper>
+
             {/* Filtros por Status */}
             <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
                 {[
@@ -139,6 +229,7 @@ const AvaliacoesTab = () => {
                     { value: "PENDENTE", label: "Pendentes" },
                     { value: "REVISADO", label: "Revisadas" },
                     { value: "IGNORADO", label: "Ignoradas" },
+                    { value: "EXCLUIDO", label: "Excluídas" },
                 ].map((f) => (
                     <Button
                         key={f.label}
@@ -156,6 +247,16 @@ const AvaliacoesTab = () => {
                     </Button>
                 ))}
             </Box>
+
+            {/* Banner de alerta para avaliações com 10+ denúncias */}
+            {alertCount > 0 && (
+                <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'warning.main', borderRadius: 3, bgcolor: alpha(theme.palette.warning.main, isDark ? 0.12 : 0.07), display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <FaExclamationTriangle color={theme.palette.warning.main} size={18} />
+                    <Typography variant="body2" fontWeight={700} color="warning.dark">
+                        {alertCount} avaliação{alertCount !== 1 ? "ões" : ""} com 10 ou mais denúncias — exibida{alertCount !== 1 ? "s" : ""} em primeiro com destaque de alerta.
+                    </Typography>
+                </Paper>
+            )}
 
             {/* Tabela */}
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
@@ -191,8 +292,19 @@ const AvaliacoesTab = () => {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            denuncias.map((d) => (
-                                <TableRow key={d.id} hover>
+                            paginatedDenuncias.map((d) => {
+                                const count = denunciaCountMap[d.avaliacaoId] || 1;
+                                const isAlert = count >= 10;
+                                return (
+                                <TableRow
+                                    key={d.id}
+                                    hover
+                                    sx={isAlert ? {
+                                        bgcolor: alpha(theme.palette.warning.main, isDark ? 0.12 : 0.07),
+                                        '&:hover': { bgcolor: alpha(theme.palette.warning.main, isDark ? 0.2 : 0.13) },
+                                        borderLeft: `4px solid ${theme.palette.warning.main}`,
+                                    } : {}}
+                                >
                                     <TableCell sx={{ maxWidth: 250 }}>
                                         <Typography variant="body2" noWrap title={d.comentarioAvaliacao}>
                                             "{d.comentarioAvaliacao}"
@@ -202,6 +314,15 @@ const AvaliacoesTab = () => {
                                                 <FaStar key={i} size={10} color={i < d.notaAvaliacao ? "#FFD700" : "#E2E8F0"} />
                                             ))}
                                         </Box>
+                                        {isAlert && (
+                                            <Chip
+                                                icon={<FaExclamationTriangle size={9} />}
+                                                label={`${count} denúncias`}
+                                                size="small"
+                                                color="warning"
+                                                sx={{ mt: 0.5, fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                                            />
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Typography variant="body2" fontWeight={600}>{d.nomeAutorAvaliacao}</Typography>
@@ -294,11 +415,24 @@ const AvaliacoesTab = () => {
                                         </Box>
                                     </TableCell>
                                 </TableRow>
-                            ))
+                                );
+                            })
                         )}
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredDenuncias.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+            />
 
             {/* Dialog de Detalhes */}
             <Dialog
@@ -440,7 +574,7 @@ const AvaliacoesTab = () => {
                         Tem certeza que deseja excluir a avaliação de <strong>{deleteDialog.denuncia?.nomeAutorAvaliacao}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        A avaliação e todas as denúncias associadas serão removidas permanentemente.
+                        A avaliação e todas as denúncias associadas serão marcadas como excluídas e não aparecerão mais nas listagens.
                     </Typography>
                 </DialogContent>
                 <DialogActions>

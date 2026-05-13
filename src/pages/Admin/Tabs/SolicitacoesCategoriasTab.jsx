@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Box, Typography, Paper, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow, IconButton, Chip,
-    Button, CircularProgress, Tooltip, useTheme, alpha,
+    TableContainer, TableHead, TableRow, TablePagination, IconButton, Chip,
+    Button, TextField, InputAdornment, CircularProgress, Tooltip, useTheme, alpha,
 } from "@mui/material";
-import { FaCheck, FaTimes, FaTags } from "react-icons/fa";
+import { FaCheck, FaTimes, FaTags, FaSearch } from "react-icons/fa";
 import { solicitacaoCategoriaService } from "../../../services";
 import { toast } from "react-toastify";
 
@@ -26,10 +26,38 @@ const SolicitacoesCategoriasTab = ({ onCountChange }) => {
     const [solicitacoes, setSolicitacoes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState("PENDENTE");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
 
     useEffect(() => {
+        setPage(0);
         load();
     }, [filterStatus]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+            setPage(0);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    const filteredSolicitacoes = useMemo(() => {
+        if (!debouncedSearchTerm) return solicitacoes;
+        const term = debouncedSearchTerm.toLowerCase();
+        return solicitacoes.filter(s =>
+            s.nome?.toLowerCase().includes(term) ||
+            s.descricao?.toLowerCase().includes(term) ||
+            s.solicitanteEmail?.toLowerCase().includes(term)
+        );
+    }, [solicitacoes, debouncedSearchTerm]);
+
+    const paginatedSolicitacoes = useMemo(() => {
+        const start = page * rowsPerPage;
+        return filteredSolicitacoes.slice(start, start + rowsPerPage);
+    }, [filteredSolicitacoes, page, rowsPerPage]);
 
     const load = async () => {
         try {
@@ -90,6 +118,31 @@ const SolicitacoesCategoriasTab = ({ onCountChange }) => {
                 </Box>
             </Box>
 
+            {/* Busca */}
+            <Paper elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+                <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+                    <TextField
+                        placeholder="Buscar por nome, descrição ou solicitante..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        size="small"
+                        sx={{ flex: 1, minWidth: 280 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <FaSearch size={16} />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    {debouncedSearchTerm && (
+                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                            {filteredSolicitacoes.length} resultado{filteredSolicitacoes.length !== 1 ? "s" : ""}
+                        </Typography>
+                    )}
+                </Box>
+            </Paper>
+
             <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
                 {FILTROS.map((f) => (
                     <Button
@@ -131,7 +184,7 @@ const SolicitacoesCategoriasTab = ({ onCountChange }) => {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            solicitacoes.map((s) => (
+                            paginatedSolicitacoes.map((s) => (
                                 <TableRow key={s.id} hover>
                                     <TableCell sx={{ fontWeight: 600 }}>{s.nome}</TableCell>
                                     <TableCell>
@@ -196,6 +249,18 @@ const SolicitacoesCategoriasTab = ({ onCountChange }) => {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredSolicitacoes.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                labelRowsPerPage="Linhas por página:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+            />
         </Box>
     );
 };
