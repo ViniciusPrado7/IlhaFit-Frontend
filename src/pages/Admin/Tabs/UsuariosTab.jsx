@@ -27,6 +27,7 @@ import {
     TablePagination,
     useTheme,
     alpha,
+    Divider,
 } from "@mui/material";
 import {
     FaTrash,
@@ -37,10 +38,15 @@ import {
     FaUserTie,
     FaUserShield,
     FaExclamationTriangle,
+    FaEye,
+    FaEnvelope,
+    FaIdCard,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { adminService } from "../../../services";
+import { adminService, estabelecimentoService, profissionalService } from "../../../services";
 import { useNavigate } from "react-router-dom";
+import ModalProfissional from "../../../components/ModalProfissional";
+import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento";
 
 const UsuariosTab = () => {
     const navigate = useNavigate();
@@ -53,6 +59,11 @@ const UsuariosTab = () => {
     const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+
+    const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
+    const [estabelecimentoModal, setEstabelecimentoModal] = useState({ open: false, estabelecimento: null });
+    const [alunoDialog, setAlunoDialog] = useState({ open: false, user: null });
+    const [editLoading, setEditLoading] = useState(false);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -103,9 +114,7 @@ const UsuariosTab = () => {
         return filteredUsers.slice(startIndex, startIndex + rowsPerPage);
     }, [filteredUsers, page, rowsPerPage]);
 
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage);
-    };
+    const handleChangePage = (event, newPage) => setPage(newPage);
 
     const handleChangeRowsPerPage = (event) => {
         setRowsPerPage(parseInt(event.target.value, 10));
@@ -114,7 +123,6 @@ const UsuariosTab = () => {
 
     const handleDelete = async () => {
         if (!deleteDialog.user) return;
-
         try {
             await adminService.deleteUser(deleteDialog.user.id, deleteDialog.user.tipo);
             toast.success("Usuário excluído com sucesso!");
@@ -126,14 +134,63 @@ const UsuariosTab = () => {
         }
     };
 
-    const USER_ROLE_CONFIG = {
-        "aluno": { icon: FaUser, color: "primary", label: "Aluno" },
-        "profissional": { icon: FaUserTie, color: "secondary", label: "Profissional" },
-        "estabelecimento": { icon: FaBuilding, color: "warning", label: "Estabelecimento" },
-        "admin": { icon: FaUserShield, color: "error", label: "Admin" }
+    const handleOpenEdit = async (user) => {
+        if (user.tipo === "profissional") {
+            try {
+                setEditLoading(true);
+                const profissional = await profissionalService.buscarProfissionalPorId(user.id);
+                setProfissionalModal({ open: true, profissional });
+            } catch {
+                toast.error("Erro ao carregar perfil do profissional");
+            } finally {
+                setEditLoading(false);
+            }
+            return;
+        }
+
+        if (user.tipo === "estabelecimento") {
+            try {
+                setEditLoading(true);
+                const estab = await estabelecimentoService.getById(user.id);
+                const atividades = (estab.categorias || []).map((c) => c.nome);
+                setEstabelecimentoModal({
+                    open: true,
+                    estabelecimento: {
+                        ...estab,
+                        nome: estab.nomeFantasia || estab.nome,
+                        Imagem:
+                            estab.fotosUrl && estab.fotosUrl.length > 0
+                                ? estab.fotosUrl[0]
+                                : "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop",
+                        Imagens: estab.fotosUrl || [],
+                        categorias: atividades,
+                        avaliacao: estab.avaliacao || 0.0,
+                        aberto: true,
+                        descricao:
+                            estab.descricao || "Um ótimo local para treinar e cuidar da sua saúde.",
+                    },
+                });
+            } catch {
+                toast.error("Erro ao carregar perfil do estabelecimento");
+            } finally {
+                setEditLoading(false);
+            }
+            return;
+        }
+
+        // aluno ou admin — mostra painel básico de informações
+        setAlunoDialog({ open: true, user });
     };
 
-    const getTipoConfig = (tipo) => USER_ROLE_CONFIG[tipo] || { icon: FaUser, color: "default", label: tipo };
+    const USER_ROLE_CONFIG = {
+        aluno: { icon: FaUser, color: "primary", label: "Aluno" },
+        profissional: { icon: FaUserTie, color: "secondary", label: "Profissional" },
+        estabelecimento: { icon: FaBuilding, color: "warning", label: "Estabelecimento" },
+        admin: { icon: FaUserShield, color: "error", label: "Admin" },
+    };
+
+    const getTipoConfig = (tipo) =>
+        USER_ROLE_CONFIG[tipo] || { icon: FaUser, color: "default", label: tipo };
 
     const stats = {
         total: users.length,
@@ -252,16 +309,38 @@ const UsuariosTab = () => {
                                     <TableCell>{user.nome || user.nomeFantasia || "N/A"}</TableCell>
                                     <TableCell>{user.email || "N/A"}</TableCell>
                                     <TableCell align="right">
-                                        <Tooltip title="Excluir">
-                                            <IconButton
-                                                size="small"
-                                                color="error"
-                                                onClick={() => setDeleteDialog({ open: true, user })}
-                                                sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
-                                            >
-                                                <FaTrash size={14} />
-                                            </IconButton>
-                                        </Tooltip>
+                                        <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
+                                            <Tooltip title="Ver perfil">
+                                                <IconButton
+                                                    size="small"
+                                                    disabled={editLoading}
+                                                    onClick={() => handleOpenEdit(user)}
+                                                    sx={{
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                        "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                                                    }}
+                                                >
+                                                    {editLoading ? (
+                                                        <CircularProgress size={12} />
+                                                    ) : (
+                                                        <FaEye size={14} />
+                                                    )}
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Excluir">
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={() => setDeleteDialog({ open: true, user })}
+                                                    sx={{
+                                                        bgcolor: alpha(theme.palette.error.main, 0.08),
+                                                        "&:hover": { bgcolor: alpha(theme.palette.error.main, 0.2), color: "white" },
+                                                    }}
+                                                >
+                                                    <FaTrash size={14} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -269,7 +348,7 @@ const UsuariosTab = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
-            
+
             <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
                 component="div"
@@ -279,18 +358,24 @@ const UsuariosTab = () => {
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 labelRowsPerPage="Linhas por página:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+                labelDisplayedRows={({ from, to, count }) =>
+                    `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`
+                }
             />
 
-            {/* Dialog de Confirmação */}
-            <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, user: null })}>
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Dialog de Confirmação de Exclusão */}
+            <Dialog
+                open={deleteDialog.open}
+                onClose={() => setDeleteDialog({ open: false, user: null })}
+            >
+                <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <FaExclamationTriangle color={theme.palette.error.main} />
                     Confirmar Exclusão
                 </DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Tem certeza que deseja excluir o usuário <strong>{deleteDialog.user?.nome}</strong>?
+                        Tem certeza que deseja excluir o usuário{" "}
+                        <strong>{deleteDialog.user?.nome || deleteDialog.user?.nomeFantasia}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         Esta ação não pode ser desfeita.
@@ -298,9 +383,91 @@ const UsuariosTab = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDeleteDialog({ open: false, user: null })}>Cancelar</Button>
-                    <Button onClick={handleDelete} color="error" variant="contained">Excluir</Button>
+                    <Button onClick={handleDelete} color="error" variant="contained">
+                        Excluir
+                    </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Dialog info de Aluno/Admin */}
+            <Dialog
+                open={alunoDialog.open}
+                onClose={() => setAlunoDialog({ open: false, user: null })}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle sx={{ fontWeight: 700 }}>
+                    Informações da conta
+                </DialogTitle>
+                <DialogContent>
+                    {alunoDialog.user && (
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+                            {(() => {
+                                const cfg = getTipoConfig(alunoDialog.user.tipo);
+                                return (
+                                    <Chip
+                                        label={cfg.label}
+                                        color={cfg.color}
+                                        size="small"
+                                        sx={{ alignSelf: "flex-start" }}
+                                    />
+                                );
+                            })()}
+                            <Divider />
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <FaIdCard color={theme.palette.text.secondary} size={15} />
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        ID
+                                    </Typography>
+                                    <Typography variant="body2">{alunoDialog.user.id}</Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <FaUser color={theme.palette.text.secondary} size={15} />
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Nome
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        {alunoDialog.user.nome || "Não informado"}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                <FaEnvelope color={theme.palette.text.secondary} size={15} />
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                                        Email
+                                    </Typography>
+                                    <Typography variant="body2">
+                                        {alunoDialog.user.email || "Não informado"}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setAlunoDialog({ open: false, user: null })}>
+                        Fechar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Modal de Perfil do Profissional */}
+            <ModalProfissional
+                open={profissionalModal.open}
+                onClose={() => setProfissionalModal({ open: false, profissional: null })}
+                profissional={profissionalModal.profissional}
+            />
+
+            {/* Modal de Detalhes do Estabelecimento */}
+            <ModalDetalhesEstabelecimento
+                open={estabelecimentoModal.open}
+                onClose={() => setEstabelecimentoModal({ open: false, estabelecimento: null })}
+                estabelecimento={estabelecimentoModal.estabelecimento}
+            />
         </Box>
     );
 };

@@ -29,6 +29,7 @@ import {
     FaTrash,
     FaSearch,
     FaExclamationTriangle,
+    FaEye,
     FaDumbbell,
     FaRunning,
     FaSwimmer,
@@ -422,16 +423,27 @@ const EstabelecimentosTab = () => {
                                         />
                                     </TableCell>
                                     <TableCell align="right">
-                                        <Tooltip title="Excluir">
-                                            <IconButton
-                                                size="small"
-                                                color="error"
-                                                onClick={(e) => { e.stopPropagation(); setDeleteDialog({ open: true, estabelecimento: estab }); }}
-                                                sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
-                                            >
-                                                <FaTrash size={14} />
-                                            </IconButton>
-                                        </Tooltip>
+                                        <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
+                                            <Tooltip title="Ver perfil">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => { e.stopPropagation(); handleOpenModal(estab); }}
+                                                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}
+                                                >
+                                                    <FaEye size={14} />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Excluir">
+                                                <IconButton
+                                                    size="small"
+                                                    color="error"
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteDialog({ open: true, estabelecimento: estab }); }}
+                                                    sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
+                                                >
+                                                    <FaTrash size={14} />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))

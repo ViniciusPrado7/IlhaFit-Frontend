@@ -19,8 +19,6 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Drawer,
-    Divider,
     CircularProgress,
     Tooltip,
     useTheme,
@@ -31,28 +29,10 @@ import {
     FaSearch,
     FaExclamationTriangle,
     FaEye,
-    FaUser,
-    FaEnvelope,
-    FaPhone,
-    FaMapMarkerAlt,
-    FaIdCard,
-    FaBriefcase,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { profissionalService } from "../../../services";
-
-const InfoRow = ({ icon, label, value }) => {
-    if (!value) return null;
-    return (
-        <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", py: 1 }}>
-            <Box sx={{ color: "text.secondary", mt: 0.3, flexShrink: 0 }}>{icon}</Box>
-            <Box>
-                <Typography variant="caption" color="text.secondary" fontWeight={600}>{label}</Typography>
-                <Typography variant="body2">{value}</Typography>
-            </Box>
-        </Box>
-    );
-};
+import ModalProfissional from "../../../components/ModalProfissional";
 
 const ProfissionaisTab = () => {
     const theme = useTheme();
@@ -63,7 +43,7 @@ const ProfissionaisTab = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [deleteDialog, setDeleteDialog] = useState({ open: false, profissional: null });
-    const [detailsDrawer, setDetailsDrawer] = useState({ open: false, profissional: null });
+    const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
 
     useEffect(() => {
         loadProfissionais();
@@ -80,8 +60,8 @@ const ProfissionaisTab = () => {
     const loadProfissionais = async () => {
         try {
             setLoading(true);
-            const res = await profissionalService.listarProfissionais();
-            setProfissionais(res.data || res);
+            const data = await profissionalService.listarProfissionais();
+            setProfissionais(Array.isArray(data) ? data : data.data || []);
         } catch (error) {
             console.error("Erro ao carregar profissionais:", error);
             toast.error("Erro ao carregar profissionais");
@@ -120,8 +100,11 @@ const ProfissionaisTab = () => {
         }
     };
 
+    const handleOpenModal = (prof) => {
+        setProfissionalModal({ open: true, profissional: prof });
+    };
+
     const paginated = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-    const selected = detailsDrawer.profissional;
 
     return (
         <Box>
@@ -187,7 +170,7 @@ const ProfissionaisTab = () => {
                                     <TableRow
                                         key={prof.id}
                                         hover
-                                        onClick={() => setDetailsDrawer({ open: true, profissional: prof })}
+                                        onClick={() => handleOpenModal(prof)}
                                         sx={{ cursor: 'pointer' }}
                                     >
                                         <TableCell>{prof.nome || "N/A"}</TableCell>
@@ -201,10 +184,10 @@ const ProfissionaisTab = () => {
                                         <TableCell>{prof.telefone || "—"}</TableCell>
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-                                                <Tooltip title="Ver detalhes">
+                                                <Tooltip title="Ver perfil">
                                                     <IconButton
                                                         size="small"
-                                                        onClick={(e) => { e.stopPropagation(); setDetailsDrawer({ open: true, profissional: prof }); }}
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenModal(prof); }}
                                                         sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}
                                                     >
                                                         <FaEye size={14} />
@@ -262,58 +245,12 @@ const ProfissionaisTab = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Drawer de Detalhes */}
-            <Drawer
-                anchor="right"
-                open={detailsDrawer.open}
-                onClose={() => setDetailsDrawer({ open: false, profissional: null })}
-                PaperProps={{ sx: { width: { xs: '100%', sm: 380 }, p: 3 } }}
-            >
-                {selected && (
-                    <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" fontWeight={800}>Detalhes do Profissional</Typography>
-                            {selected.especialidade && (
-                                <Chip label={selected.especialidade} color="secondary" size="small" />
-                            )}
-                        </Box>
-                        <Divider sx={{ mb: 2 }} />
-
-                        <InfoRow icon={<FaIdCard size={14} />} label="ID" value={String(selected.id)} />
-                        <InfoRow icon={<FaUser size={14} />} label="Nome" value={selected.nome} />
-                        <InfoRow icon={<FaEnvelope size={14} />} label="Email" value={selected.email} />
-                        <InfoRow icon={<FaPhone size={14} />} label="Telefone" value={selected.telefone} />
-                        <InfoRow icon={<FaBriefcase size={14} />} label="Especialidade" value={selected.especialidade} />
-                        <InfoRow icon={<FaMapMarkerAlt size={14} />} label="Região" value={selected.regiao} />
-
-                        {selected.descricao && (
-                            <>
-                                <Divider sx={{ my: 2 }} />
-                                <Typography variant="caption" color="text.secondary" fontWeight={600}>Descrição</Typography>
-                                <Typography variant="body2" sx={{ mt: 0.5, lineHeight: 1.7 }}>
-                                    {selected.descricao}
-                                </Typography>
-                            </>
-                        )}
-
-                        <Box sx={{ mt: 4 }}>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                color="error"
-                                startIcon={<FaTrash size={13} />}
-                                onClick={() => {
-                                    setDetailsDrawer({ open: false, profissional: null });
-                                    setDeleteDialog({ open: true, profissional: selected });
-                                }}
-                                sx={{ textTransform: 'none' }}
-                            >
-                                Excluir profissional
-                            </Button>
-                        </Box>
-                    </Box>
-                )}
-            </Drawer>
+            {/* Modal de Perfil do Profissional */}
+            <ModalProfissional
+                open={profissionalModal.open}
+                onClose={() => setProfissionalModal({ open: false, profissional: null })}
+                profissional={profissionalModal.profissional}
+            />
         </Box>
     );
 };
