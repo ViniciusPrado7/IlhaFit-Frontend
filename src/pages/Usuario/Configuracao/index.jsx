@@ -2,8 +2,6 @@ import {
   Alert,
   Box,
   Button,
-  IconButton,
-  InputAdornment,
   Paper,
   Tab,
   Tabs,
@@ -12,13 +10,11 @@ import {
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
-import { FaEdit, FaEye, FaEyeSlash, FaSave, FaTimes, FaTrash } from "react-icons/fa";
+import { FaEdit, FaSave, FaTimes, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authSession } from "../../../service/AuthSession";
 import { usuarioService } from "../../../service/UsuarioService";
-
-const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
 
 const getApiError = (error) => {
   const data = error?.response?.data;
@@ -57,10 +53,6 @@ const ConfiguracaoUsuario = () => {
   const [activeSection, setActiveSection] = useState(0);
   const [nome, setNome] = useState(user?.nome || "");
   const [savedNome, setSavedNome] = useState(user?.nome || "");
-  const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -120,35 +112,6 @@ const ConfiguracaoUsuario = () => {
       setSavedNome(nextNome);
       setIsEditingNome(false);
       toast.success("Nome atualizado com sucesso!");
-    } catch (error) {
-      handleProtectedError(error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSalvarSenha = async (event) => {
-    event.preventDefault();
-
-    const errors = {};
-    if (!senha) errors.senha = "Informe a nova senha";
-    if (!confirmarSenha) errors.confirmarSenha = "Confirme a nova senha";
-    if (senha && !validarSenha(senha)) {
-      errors.senha = "Senha deve ter no minimo 8 caracteres, 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial";
-    }
-    if (senha && confirmarSenha && senha !== confirmarSenha) {
-      errors.confirmarSenha = "As senhas nao coincidem";
-    }
-
-    setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
-    setSaving(true);
-    try {
-      await usuarioService.atualizarUsuario(usuarioId, { senha });
-      setSenha("");
-      setConfirmarSenha("");
-      toast.success("Senha atualizada com sucesso!");
     } catch (error) {
       handleProtectedError(error);
     } finally {
@@ -250,75 +213,6 @@ const ConfiguracaoUsuario = () => {
     </Box>
   );
 
-  const renderSenha = () => (
-    <Box component="form" onSubmit={handleSalvarSenha}>
-      <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
-        Alterar senha
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Escolha uma senha forte para manter sua conta protegida.
-      </Typography>
-
-      {label("Nova senha")}
-      <TextField
-        fullWidth
-        type={showPassword ? "text" : "password"}
-        value={senha}
-        onChange={(event) => {
-          setSenha(event.target.value);
-          limparErro("senha");
-        }}
-        error={Boolean(fieldErrors.senha)}
-        helperText={fieldErrors.senha}
-        sx={inputStyles}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton onClick={() => setShowPassword((current) => !current)} edge="end" size="small">
-                {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-              </IconButton>
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      {label("Confirmar nova senha")}
-      <TextField
-        fullWidth
-        type={showConfirmPassword ? "text" : "password"}
-        value={confirmarSenha}
-        onChange={(event) => {
-          setConfirmarSenha(event.target.value);
-          limparErro("confirmarSenha");
-        }}
-        error={Boolean(fieldErrors.confirmarSenha)}
-        helperText={fieldErrors.confirmarSenha}
-        sx={inputStyles}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton onClick={() => setShowConfirmPassword((current) => !current)} edge="end" size="small">
-                {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-              </IconButton>
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button
-          type="submit"
-          variant="contained"
-          startIcon={<FaSave />}
-          disabled={saving}
-          sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}
-        >
-          {saving ? "Salvando..." : "Salvar senha"}
-        </Button>
-      </Box>
-    </Box>
-  );
-
   const renderExcluirConta = () => (
     <Box>
       <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
@@ -399,14 +293,12 @@ const ConfiguracaoUsuario = () => {
           }}
         >
           <Tab label="Dados" />
-          <Tab label="Senha" />
           <Tab label="Excluir conta" />
         </Tabs>
 
         <Box sx={{ p: { xs: 2.5, md: 4 } }}>
           {activeSection === 0 && renderNome()}
-          {activeSection === 1 && renderSenha()}
-          {activeSection === 2 && renderExcluirConta()}
+          {activeSection === 1 && renderExcluirConta()}
         </Box>
       </Paper>
     </Box>
