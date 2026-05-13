@@ -41,6 +41,10 @@ const getApiError = (error, fallback) => {
 };
 
 const getAvaliacaoSubmitError = (error) => {
+  if (error?.response?.status === 403) {
+    return "Usuarios do tipo estabelecimento nao podem realizar avaliacoes.";
+  }
+
   if (error?.response?.status === 422) {
     return "Nao foi possivel enviar sua avaliacao porque o comentario contem conteudo ofensivo ou inadequado.";
   }
@@ -97,6 +101,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   const [user, setUser] = useState(() => authSession.getUser());
   const token = authSession.getToken();
   const isAutenticado = ["USUARIO", "ESTABELECIMENTO", "PROFISSIONAL"].includes(user?.tipo) && Boolean(token);
+  const canCreateReview = ["USUARIO", "PROFISSIONAL"].includes(user?.tipo) && Boolean(token);
 
   useEffect(() => {
     const onAuthChange = () => {
@@ -112,9 +117,10 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
 
   const authMessage = useMemo(() => {
     if (!isAutenticado) return "Faca login para avaliar.";
+    if (!canCreateReview) return "Usuarios do tipo estabelecimento nao podem realizar avaliacoes.";
     if (isSelfTarget) return user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.";
     return "";
-  }, [isAutenticado, isSelfTarget, user]);
+  }, [canCreateReview, isAutenticado, isSelfTarget, user]);
 
   const carregarAvaliacoes = useCallback(async () => {
     if (!targetId) {
@@ -145,6 +151,11 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
 
     if (!isAutenticado) {
       toast.warning("Faca login para avaliar.");
+      return;
+    }
+
+    if (!canCreateReview) {
+      toast.warning("Usuarios do tipo estabelecimento nao podem realizar avaliacoes.");
       return;
     }
 
@@ -234,7 +245,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
         </Alert>
       )}
 
-      {isAutenticado && !isSelfTarget && (
+      {canCreateReview && !isSelfTarget && (
         <Paper
           component="form"
           onSubmit={handleCriarAvaliacao}

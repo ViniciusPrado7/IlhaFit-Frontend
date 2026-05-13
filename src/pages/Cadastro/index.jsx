@@ -61,19 +61,19 @@ const Cadastro = () => {
         e.preventDefault();
 
         if (formData.senha !== formData.confirmarSenha) {
-            toast.error("As senhas nao coincidem!");
+            toast.error("As senhas não coincidem!");
             return;
         }
 
         if (!validarSenha(formData.senha)) {
-            toast.error("Senha deve ter no minimo 8 caracteres, 1 maiuscula, 1 minuscula, 1 caractere especial e 1 numero.");
+            toast.error("Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 caractere especial e 1 número.");
             return;
         }
 
         setLoading(true);
         try {
             await authService.register(formData);
-            toast.success("Usuario cadastrado com sucesso!");
+            toast.success("Usuário cadastrado com sucesso!");
             navigate("/login", { state: { accountType: "aluno", email: formData.email } });
         } catch (error) {
             console.error("Erro no cadastro:", error);
@@ -263,7 +263,7 @@ const Cadastro = () => {
                 {(accountType === "aluno" || accountType === "estabelecimento" || accountType === "profissional") && (
                     <Box sx={{ mt: 3, textAlign: "center" }}>
                         <Typography variant="body2" color="text.secondary">
-                            Ja tem conta?{" "}
+                            Já tem conta?{" "}
                             <Typography
                                 component="span"
                                 variant="body2"

@@ -1,28 +1,37 @@
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
   Chip,
+  IconButton,
   Paper,
   Typography,
 } from "@mui/material";
-import { FaMapMarkerAlt, FaStar, FaWhatsapp } from "react-icons/fa";
+import {
+  FaChevronLeft,
+  FaChevronRight,
+  FaMapMarkerAlt,
+  FaStar,
+  FaWhatsapp,
+} from "react-icons/fa";
 import AvaliacoesPanel from "../AvaliacoesPanel";
+import MapComponent from "../MapComponent";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
-const getFoto = (estabelecimento) => {
+const getFotos = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.fotosUrl) && estabelecimento.fotosUrl.length > 0) {
-    return estabelecimento.fotosUrl[0];
+    return estabelecimento.fotosUrl.slice(0, 6);
   }
 
-  return fallbackImage;
+  return [fallbackImage];
 };
 
 const getNome = (estabelecimento) => estabelecimento?.nomeFantasia || "Estabelecimento";
 
 const getEndereco = (estabelecimento) => {
   const endereco = estabelecimento?.endereco;
-  if (!endereco) return "Endereco nao informado";
+  if (!endereco) return "Endereço não informado";
 
   return [
     endereco.rua,
@@ -69,177 +78,311 @@ const periodoTagSx = {
 
 export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar" }) => {
   const categorias = getCategorias(estabelecimento);
+  const fotos = getFotos(estabelecimento);
+  const [fotoAtual, setFotoAtual] = useState(0);
+  const [coords, setCoords] = useState({ 
+    lat: estabelecimento.endereco?.latitude || null, 
+    lng: estabelecimento.endereco?.longitude || null 
+  });
+  const temMultiplasFotos = fotos.length > 1;
+
+  useEffect(() => {
+    setFotoAtual(0);
+    // Reset and try to find coords if missing
+    const initialLat = estabelecimento.endereco?.latitude || null;
+    const initialLng = estabelecimento.endereco?.longitude || null;
+    setCoords({ lat: initialLat, lng: initialLng });
+
+    if (!initialLat || !initialLng) {
+      const addr = estabelecimento.endereco;
+      if (addr && (addr.rua || addr.cep)) {
+        const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.length > 0) {
+              setCoords({
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+              });
+            }
+          })
+          .catch(err => console.warn("Erro ao geocodificar no modal:", err));
+      }
+    }
+  }, [estabelecimento?.id, estabelecimento?.endereco]);
+
+  const irParaFoto = (index) => {
+    setFotoAtual(index);
+  };
+
+  const irParaAnterior = () => {
+    setFotoAtual((prev) => (prev === 0 ? fotos.length - 1 : prev - 1));
+  };
+
+  const irParaProxima = () => {
+    setFotoAtual((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
+  };
 
   return (
-      <Paper
-        elevation={0}
-        sx={{
-          overflow: "hidden",
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-        }}
-      >
-        <Box sx={{ position: "relative", height: { xs: 230, md: 330 } }}>
-          <Box
-            component="img"
-            src={getFoto(estabelecimento)}
-            alt={getNome(estabelecimento)}
-            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background: "linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0.08) 60%)",
-            }}
-          />
-          <Button
-            onClick={onClose}
-            sx={{
-              position: "absolute",
-              top: 16,
-              right: 16,
-              bgcolor: "background.paper",
-              color: "text.primary",
-              "&:hover": { bgcolor: "background.paper" },
-            }}
-          >
-            {closeLabel}
-          </Button>
+    <Paper
+      elevation={0}
+      sx={{
+        overflow: "hidden",
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Box sx={{ position: "relative", height: { xs: 230, md: 330 } }}>
+        <Box
+          component="img"
+          src={fotos[fotoAtual]}
+          alt={`${getNome(estabelecimento)} - imagem ${fotoAtual + 1}`}
+          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0.08) 60%)",
+          }}
+        />
+
+        {temMultiplasFotos && (
+          <>
+            <IconButton
+              onClick={irParaAnterior}
+              sx={{
+                position: "absolute",
+                left: 16,
+                top: "50%",
+                transform: "translateY(-50%)",
+                bgcolor: "rgba(15, 23, 42, 0.55)",
+                color: "white",
+                "&:hover": { bgcolor: "rgba(15, 23, 42, 0.72)" },
+              }}
+            >
+              <FaChevronLeft size={16} />
+            </IconButton>
+
+            <IconButton
+              onClick={irParaProxima}
+              sx={{
+                position: "absolute",
+                right: 16,
+                top: "50%",
+                transform: "translateY(-50%)",
+                bgcolor: "rgba(15, 23, 42, 0.55)",
+                color: "white",
+                "&:hover": { bgcolor: "rgba(15, 23, 42, 0.72)" },
+              }}
+            >
+              <FaChevronRight size={16} />
+            </IconButton>
+
+            <Box
+              sx={{
+                position: "absolute",
+                left: "50%",
+                bottom: 16,
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: 1,
+                px: 1.25,
+                py: 0.75,
+                borderRadius: 999,
+                bgcolor: "rgba(15, 23, 42, 0.45)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              {fotos.map((_, index) => (
+                <Box
+                  key={`foto-indicador-${index}`}
+                  onClick={() => irParaFoto(index)}
+                  sx={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: "50%",
+                    bgcolor: index === fotoAtual ? "white" : "rgba(255,255,255,0.45)",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    transform: index === fotoAtual ? "scale(1.1)" : "scale(1)",
+                  }}
+                />
+              ))}
+            </Box>
+          </>
+        )}
+
+        <Button
+          onClick={onClose}
+          sx={{
+            position: "absolute",
+            top: 16,
+            right: temMultiplasFotos ? 64 : 16,
+            bgcolor: "background.paper",
+            color: "text.primary",
+            "&:hover": { bgcolor: "background.paper" },
+          }}
+        >
+          {closeLabel}
+        </Button>
+      </Box>
+
+      <Box sx={{ p: { xs: 2.5, md: 4 } }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
+          <Box>
+            <Typography variant="h4" fontWeight={900} sx={{ color: "text.primary", mb: 0.75 }}>
+              {getNome(estabelecimento)}
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
+              <FaStar color="#FBBF24" />
+              <Typography variant="body2" fontWeight={800}>
+                {estabelecimento.avaliacao ?? 0} avaliação
+              </Typography>
+            </Box>
+          </Box>
+          {estabelecimento.telefone && (
+            <Button
+              variant="contained"
+              startIcon={<FaWhatsapp />}
+              href={`https://wa.me/55${estabelecimento.telefone}`}
+              target="_blank"
+              rel="noreferrer"
+              sx={{ borderRadius: 2, alignSelf: "flex-start", fontWeight: 800 }}
+            >
+              WhatsApp
+            </Button>
+          )}
         </Box>
 
-        <Box sx={{ p: { xs: 2.5, md: 4 } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
-            <Box>
-              <Typography variant="h4" fontWeight={900} sx={{ color: "text.primary", mb: 0.75 }}>
-                {getNome(estabelecimento)}
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", my: 2.5 }}>
+          {categorias.map((categoria) => (
+            <Chip
+              key={categoria}
+              label={categoria}
+              size="small"
+              sx={tagSx}
+            />
+          ))}
+        </Box>
+
+        <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+          Sobre
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
+          {getNome(estabelecimento)} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
+        </Typography>
+
+        <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+          Localização
+        </Typography>
+        <Box sx={{ display: "flex", gap: 1, color: "text.secondary", mb: 2 }}>
+          <FaMapMarkerAlt color="#EF4444" />
+          <Typography variant="body2">{getEndereco(estabelecimento)}</Typography>
+        </Box>
+        <Box
+          sx={{
+            height: 250,
+            borderRadius: 2,
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: "divider",
+            mb: 3,
+          }}
+        >
+          {coords.lat && coords.lng ? (
+            <MapComponent
+              lat={coords.lat}
+              lng={coords.lng}
+              zoom={15}
+              markers={[{
+                id: estabelecimento.id,
+                lat: coords.lat,
+                lng: coords.lng,
+                title: getNome(estabelecimento)
+              }]}
+              autoFit={false}
+            />
+          ) : (
+            <Box
+              sx={{
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "action.hover",
+                color: "text.secondary",
+              }}
+            >
+              <Typography variant="body2" fontWeight={700}>
+                Coordenadas não disponíveis para este estabelecimento.
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
-                <FaStar color="#FBBF24" />
-                <Typography variant="body2" fontWeight={800}>
-                  {estabelecimento.avaliacao ?? 0} avaliacao
-                </Typography>
-              </Box>
             </Box>
-            {estabelecimento.telefone && (
-              <Button
-                variant="contained"
-                startIcon={<FaWhatsapp />}
-                href={`https://wa.me/55${estabelecimento.telefone}`}
-                target="_blank"
-                rel="noreferrer"
-                sx={{ borderRadius: 2, alignSelf: "flex-start", fontWeight: 800 }}
-              >
-                WhatsApp
-              </Button>
-            )}
-          </Box>
+          )}
+        </Box>
 
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", my: 2.5 }}>
-            {categorias.map((categoria) => (
-              <Chip
-                key={categoria}
-                label={categoria}
-                size="small"
-                sx={tagSx}
-              />
-            ))}
-          </Box>
+        <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+          Atividades oferecidas
+        </Typography>
+        <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
+          {estabelecimento.gradeAtividades?.map((grade, index) => (
+            <Box
+              key={`${grade.atividade}-${index}`}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                p: 2.25,
+                display: "grid",
+                gap: 2,
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={900} color="text.primary">
+                {grade.atividade}
+              </Typography>
 
-          <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Sobre
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
-            {getNome(estabelecimento)} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
-          </Typography>
-
-          <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Localizacao
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1, color: "text.secondary", mb: 2 }}>
-            <FaMapMarkerAlt color="#EF4444" />
-            <Typography variant="body2">{getEndereco(estabelecimento)}</Typography>
-          </Box>
-          <Box
-            sx={{
-              height: 190,
-              borderRadius: 2,
-              bgcolor: "action.hover",
-              border: "1px solid",
-              borderColor: "divider",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "text.secondary",
-              mb: 3,
-            }}
-          >
-            <Typography variant="body2" fontWeight={700}>
-              Mapa integrado aqui
-            </Typography>
-          </Box>
-
-          <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Atividades oferecidas
-          </Typography>
-          <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
-            {estabelecimento.gradeAtividades?.map((grade, index) => (
               <Box
-                key={`${grade.atividade}-${index}`}
                 sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 2,
-                  p: 2.25,
                   display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
                   gap: 2,
                 }}
               >
-                <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                  {grade.atividade}
-                </Typography>
-
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                    gap: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                      Dias oferecidos
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {grade.diasSemana?.map((dia) => (
-                        <Chip key={dia} label={formatLabel(dia)} size="small" sx={tagSx} />
-                      ))}
-                    </Box>
+                <Box>
+                  <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    Dias oferecidos
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    {grade.diasSemana?.map((dia) => (
+                      <Chip key={dia} label={formatLabel(dia)} size="small" sx={tagSx} />
+                    ))}
                   </Box>
+                </Box>
 
-                  <Box>
-                    <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                      Periodos oferecidos
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {grade.periodos?.map((periodo) => (
-                        <Chip key={periodo} label={formatLabel(periodo)} size="small" sx={periodoTagSx} />
-                      ))}
-                    </Box>
+                <Box>
+                  <Typography variant="caption" fontWeight={900} color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                    Períodos oferecidos
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                    {grade.periodos?.map((periodo) => (
+                      <Chip key={periodo} label={formatLabel(periodo)} size="small" sx={periodoTagSx} />
+                    ))}
                   </Box>
                 </Box>
               </Box>
-            ))}
-          </Box>
-
-          <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
-            Avaliacoes
-          </Typography>
-          <AvaliacoesPanel targetType="estabelecimento" targetId={estabelecimento.id} />
+            </Box>
+          ))}
         </Box>
-      </Paper>
+
+        <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
+          Avaliações
+        </Typography>
+        <AvaliacoesPanel targetType="estabelecimento" targetId={estabelecimento.id} />
+      </Box>
+    </Paper>
   );
 };
 

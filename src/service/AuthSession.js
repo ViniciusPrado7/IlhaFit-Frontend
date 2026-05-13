@@ -55,6 +55,9 @@ export const authSession = {
   },
 
   setSession(authData) {
+    this.setUser(normalizeUser(authData));
+
+    // Save token AFTER setUser so that the non-ESTABELECIMENTO cleanup doesn't erase it
     if (authData?.token) {
       localStorage.setItem(AUTH_TOKEN_KEY, authData.token);
     }
@@ -62,14 +65,12 @@ export const authSession = {
     if (authData?.tokenType) {
       localStorage.setItem(AUTH_TOKEN_TYPE_KEY, authData.tokenType);
     }
-
-    this.setUser(normalizeUser(authData));
   },
 
   setUser(user) {
     const normalizedUser = normalizeUser(user);
 
-    const tiposComToken = ["USUARIO", "ESTABELECIMENTO", "PROFISSIONAL"];
+    const tiposComToken = ["USUARIO", "ESTABELECIMENTO", "PROFISSIONAL", "ADMINISTRADOR"];
     if (!tiposComToken.includes(normalizedUser.tipo)) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_TOKEN_TYPE_KEY);

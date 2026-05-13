@@ -14,6 +14,14 @@ import ModalProfissional from "../ModalProfissional";
 
 const getFoto = (profissional) => profissional.fotoUrl || profissional.Imagem;
 
+const formatTelefone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
 const getEspecialidades = (profissional) => {
     if (Array.isArray(profissional.especialidades) && profissional.especialidades.length > 0) {
         return profissional.especialidades;
@@ -162,7 +170,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     >
                         <FaPhone size={14} color={theme.palette.primary.main} />
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
-                            {profissional.telefone}
+                            {formatTelefone(profissional.telefone)}
                         </Typography>
                     </Box>
                 )}

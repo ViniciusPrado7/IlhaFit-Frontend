@@ -40,6 +40,8 @@ const formInicial = {
   estado: "",
   cep: "",
   fotoUrl: "",
+  latitude: null,
+  longitude: null,
 };
 
 const gradeInicial = { atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
@@ -66,6 +68,30 @@ const formatCnpj = (value) => {
 const formatCep = (value) => {
   const digits = onlyDigits(value).slice(0, 8);
   return digits.replace(/^(\d{5})(\d)/, "$1-$2");
+};
+
+const hasAddressFields = (address) =>
+  Boolean(
+    address.rua?.trim() &&
+    address.numero?.trim() &&
+    address.bairro?.trim() &&
+    address.cidade?.trim() &&
+    address.estado?.trim()
+  );
+
+const buildGeocodeQuery = (address) => {
+  const street = [address.rua?.trim(), address.numero?.trim()].filter(Boolean).join(", ");
+
+  return [
+    street,
+    address.bairro?.trim(),
+    address.cidade?.trim(),
+    address.estado?.trim(),
+    address.cep ? formatCep(address.cep) : "",
+    "Brasil",
+  ]
+    .filter(Boolean)
+    .join(", ");
 };
 
 const getCategoriaNome = (categoria) => {
@@ -103,6 +129,8 @@ const CadastroEstabelecimento = () => {
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(false);
   const [categoriaLoading, setCategoriaLoading] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [geocodeLoading, setGeocodeLoading] = useState(false);
 
   useEffect(() => {
     const carregarCategorias = async () => {
@@ -134,11 +162,106 @@ const CadastroEstabelecimento = () => {
   );
 
   const limparErro = (name) => {
-    setFieldErrors(prev => ({ ...prev, [name]: "", [`endereco.${name}`]: "" }));
+    setFieldErrors((prev) => ({ ...prev, [name]: "", [`endereco.${name}`]: "" }));
     setGeneralError("");
   };
 
   const fieldError = (name) => fieldErrors[name] || fieldErrors[`endereco.${name}`] || "";
+
+  const atualizarCoordenadas = async (address) => {
+    if (!hasAddressFields(address)) return false;
+
+    setGeocodeLoading(true);
+    try {
+      const query = buildGeocodeQuery(address);
+      const geoResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(query)}`
+      );
+
+      if (!geoResponse.ok) {
+        throw new Error("Falha ao buscar coordenadas.");
+      }
+
+      const geoData = await geoResponse.json();
+      if (!geoData || geoData.length === 0) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          rua: prev.rua || "Nao foi possivel localizar esse endereco com precisao.",
+        }));
+        return false;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        latitude: parseFloat(geoData[0].lat),
+        longitude: parseFloat(geoData[0].lon),
+      }));
+
+      return true;
+    } catch (geoError) {
+      console.warn("Erro ao buscar coordenadas:", geoError);
+      return false;
+    } finally {
+      setGeocodeLoading(false);
+    }
+  };
+
+  const preencherEnderecoPorCep = async (cep) => {
+    const cepLimpo = onlyDigits(cep);
+
+    if (cepLimpo.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+
+      if (!response.ok) {
+        throw new Error("Falha ao consultar o CEP.");
+      }
+
+      const data = await response.json();
+
+      if (data.erro) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          cep: "CEP não encontrado.",
+          "endereco.cep": "CEP não encontrado.",
+        }));
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        rua: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.localidade || "",
+        estado: (data.uf || "").toUpperCase(),
+      }));
+
+      setFieldErrors((prev) => ({
+        ...prev,
+        cep: "",
+        "endereco.cep": "",
+        rua: "",
+        "endereco.rua": "",
+        bairro: "",
+        "endereco.bairro": "",
+        cidade: "",
+        "endereco.cidade": "",
+        estado: "",
+        "endereco.estado": "",
+      }));
+
+    } catch (error) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        cep: "Não foi possível buscar o CEP.",
+        "endereco.cep": "Não foi possível buscar o CEP.",
+      }));
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -149,9 +272,17 @@ const CadastroEstabelecimento = () => {
       estado: value.toUpperCase().slice(0, 2),
     }[name] ?? value;
 
-    setFormData(prev => ({ ...prev, [name]: nextValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: nextValue,
+      ...(["rua", "numero", "bairro", "cidade", "estado", "cep", "complemento"].includes(name)
+        ? { latitude: null, longitude: null }
+        : {}),
+    }));
     limparErro(name);
   };
+
+  const handleCepBlur = () => preencherEnderecoPorCep(formData.cep);
 
   const handleFotoChange = (e) => {
     const file = e.target.files?.[0];
@@ -159,14 +290,14 @@ const CadastroEstabelecimento = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      setFormData(prev => ({ ...prev, fotoUrl: reader.result || "" }));
-      setFieldErrors(prev => ({ ...prev, fotoUrl: "", fotosUrl: "" }));
+      setFormData((prev) => ({ ...prev, fotoUrl: reader.result || "" }));
+      setFieldErrors((prev) => ({ ...prev, fotoUrl: "", fotosUrl: "" }));
     };
     reader.readAsDataURL(file);
   };
 
   const handleGradeChange = (index, name, value) => {
-    setGradeAtividades(prev => prev.map((item, itemIndex) => (
+    setGradeAtividades((prev) => prev.map((item, itemIndex) => (
       itemIndex === index ? { ...item, [name]: value } : item
     )));
     limparErro("gradeAtividades");
@@ -182,15 +313,15 @@ const CadastroEstabelecimento = () => {
       const categoriaCriada = response.data?.categoria || response.data || { nome };
       const nomeCriado = getCategoriaNome(categoriaCriada) || nome;
 
-      setCategorias(prev => [...prev, categoriaCriada]);
-      setGradeAtividades(prev => prev.map((item, index) => (
+      setCategorias((prev) => [...prev, categoriaCriada]);
+      setGradeAtividades((prev) => prev.map((item, index) => (
         index === gradeIndex ? { ...item, atividade: nomeCriado } : item
       )));
       setNovaCategoria("");
       toast.success("Categoria cadastrada!");
     } catch (error) {
       const { generalError: apiGeneralError } = getApiError(error);
-      setGeneralError(apiGeneralError || "Nao foi possivel cadastrar a categoria.");
+      setGeneralError(apiGeneralError || "Não foi possível cadastrar a categoria.");
     } finally {
       setCategoriaLoading(false);
     }
@@ -200,20 +331,20 @@ const CadastroEstabelecimento = () => {
     const errors = {};
 
     if (!formData.nomeFantasia.trim()) errors.nomeFantasia = "Informe o nome fantasia";
-    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razao social";
+    if (!formData.razaoSocial.trim()) errors.razaoSocial = "Informe a razão social";
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
-    if (!formData.numero.trim()) errors.numero = "Informe o numero";
+    if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
     if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
-    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas nao coincidem";
+    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
     if (!validarSenha(formData.senha)) {
-      errors.senha = "Senha deve ter no minimo 8 caracteres, 1 maiuscula, 1 minuscula, 1 numero e 1 caractere especial";
+      errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
     }
 
     setFieldErrors(errors);
@@ -221,7 +352,7 @@ const CadastroEstabelecimento = () => {
   };
 
   const validarGrade = () => {
-    const invalida = gradeAtividades.some(item => (
+    const invalida = gradeAtividades.some((item) => (
       !item.atividade ||
       item.atividade === NOVA_CATEGORIA_VALUE ||
       !item.diasSemana.length ||
@@ -229,9 +360,9 @@ const CadastroEstabelecimento = () => {
     ));
     if (!invalida) return true;
 
-    setFieldErrors(prev => ({
+    setFieldErrors((prev) => ({
       ...prev,
-      gradeAtividades: "Informe categoria, dias da semana e periodo em todas as atividades.",
+      gradeAtividades: "Informe categoria, dias da semana e período em todas as atividades.",
     }));
     return false;
   };
@@ -251,15 +382,17 @@ const CadastroEstabelecimento = () => {
       cidade: formData.cidade,
       estado: formData.estado,
       cep: formData.cep,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
     },
     gradeAtividades: gradeAtividades
-      .filter(item => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
-      .map(item => ({
-      atividade: item.atividade,
-      exclusivoMulheres: Boolean(item.exclusivoMulheres),
-      diasSemana: item.diasSemana,
-      periodos: item.periodos,
-    })),
+      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .map((item) => ({
+        atividade: item.atividade,
+        exclusivoMulheres: Boolean(item.exclusivoMulheres),
+        diasSemana: item.diasSemana,
+        periodos: item.periodos,
+      })),
     fotosUrl: formData.fotoUrl ? [formData.fotoUrl] : [],
   });
 
@@ -269,6 +402,11 @@ const CadastroEstabelecimento = () => {
 
     if (step === 0) {
       if (validarEtapaUm()) {
+        const coordenadasOk = await atualizarCoordenadas(formData);
+        if (!coordenadasOk) {
+          setGeneralError("Revise o endereco e o numero para encontrarmos a localizacao correta do estabelecimento.");
+          return;
+        }
         setStep(1);
         setFieldErrors({});
       }
@@ -279,6 +417,13 @@ const CadastroEstabelecimento = () => {
 
     setLoading(true);
     try {
+      if (!formData.latitude || !formData.longitude) {
+        const coordenadasOk = await atualizarCoordenadas(formData);
+        if (!coordenadasOk) {
+          setGeneralError("Nao foi possivel confirmar a localizacao do endereco informado.");
+          return;
+        }
+      }
       await estabelecimentoService.cadastrarEstabelecimento(payload());
       toast.success("Estabelecimento cadastrado com sucesso!");
       navigate("/login", { state: { accountType: "estabelecimento", email: formData.email } });
@@ -352,7 +497,7 @@ const CadastroEstabelecimento = () => {
           <TextField fullWidth name="nomeFantasia" value={formData.nomeFantasia} onChange={handleInputChange} placeholder="IlhaFit Centro" error={Boolean(fieldErrors.nomeFantasia)} helperText={fieldErrors.nomeFantasia} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
-          {label("Razao social")}
+          {label("Razão social")}
           <TextField fullWidth name="razaoSocial" value={formData.razaoSocial} onChange={handleInputChange} placeholder="IlhaFit Academia LTDA" error={Boolean(fieldErrors.razaoSocial)} helperText={fieldErrors.razaoSocial} sx={inputStyles} required />
         </Box>
       </Box>
@@ -372,22 +517,31 @@ const CadastroEstabelecimento = () => {
       </Box>
 
       <Typography variant="h6" fontWeight={800} sx={{ mb: 2, color: "text.primary" }}>
-        Endereco
+        Endereço
       </Typography>
+
+      {label("CEP")}
+      <TextField
+        fullWidth
+        name="cep"
+        value={formatCep(formData.cep)}
+        onChange={handleInputChange}
+        onBlur={handleCepBlur}
+        placeholder="01001-000"
+        error={Boolean(fieldError("cep"))}
+        helperText={fieldError("cep") || (cepLoading ? "Buscando endereço..." : "")}
+        sx={inputStyles}
+        required
+      />
+
+      {geocodeLoading && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Validando a localização exata do endereço informado...
+        </Alert>
+      )}
 
       {label("Rua")}
       <TextField fullWidth name="rua" value={formData.rua} onChange={handleInputChange} placeholder="Rua A" error={Boolean(fieldError("rua"))} helperText={fieldError("rua")} sx={inputStyles} required />
-
-      <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
-        <Box sx={{ flex: 1 }}>
-          {label("Numero")}
-          <TextField fullWidth name="numero" value={formData.numero} onChange={handleInputChange} placeholder="100" error={Boolean(fieldError("numero"))} helperText={fieldError("numero")} sx={inputStyles} required />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          {label("Complemento")}
-          <TextField fullWidth name="complemento" value={formData.complemento} onChange={handleInputChange} placeholder="Sala 1" error={Boolean(fieldError("complemento"))} helperText={fieldError("complemento")} sx={inputStyles} />
-        </Box>
-      </Box>
 
       {label("Bairro")}
       <TextField fullWidth name="bairro" value={formData.bairro} onChange={handleInputChange} placeholder="Centro" error={Boolean(fieldError("bairro"))} helperText={fieldError("bairro")} sx={inputStyles} required />
@@ -395,18 +549,25 @@ const CadastroEstabelecimento = () => {
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
           {label("Cidade")}
-          <TextField fullWidth name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Sao Paulo" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} required />
+          <TextField fullWidth name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Florianópolis" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
           {label("Estado")}
-          <TextField fullWidth name="estado" value={formData.estado} onChange={handleInputChange} placeholder="SP" error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} required />
-        </Box>
-        <Box sx={{ flex: 1 }}>
-          {label("CEP")}
-          <TextField fullWidth name="cep" value={formatCep(formData.cep)} onChange={handleInputChange} placeholder="01001-000" error={Boolean(fieldError("cep"))} helperText={fieldError("cep")} sx={inputStyles} required />
+          <TextField fullWidth name="estado" value={formData.estado} onChange={handleInputChange} placeholder="SC" error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} required />
         </Box>
       </Box>
 
+      <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+        <Box sx={{ flex: 1 }}>
+          {label("Número")}
+          <TextField fullWidth name="numero" value={formData.numero} onChange={handleInputChange} placeholder="100" error={Boolean(fieldError("numero"))} helperText={fieldError("numero")} sx={inputStyles} required />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          {label("Complemento")}
+          <TextField fullWidth name="complemento" value={formData.complemento} onChange={handleInputChange} placeholder="Sala 1" error={Boolean(fieldError("complemento"))} helperText={fieldError("complemento")} sx={inputStyles} />
+        </Box>
+      </Box>
+      
       {passwordFields()}
 
       <Box sx={{ mb: 2 }}>
@@ -441,7 +602,7 @@ const CadastroEstabelecimento = () => {
   const toggleGradeItem = (index, field, value) => {
     const selected = gradeAtividades[index][field];
     const nextValue = selected.includes(value)
-      ? selected.filter(item => item !== value)
+      ? selected.filter((item) => item !== value)
       : [...selected, value];
 
     handleGradeChange(index, field, nextValue);
@@ -489,7 +650,7 @@ const CadastroEstabelecimento = () => {
               Atividade {index + 1}
             </Typography>
             {gradeAtividades.length > 1 && (
-              <Button type="button" color="error" size="small" onClick={() => setGradeAtividades(prev => prev.filter((_, itemIndex) => itemIndex !== index))}>
+              <Button type="button" color="error" size="small" onClick={() => setGradeAtividades((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}>
                 Remover
               </Button>
             )}
@@ -502,7 +663,16 @@ const CadastroEstabelecimento = () => {
                 const nome = getCategoriaNome(categoria);
                 return nome ? <MenuItem key={categoria.id || nome} value={nome}>{nome}</MenuItem> : null;
               })}
-              <MenuItem value={NOVA_CATEGORIA_VALUE}>Adicionar nova categoria</MenuItem>
+              <MenuItem
+                value={NOVA_CATEGORIA_VALUE}
+                sx={{
+                  color: "primary.main",
+                  fontWeight: 800,
+                  bgcolor: "rgba(16, 185, 129, 0.08)",
+                }}
+              >
+                + Adicionar nova categoria
+              </MenuItem>
             </Select>
           </FormControl>
 
@@ -530,12 +700,12 @@ const CadastroEstabelecimento = () => {
           {label("Dias da semana")}
           {tagSelector(index, "diasSemana", DIAS_SEMANA)}
 
-          {label("Periodos")}
+          {label("Períodos")}
           {tagSelector(index, "periodos", PERIODOS)}
         </Box>
       ))}
 
-      <Button type="button" variant="outlined" onClick={() => setGradeAtividades(prev => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
+      <Button type="button" variant="outlined" onClick={() => setGradeAtividades((prev) => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
         Adicionar atividade
       </Button>
     </>
