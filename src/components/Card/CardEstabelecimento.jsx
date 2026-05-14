@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { FaArrowRight, FaMapMarkerAlt, FaStar } from "react-icons/fa";
 import { CiTimer } from "react-icons/ci";
+import { useState } from "react";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80";
 
@@ -47,7 +48,7 @@ const getDescricao = (estabelecimento) => {
 };
 
 const CardEstabelecimento = ({ estabelecimento, onClick }) => {
-  const foto = getFoto(estabelecimento);
+  const [imgSrc, setImgSrc] = useState(getFoto(estabelecimento));
   const nome = getNome(estabelecimento);
   const avaliacao = estabelecimento.avaliacao ?? 0;
   const categorias = getCategorias(estabelecimento);
@@ -77,7 +78,14 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
       }}
     >
       <Box sx={{ position: "relative" }}>
-        <CardMedia component="img" height="230" image={foto} alt={nome} sx={{ objectFit: "cover" }} />
+        <CardMedia
+          component="img"
+          height="230"
+          image={imgSrc}
+          alt={nome}
+          sx={{ objectFit: "cover" }}
+          onError={() => setImgSrc(fallbackImage)}
+        />
         <Box
           sx={{
             position: "absolute",
