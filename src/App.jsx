@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import "./styles/App.css";
 import AppLayout from "./components/Layout";
@@ -15,10 +16,20 @@ import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.js
 import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
 import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
 import AdminPanel from "./pages/Admin/index.jsx";
-
-
+import { api } from "./service/Api.js";
+import { authSession } from "./service/AuthSession.js";
 
 function App() {
+  useEffect(() => {
+    if (authSession.getToken()) {
+      api.get("/auth/me").catch((error) => {
+        if (error.response?.status === 401) {
+          authSession.clear();
+        }
+      });
+    }
+  }, []);
+
   return (
     <AppLayout>
       <Routes>

@@ -99,7 +99,13 @@ const AvaliacoesTab = () => {
             loadDenuncias();
             setDetailDialog({ open: false, denuncia: null });
         } catch (error) {
-            toast.error("Erro ao atualizar status");
+            if (error.response?.status === 409) {
+                toast.warning(error.response.data?.erro || "Esta denúncia já foi julgada ou o comentário foi removido.");
+                loadDenuncias();
+                setDetailDialog({ open: false, denuncia: null });
+            } else {
+                toast.error("Erro ao atualizar status");
+            }
         }
     };
 
@@ -112,7 +118,14 @@ const AvaliacoesTab = () => {
             setDetailDialog({ open: false, denuncia: null });
             loadDenuncias();
         } catch (error) {
-            toast.error("Erro ao excluir avaliação");
+            setDeleteDialog({ open: false, denuncia: null });
+            setDetailDialog({ open: false, denuncia: null });
+            if (error.response?.status === 409) {
+                toast.warning("Comentário já foi removido. A lista será atualizada.");
+                loadDenuncias();
+            } else {
+                toast.error("Erro ao excluir avaliação");
+            }
         }
     };
 
@@ -406,7 +419,7 @@ const AvaliacoesTab = () => {
                                                 <IconButton
                                                     size="small"
                                                     color="error"
-                                                    onClick={() => setDeleteDialog({ open: true, denuncia: d })}
+                                                    onClick={(e) => { e.currentTarget.blur(); setDeleteDialog({ open: true, denuncia: d }); }}
                                                     sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
                                                 >
                                                     <FaTrash size={12} />
@@ -555,7 +568,7 @@ const AvaliacoesTab = () => {
                         variant="contained"
                         color="error"
                         startIcon={<FaTrash size={12} />}
-                        onClick={() => setDeleteDialog({ open: true, denuncia: detailDialog.denuncia })}
+                        onClick={(e) => { e.currentTarget.blur(); setDeleteDialog({ open: true, denuncia: detailDialog.denuncia }); }}
                         sx={{ textTransform: "none", fontWeight: 600 }}
                     >
                         Excluir Avaliação
