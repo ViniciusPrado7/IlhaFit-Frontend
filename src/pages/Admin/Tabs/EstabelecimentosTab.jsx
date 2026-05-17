@@ -20,9 +20,9 @@ import {
     DialogActions,
     CircularProgress,
     Tooltip,
-    Grid,
     TablePagination,
     useTheme,
+    useMediaQuery,
     alpha,
 } from "@mui/material";
 import {
@@ -43,6 +43,8 @@ import {
     FaBalanceScale,
     FaBuilding,
     FaTimes,
+    FaChevronLeft,
+    FaChevronRight,
 } from "react-icons/fa";
 import { GiMeditation, GiBoxingGlove, GiCampingTent } from "react-icons/gi";
 import { MdSportsKabaddi, MdSportsMartialArts } from "react-icons/md";
@@ -77,6 +79,11 @@ const DEFAULT_CONFIG = { icon: FaDumbbell, color: "#64748B" };
 const EstabelecimentosTab = () => {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
+    const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+    const isMd = useMediaQuery(theme.breakpoints.up('md'));
+    const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+    const cardsPerPage = isLg ? 6 : isMd ? 4 : isSm ? 3 : 2;
+
     const [estabelecimentos, setEstabelecimentos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -87,6 +94,7 @@ const EstabelecimentosTab = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [carouselPage, setCarouselPage] = useState(0);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -99,6 +107,10 @@ const EstabelecimentosTab = () => {
     useEffect(() => {
         loadEstabelecimentos();
     }, []);
+
+    useEffect(() => {
+        setCarouselPage(0);
+    }, [cardsPerPage]);
 
     const loadEstabelecimentos = async () => {
         try {
@@ -209,6 +221,14 @@ const EstabelecimentosTab = () => {
 
     const getCategoryConfig = (name) => CATEGORY_CONFIG[name] || DEFAULT_CONFIG;
 
+    const totalCarouselPages = Math.ceil(categoryStats.length / cardsPerPage);
+    const visibleCards = categoryStats.slice(
+        carouselPage * cardsPerPage,
+        (carouselPage + 1) * cardsPerPage,
+    );
+    const emptySlots = cardsPerPage - visibleCards.length;
+    const cardFlexBasis = `calc((100% - ${(cardsPerPage - 1) * 16}px) / ${cardsPerPage})`;
+
     return (
         <Box>
             {/* Header com total */}
@@ -237,94 +257,158 @@ const EstabelecimentosTab = () => {
                 )}
             </Box>
 
-            {/* Cards de Categorias */}
+            {/* Carrossel de Categorias */}
             {loading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
                     <CircularProgress />
                 </Box>
-            ) : (
-                <Grid container spacing={2} sx={{ mb: 4 }}>
-                    {categoryStats.map(({ name, count }) => {
-                        const config = getCategoryConfig(name);
-                        const IconComponent = config.icon;
-                        const isSelected = selectedCategory === name;
+            ) : categoryStats.length > 0 ? (
+                <Box sx={{ mb: 4 }}>
+                    <Box sx={{ position: "relative", mx: 3 }}>
+                        {/* Seta esquerda */}
+                        {carouselPage > 0 && (
+                            <IconButton
+                                onClick={() => setCarouselPage((p) => p - 1)}
+                                size="small"
+                                sx={{
+                                    position: "absolute",
+                                    left: -28,
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    zIndex: 1,
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    boxShadow: 2,
+                                    "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.06) },
+                                }}
+                            >
+                                <FaChevronLeft size={13} />
+                            </IconButton>
+                        )}
 
-                        return (
-                            <Grid item xs={6} sm={4} md={3} lg={2} key={name}>
-                                <Paper
-                                    elevation={0}
-                                    onClick={() => handleCategoryClick(name)}
-                                    sx={{
-                                        p: 2.5,
-                                        cursor: "pointer",
-                                        border: "2px solid",
-                                        borderColor: isSelected ? config.color : "divider",
-                                        borderRadius: 3,
-                                        transition: "all 0.25s ease",
-                                        bgcolor: isSelected
-                                            ? alpha(config.color, isDark ? 0.15 : 0.08)
-                                            : "background.paper",
-                                        position: "relative",
-                                        overflow: "hidden",
-                                        "&:hover": {
-                                            borderColor: config.color,
-                                            transform: "translateY(-2px)",
-                                            boxShadow: `0 4px 20px ${alpha(config.color, 0.25)}`,
-                                        },
-                                    }}
-                                >
-                                    <Box
-                                        sx={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            height: 3,
-                                            bgcolor: config.color,
-                                            opacity: isSelected ? 1 : 0.4,
-                                            transition: "opacity 0.25s",
-                                        }}
-                                    />
-                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                                        <Box
+                        {/* Trilha de cards */}
+                        <Box sx={{ display: "flex", gap: 2, overflow: "hidden" }}>
+                            {visibleCards.map(({ name, count }) => {
+                                const config = getCategoryConfig(name);
+                                const IconComponent = config.icon;
+                                const isSelected = selectedCategory === name;
+                                return (
+                                    <Box key={name} sx={{ flex: `0 0 ${cardFlexBasis}`, minWidth: 0 }}>
+                                        <Paper
+                                            elevation={0}
+                                            onClick={() => handleCategoryClick(name)}
                                             sx={{
-                                                p: 1,
-                                                borderRadius: 2,
-                                                bgcolor: alpha(config.color, isDark ? 0.2 : 0.1),
-                                                color: config.color,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
+                                                p: 2.5,
+                                                cursor: "pointer",
+                                                border: "2px solid",
+                                                borderColor: isSelected ? config.color : "divider",
+                                                borderRadius: 3,
+                                                transition: "all 0.25s ease",
+                                                bgcolor: isSelected
+                                                    ? alpha(config.color, isDark ? 0.15 : 0.08)
+                                                    : "background.paper",
+                                                position: "relative",
+                                                overflow: "hidden",
+                                                "&:hover": {
+                                                    borderColor: config.color,
+                                                    transform: "translateY(-2px)",
+                                                    boxShadow: `0 4px 20px ${alpha(config.color, 0.25)}`,
+                                                },
                                             }}
                                         >
-                                            <IconComponent size={20} />
-                                        </Box>
-                                        <Typography
-                                            variant="h5"
-                                            fontWeight={800}
-                                            sx={{ color: config.color }}
-                                        >
-                                            {count}
-                                        </Typography>
+                                            <Box
+                                                sx={{
+                                                    position: "absolute",
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    height: 3,
+                                                    bgcolor: config.color,
+                                                    opacity: isSelected ? 1 : 0.4,
+                                                    transition: "opacity 0.25s",
+                                                }}
+                                            />
+                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                                                <Box
+                                                    sx={{
+                                                        p: 1,
+                                                        borderRadius: 2,
+                                                        bgcolor: alpha(config.color, isDark ? 0.2 : 0.1),
+                                                        color: config.color,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                >
+                                                    <IconComponent size={20} />
+                                                </Box>
+                                                <Typography variant="h5" fontWeight={800} sx={{ color: config.color }}>
+                                                    {count}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="body2" fontWeight={600} noWrap title={name} sx={{ color: "text.primary" }}>
+                                                {name}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {count === 1 ? "1 unidade" : `${count} unidades`}
+                                            </Typography>
+                                        </Paper>
                                     </Box>
-                                    <Typography
-                                        variant="body2"
-                                        fontWeight={600}
-                                        noWrap
-                                        title={name}
-                                        sx={{ color: "text.primary" }}
-                                    >
-                                        {name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        {count === 1 ? "1 unidade" : `${count} unidades`}
-                                    </Typography>
-                                </Paper>
-                            </Grid>
-                        );
-                    })}
-                </Grid>
-            )}
+                                );
+                            })}
+                            {/* Slots vazios para manter largura estável na última página */}
+                            {Array.from({ length: emptySlots }).map((_, i) => (
+                                <Box key={`empty-${i}`} sx={{ flex: `0 0 ${cardFlexBasis}`, minWidth: 0 }} />
+                            ))}
+                        </Box>
+
+                        {/* Seta direita */}
+                        {carouselPage < totalCarouselPages - 1 && (
+                            <IconButton
+                                onClick={() => setCarouselPage((p) => p + 1)}
+                                size="small"
+                                sx={{
+                                    position: "absolute",
+                                    right: -28,
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    zIndex: 1,
+                                    bgcolor: "background.paper",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    boxShadow: 2,
+                                    "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.06) },
+                                }}
+                            >
+                                <FaChevronRight size={13} />
+                            </IconButton>
+                        )}
+                    </Box>
+
+                    {/* Dots */}
+                    {totalCarouselPages > 1 && (
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.75, mt: 2 }}>
+                            {Array.from({ length: totalCarouselPages }).map((_, i) => (
+                                <Box
+                                    key={i}
+                                    onClick={() => setCarouselPage(i)}
+                                    sx={{
+                                        width: i === carouselPage ? 18 : 6,
+                                        height: 6,
+                                        borderRadius: 3,
+                                        bgcolor: i === carouselPage
+                                            ? "primary.main"
+                                            : alpha(theme.palette.text.primary, 0.2),
+                                        transition: "all 0.25s ease",
+                                        cursor: "pointer",
+                                    }}
+                                />
+                            ))}
+                        </Box>
+                    )}
+                </Box>
+            ) : null}
 
             {/* Busca */}
             <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>

@@ -141,6 +141,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           src={fotos[fotoAtual]}
           alt={`${getNome(estabelecimento)} - imagem ${fotoAtual + 1}`}
           sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+          onError={(e) => { e.currentTarget.src = fallbackImage; }}
         />
         <Box
           sx={{

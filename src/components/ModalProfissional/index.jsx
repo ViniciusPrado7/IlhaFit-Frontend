@@ -94,6 +94,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
               src={getFoto(profissional)}
               alt={getNome(profissional)}
               sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+              onError={(e) => { e.currentTarget.src = fallbackImage; }}
             />
             <Box
               sx={{
