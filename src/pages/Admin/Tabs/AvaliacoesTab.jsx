@@ -49,7 +49,6 @@ const MOTIVO_LABELS = {
 const STATUS_CONFIG = {
     PENDENTE: { label: "Pendente", color: "warning" },
     REVISADO: { label: "Revisado", color: "success" },
-    IGNORADO: { label: "Ignorado", color: "default" },
     EXCLUIDO: { label: "Excluída", color: "error" },
 };
 
@@ -241,7 +240,6 @@ const AvaliacoesTab = () => {
                     { value: null, label: "Todas" },
                     { value: "PENDENTE", label: "Pendentes" },
                     { value: "REVISADO", label: "Revisadas" },
-                    { value: "IGNORADO", label: "Ignoradas" },
                     { value: "EXCLUIDO", label: "Excluídas" },
                 ].map((f) => (
                     <Button
@@ -404,15 +402,6 @@ const AvaliacoesTab = () => {
                                                             <FaCheck size={12} />
                                                         </IconButton>
                                                     </Tooltip>
-                                                    <Tooltip title="Ignorar denúncia">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => handleUpdateStatus(d.id, "IGNORADO")}
-                                                            sx={{ color: "text.secondary", bgcolor: alpha(theme.palette.divider, 0.3), '&:hover': { bgcolor: alpha(theme.palette.divider, 0.5) } }}
-                                                        >
-                                                            <FaTimes size={12} />
-                                                        </IconButton>
-                                                    </Tooltip>
                                                 </>
                                             )}
                                             <Tooltip title="Excluir avaliação denunciada">
@@ -547,13 +536,6 @@ const AvaliacoesTab = () => {
                     </Button>
                     {detailDialog.denuncia?.status === "PENDENTE" && (
                         <>
-                            <Button
-                                variant="outlined"
-                                onClick={() => handleUpdateStatus(detailDialog.denuncia.id, "IGNORADO")}
-                                sx={{ textTransform: "none", fontWeight: 600 }}
-                            >
-                                Ignorar
-                            </Button>
                             <Button
                                 variant="contained"
                                 color="success"
