@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
     Box,
     Typography,
@@ -32,10 +33,13 @@ import {
     FaTimes,
     FaExclamationTriangle,
     FaEye,
-    FaExternalLinkAlt,
     FaSearch,
 } from "react-icons/fa";
 import { denunciaService } from "../../../services";
+import { profissionalService } from "../../../service/ProfissionalService";
+import { estabelecimentoService } from "../../../service/EstabelecimentoService";
+import ModalProfissional from "../../../components/ModalProfissional";
+import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento";
 import { toast } from "react-toastify";
 
 const MOTIVO_LABELS = {
@@ -62,8 +66,10 @@ const AvaliacoesTab = () => {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [detailDialog, setDetailDialog] = useState({ open: false, denuncia: null });
     const [deleteDialog, setDeleteDialog] = useState({ open: false, denuncia: null });
+    const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
+    const [estabelecimentoModal, setEstabelecimentoModal] = useState({ open: false, estabelecimento: null });
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
 
     useEffect(() => {
         setPage(0);
@@ -189,10 +195,33 @@ const AvaliacoesTab = () => {
         return null;
     };
 
-    const getContextUrl = (d) => {
-        if (d.estabelecimentoId) return `/estabelecimentos`;
-        if (d.profissionalId) return `/profissionais`;
-        return null;
+    const handleOpenContexto = async (d) => {
+        if (d.profissionalId) {
+            try {
+                const res = await profissionalService.buscarProfissionalPorId(d.profissionalId);
+                setProfissionalModal({ open: true, profissional: res.data });
+            } catch {
+                toast.error("Não foi possível carregar o perfil do profissional.");
+            }
+        } else if (d.estabelecimentoId) {
+            try {
+                const res = await estabelecimentoService.buscarEstabelecimentoPorId(d.estabelecimentoId);
+                const estab = res.data;
+                const mapped = {
+                    ...estab,
+                    nome: estab.nomeFantasia || estab.nome,
+                    Imagem: estab.fotosUrl?.length > 0 ? estab.fotosUrl[0] : "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop",
+                    Imagens: estab.fotosUrl || [],
+                    categorias: (estab.categorias || []).map((c) => c.nome),
+                    avaliacao: estab.avaliacao || 0.0,
+                    aberto: true,
+                    descricao: estab.descricao || "Um ótimo local para treinar e cuidar da sua saúde.",
+                };
+                setEstabelecimentoModal({ open: true, estabelecimento: mapped });
+            } catch {
+                toast.error("Não foi possível carregar o perfil do estabelecimento.");
+            }
+        }
     };
 
     return (
@@ -358,8 +387,8 @@ const AvaliacoesTab = () => {
                                             <Chip
                                                 label={getContextLabel(d)}
                                                 size="small"
-                                                icon={<FaExternalLinkAlt size={10} />}
-                                                onClick={() => window.open(getContextUrl(d), '_blank')}
+                                                icon={<FaEye size={10} />}
+                                                onClick={() => handleOpenContexto(d)}
                                                 clickable
                                                 sx={{ fontWeight: 600, fontSize: "0.7rem" }}
                                             />
@@ -496,13 +525,13 @@ const AvaliacoesTab = () => {
                                         <Typography variant="body2" fontWeight={600}>
                                             {detailDialog.denuncia.estabelecimentoNome ? `Estabelecimento: ${detailDialog.denuncia.estabelecimentoNome}` : `Profissional: ${detailDialog.denuncia.profissionalNome}`}
                                         </Typography>
-                                        <Tooltip title="Abrir página">
+                                        <Tooltip title="Ver perfil">
                                             <IconButton
                                                 size="small"
-                                                onClick={() => window.open(getContextUrl(detailDialog.denuncia), '_blank')}
+                                                onClick={() => handleOpenContexto(detailDialog.denuncia)}
                                                 sx={{ color: 'primary.main' }}
                                             >
-                                                <FaExternalLinkAlt size={12} />
+                                                <FaEye size={12} />
                                             </IconButton>
                                         </Tooltip>
                                     </Box>
@@ -557,6 +586,18 @@ const AvaliacoesTab = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <ModalProfissional
+                open={profissionalModal.open}
+                onClose={() => setProfissionalModal({ open: false, profissional: null })}
+                profissional={profissionalModal.profissional}
+            />
+
+            <ModalDetalhesEstabelecimento
+                open={estabelecimentoModal.open}
+                onClose={() => setEstabelecimentoModal({ open: false, estabelecimento: null })}
+                estabelecimento={estabelecimentoModal.estabelecimento}
+            />
 
             {/* Dialog de Confirmação de Exclusão */}
             <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, denuncia: null })}>

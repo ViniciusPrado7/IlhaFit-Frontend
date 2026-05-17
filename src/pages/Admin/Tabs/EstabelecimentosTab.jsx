@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
     Box,
     Paper,
@@ -93,7 +94,7 @@ const EstabelecimentosTab = () => {
     const [selectedEstab, setSelectedEstab] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
     const [carouselPage, setCarouselPage] = useState(0);
 
     useEffect(() => {
