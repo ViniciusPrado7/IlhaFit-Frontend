@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
     Box,
     Paper,
@@ -41,7 +42,7 @@ const ProfissionaisTab = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
     const [deleteDialog, setDeleteDialog] = useState({ open: false, profissional: null });
     const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
 

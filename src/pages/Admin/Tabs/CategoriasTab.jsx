@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
   Box, Typography, Button, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TablePagination, IconButton, Dialog,
@@ -17,7 +18,7 @@ const CategoriasTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
 
   useEffect(() => {
     const handler = setTimeout(() => {
