@@ -11,6 +11,7 @@ import {
     Chip,
     Divider,
     Tooltip,
+    IconButton,
 } from "@mui/material";
 import {
     FaUser,
@@ -26,6 +27,7 @@ import {
     FaExclamationTriangle,
     FaTimesCircle,
     FaChevronRight,
+    FaChevronLeft,
     FaTrophy,
 } from "react-icons/fa";
 import {
@@ -34,6 +36,7 @@ import {
     solicitacaoCategoriaService,
     categoriaService,
     estabelecimentoService,
+    profissionalService,
 } from "../../../services";
 import { toast } from "react-toastify";
 
@@ -55,6 +58,18 @@ const formatDate = (dateStr) => {
     });
 };
 
+// tenta extrair data de criação a partir de vários campos possíveis
+const parseCreated = (obj) => {
+    if (!obj) return null;
+    const fields = ["createdAt", "dataCriacao", "created_at", "created", "dataCadastro", "createdAt"];
+    for (const f of fields) {
+        if (obj[f]) return new Date(obj[f]);
+    }
+    // campos aninhados
+    if (obj.endereco && (obj.endereco.createdAt || obj.endereco.created)) return new Date(obj.endereco.createdAt || obj.endereco.created);
+    return null;
+};
+
 const DashboardTab = ({ onTabChange }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
@@ -67,6 +82,10 @@ const DashboardTab = ({ onTabChange }) => {
         estabelecimentos: 0,
         admins: 0,
     });
+    const [usersList, setUsersList] = useState([]);
+    const [estabelecimentosList, setEstabelecimentosList] = useState([]);
+    const [cepStateCache, setCepStateCache] = useState({});
+    const [recentRegistrationsState, setRecentRegistrationsState] = useState([]);
     const [denunciasPendentes, setDenunciasPendentes] = useState([]);
     const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
     const [totalCategorias, setTotalCategorias] = useState(0);
@@ -79,13 +98,14 @@ const DashboardTab = ({ onTabChange }) => {
     const loadAll = async () => {
         try {
             setLoading(true);
-            const [users, denuncias, solicitacoes, categorias, estabelecimentos] =
+            const [users, denuncias, solicitacoes, categorias, estabelecimentos, profissionais] =
                 await Promise.all([
                     adminService.getAllUsers(),
                     denunciaService.getAll("PENDENTE"),
                     solicitacaoCategoriaService.getAll("PENDENTE"),
                     categoriaService.listarTodas(),
                     estabelecimentoService.getAll(),
+                    profissionalService.listarProfissionais(),
                 ]);
 
             setStats({
@@ -95,6 +115,16 @@ const DashboardTab = ({ onTabChange }) => {
                 estabelecimentos: users.filter((u) => u.tipo === "estabelecimento").length,
                 admins: users.filter((u) => u.tipo === "admin").length,
             });
+
+            // include professionals returned from separate endpoint to ensure all user types are present
+            const mergedUsers = [...(users || [])];
+            const userIds = new Set(mergedUsers.map(u => u.id || u._id));
+            (profissionais || []).forEach(p => {
+                const pid = p.id || p._id;
+                if (!userIds.has(pid)) mergedUsers.push(p);
+            });
+            setUsersList(mergedUsers);
+            setEstabelecimentosList(estabelecimentos || []);
 
             setDenunciasPendentes(denuncias);
             setSolicitacoesPendentes(solicitacoes);
@@ -111,6 +141,30 @@ const DashboardTab = ({ onTabChange }) => {
                 .slice(0, 5)
                 .map(([nome, count]) => ({ nome, count }));
             setTopCategorias(sorted);
+
+            // Build recent registrations incrementally: keep previous ones and add only new/updated
+            const makeEntry = (item, tipo) => ({
+                id: item.id || item._id || `${tipo}-${item.email || item.cpf || Math.random()}`,
+                nome: item.nome || item.nomeFantasia || item.email || 'Sem nome',
+                tipo: tipo || item.tipo || 'usuario',
+                _created: parseCreated(item) || new Date(item.createdAt || item.created || Date.now()),
+            });
+
+            const fetchedEntries = [
+                ...(users || []).map(u => makeEntry(u, u.tipo || 'usuario')),
+                ...(profissionais || []).map(p => makeEntry(p, p.tipo || 'profissional')),
+                ...(estabelecimentos || []).map(e => makeEntry(e, 'estabelecimento')),
+            ].filter(r => r._created instanceof Date && !isNaN(r._created));
+
+            const existingMap = {};
+            (recentRegistrationsState || []).forEach(r => { existingMap[r.id] = r; });
+            fetchedEntries.forEach(fe => {
+                const prev = existingMap[fe.id];
+                if (!prev) existingMap[fe.id] = fe;
+                else if (fe._created > prev._created) existingMap[fe.id] = fe;
+            });
+            const merged = Object.values(existingMap).sort((a,b) => b._created - a._created).slice(0, 5);
+            setRecentRegistrationsState(merged);
         } catch {
             toast.error("Erro ao carregar dados do dashboard");
         } finally {
@@ -121,7 +175,80 @@ const DashboardTab = ({ onTabChange }) => {
     const pct = (value) =>
         stats.total === 0 ? 0 : Math.round((value / stats.total) * 100);
 
+    const onlyDigits = (value) => (value ? String(value).replace(/\D/g, '') : '');
+
+    const normalizeState = (value) => {
+        const candidate = value ? String(value).trim().toUpperCase() : '';
+        return candidate.match(/^[A-Z]{2}$/) ? candidate : null;
+    };
+
+    const getStateFromObj = (obj) => {
+        const direct = normalizeState(
+            obj?.estado?.sigla || obj?.estado || obj?.uf || obj?.endereco?.uf || obj?.endereco?.estado || obj?.endereco?.state || obj?.address?.state
+        );
+        if (direct) return direct;
+
+        const cep = onlyDigits(obj?.cep || obj?.endereco?.cep || obj?.address?.cep);
+        if (cep && cepStateCache[cep]) return cepStateCache[cep];
+        return null;
+    };
+
+    const getCepFromObj = (obj) => onlyDigits(obj?.cep || obj?.endereco?.cep || obj?.address?.cep);
+
+    const fetchStateByCep = async (cep) => {
+        if (!cep || cep.length !== 8) return null;
+        if (cepStateCache[cep]) return cepStateCache[cep];
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            if (!response.ok) return null;
+            const data = await response.json();
+            const uf = normalizeState(data.uf);
+            if (uf) {
+                setCepStateCache((prev) => ({ ...prev, [cep]: uf }));
+                return uf;
+            }
+        } catch (error) {
+            console.warn('Falha ao resolver estado pelo CEP', cep, error);
+        }
+        return null;
+    };
+
+    const resolveCepStates = async () => {
+        const sourceItems = [...(usersList || []), ...(estabelecimentosList || [])];
+        const ceps = new Set();
+        sourceItems.forEach((item) => {
+            const state = getStateFromObj(item);
+            if (!state) {
+                const cep = getCepFromObj(item);
+                if (cep && !cepStateCache[cep]) ceps.add(cep);
+            }
+        });
+        if (ceps.size === 0) return;
+        await Promise.all(Array.from(ceps).map(fetchStateByCep));
+    };
+
+    useEffect(() => {
+        resolveCepStates();
+    }, [usersList, estabelecimentosList, cepStateCache]);
+
     const maxCatCount = topCategorias[0]?.count || 1;
+
+    // Top cidades / estados
+    const locationSources = [...(usersList || []), ...(estabelecimentosList || [])];
+    const cityCount = {};
+    const stateCount = {};
+    locationSources.forEach((it) => {
+        const city = (it.cidade && (it.cidade.nome || it.cidade)) || it.cidadeNome || (it.endereco && (it.endereco.cidade || it.endereco.city)) || (it.address && it.address.city) || null;
+        const state = getStateFromObj(it);
+        if (city) cityCount[city] = (cityCount[city] || 0) + 1;
+        if (state) stateCount[state] = (stateCount[state] || 0) + 1;
+    });
+    const topCities = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([nome, count]) => ({ nome, count }));
+    const stateTotal = Object.values(stateCount).reduce((sum, value) => sum + value, 0);
+    const stateDistribution = Object.entries(stateCount).sort((a, b) => b[1] - a[1]).map(([sigla, count]) => ({ sigla, count, pct: stateTotal === 0 ? 0 : Math.round((count / stateTotal) * 100) }));
+
+    // Últimos cadastros — preservados incrementalmente em state
+    const recentRegistrationsDisplay = (recentRegistrationsState || []).slice(0, 5);
 
     const pendingTotal = denunciasPendentes.length + solicitacoesPendentes.length;
     const systemStatus =
@@ -214,7 +341,6 @@ const DashboardTab = ({ onTabChange }) => {
     const AlertCard = ({ title, value, icon, color, tabIndex, label }) => (
         <Paper
             elevation={0}
-            onClick={() => tabIndex !== undefined && onTabChange?.(tabIndex)}
             sx={{
                 p: 2.5,
                 height: "100%",
@@ -223,16 +349,8 @@ const DashboardTab = ({ onTabChange }) => {
                 borderLeft: "4px solid",
                 borderLeftColor: `${color}.main`,
                 borderRadius: 3,
-                cursor: tabIndex !== undefined ? "pointer" : "default",
+                cursor: "default",
                 transition: "all 0.2s ease",
-                "&:hover":
-                    tabIndex !== undefined
-                        ? {
-                              bgcolor: alpha(theme.palette[color].main, 0.05),
-                              transform: "translateY(-2px)",
-                              boxShadow: `0 4px 20px ${alpha(theme.palette[color].main, 0.15)}`,
-                          }
-                        : {},
             }}
         >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -270,13 +388,27 @@ const DashboardTab = ({ onTabChange }) => {
                     >
                         {icon}
                     </Box>
-                    {tabIndex !== undefined && (
-                        <FaChevronRight size={11} color={theme.palette.text.disabled} />
-                    )}
+                    {/* removed clickable chevron to keep cards static */}
                 </Box>
             </Box>
         </Paper>
     );
+
+    // Carousel control
+    const IconButtonCarousel = ({ direction }) => {
+        const handle = () => {
+            const el = document.getElementById("primary-cards-carousel");
+            if (!el) return;
+            const amount = direction === "left" ? -360 : 360;
+            el.scrollBy({ left: amount, behavior: "smooth" });
+        };
+
+        return (
+            <IconButton size="small" onClick={handle} sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
+                {direction === "left" ? <FaChevronLeft /> : <FaChevronRight />}
+            </IconButton>
+        );
+    };
 
     if (loading) {
         return (
@@ -302,136 +434,59 @@ const DashboardTab = ({ onTabChange }) => {
                     <FaChartPie /> Visão Geral do Sistema
                 </Typography>
                 <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                    Acompanhe métricas de crescimento, distribuição de usuários e saúde da
-                    plataforma.
+                    Acompanhe métricas de crescimento, distribuição de usuários e relatórios reais do sistema.
                 </Typography>
             </Box>
 
             {/* Row 1 — Usuários */}
-            <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Paper
-                        elevation={0}
+            {/* Carousel of primary cards */}
+            <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <IconButtonCarousel direction="left" />
+                    <Box
+                        id="primary-cards-carousel"
                         sx={{
-                            p: 2.5,
-                            height: "100%",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 3,
-                            position: "relative",
-                            overflow: "hidden",
+                            display: 'flex',
+                            gap: 2,
+                            overflowX: 'auto',
+                            scrollSnapType: 'x mandatory',
+                            px: 1,
+                            py: 0.5,
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none',
+                            '&::-webkit-scrollbar': {
+                                display: 'none',
+                            },
                         }}
                     >
-                        <Box
-                            sx={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: 4,
-                                bgcolor: "primary.main",
-                            }}
-                        />
-                        <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            fontWeight={600}
-                            sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                        >
-                            Total de Usuários
-                        </Typography>
-                        <Typography variant="h3" fontWeight={800} sx={{ my: 1 }}>
-                            {stats.total}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Cadastrados na plataforma
-                        </Typography>
-                        <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-                            <FaUsers
-                                size={36}
-                                style={{ opacity: 0.1 }}
-                                color={theme.palette.primary.main}
-                            />
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 320 }}>
+                            <StatCard title="Total de Usuários" value={stats.total} icon={<FaUsers size={20} />} color="primary" />
                         </Box>
-                    </Paper>
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Alunos"
-                        value={stats.alunos}
-                        icon={<FaUser size={18} />}
-                        color="primary"
-                        percentage={pct(stats.alunos)}
-                        sub="Do total de usuários"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Profissionais"
-                        value={stats.profissionais}
-                        icon={<FaUserTie size={18} />}
-                        color="secondary"
-                        percentage={pct(stats.profissionais)}
-                        sub="Do total de usuários"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Estabelecimentos"
-                        value={stats.estabelecimentos}
-                        icon={<FaBuilding size={18} />}
-                        color="warning"
-                        percentage={pct(stats.estabelecimentos)}
-                        sub="Do total de usuários"
-                    />
-                </Grid>
-            </Grid>
-
-            {/* Row 2 — Plataforma */}
-            <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Categorias Ativas"
-                        value={totalCategorias}
-                        icon={<FaTags size={18} />}
-                        color="info"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <AlertCard
-                        title="Denúncias Pendentes"
-                        value={denunciasPendentes.length}
-                        icon={<FaFlag size={18} />}
-                        color={denunciasPendentes.length > 0 ? "error" : "success"}
-                        tabIndex={3}
-                        label="Clique para revisar"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <AlertCard
-                        title="Solicitações Pendentes"
-                        value={solicitacoesPendentes.length}
-                        icon={<FaBell size={18} />}
-                        color={solicitacoesPendentes.length > 0 ? "warning" : "success"}
-                        tabIndex={5}
-                        label="Clique para revisar"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Administradores"
-                        value={stats.admins}
-                        icon={<FaUserShield size={18} />}
-                        color="secondary"
-                    />
-                </Grid>
-            </Grid>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 280 }}>
+                            <StatCard title="Alunos" value={stats.alunos} icon={<FaUser size={18} />} color="primary" percentage={pct(stats.alunos)} sub="Do total" />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 280 }}>
+                            <StatCard title="Profissionais" value={stats.profissionais} icon={<FaUserTie size={18} />} color="secondary" percentage={pct(stats.profissionais)} sub="Do total" />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 280 }}>
+                            <StatCard title="Estabelecimentos" value={stats.estabelecimentos} icon={<FaBuilding size={18} />} color="warning" percentage={pct(stats.estabelecimentos)} sub="Do total" />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 260 }}>
+                            <StatCard title="Categorias Ativas" value={totalCategorias} icon={<FaTags size={18} />} color="info" />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 260 }}>
+                            <StatCard title="Denúncias Pendentes" value={denunciasPendentes.length} icon={<FaFlag size={18} />} color={denunciasPendentes.length > 0 ? 'error' : 'success'} />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 260 }}>
+                            <StatCard title="Solicitações Pendentes" value={solicitacoesPendentes.length} icon={<FaBell size={18} />} color={solicitacoesPendentes.length > 0 ? 'warning' : 'success'} />
+                        </Box>
+                        <Box sx={{ scrollSnapAlign: 'start', minWidth: 260 }}>
+                            <StatCard title="Administradores" value={stats.admins} icon={<FaUserShield size={18} />} color="secondary" />
+                        </Box>
+                    </Box>
+                    <IconButtonCarousel direction="right" />
+                </Box>
+            </Box>
 
             {/* Bottom — Two-column layout */}
             <Box
@@ -670,224 +725,46 @@ const DashboardTab = ({ onTabChange }) => {
                             </Box>
                         )}
                     </Paper>
-                </Box>
-
-                {/* Right column (30%) — System Health */}
-                <Box sx={{ flex: "3 1 280px" }}>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            p: 3,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 3,
-                            bgcolor: isDark
-                                ? alpha(theme.palette.background.default, 0.5)
-                                : alpha(theme.palette.grey[50], 0.9),
-                        }}
-                    >
-                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                            Saúde da Plataforma
-                        </Typography>
-
-                        {/* Status indicator */}
-                        <Chip
-                            icon={
-                                <systemStatus.Icon
-                                    size={13}
-                                    style={{ marginLeft: 8, flexShrink: 0 }}
-                                />
-                            }
-                            label={systemStatus.label}
-                            color={systemStatus.color}
-                            size="small"
-                            sx={{
-                                mb: 3,
-                                fontWeight: 600,
-                                width: "100%",
-                                justifyContent: "flex-start",
-                                borderRadius: 2,
-                            }}
-                        />
-
-                        {/* Denúncias pendentes */}
-                        <Box sx={{ mb: 2.5 }}>
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mb: 1.5,
-                                }}
-                            >
-                                <Typography
-                                    variant="subtitle2"
-                                    fontWeight={700}
-                                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-                                >
-                                    <FaFlag size={12} color={theme.palette.error.main} />
-                                    Denúncias Pendentes
-                                </Typography>
-                                {denunciasPendentes.length > 0 && (
-                                    <Chip
-                                        label={denunciasPendentes.length}
-                                        size="small"
-                                        color="error"
-                                        sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
-                                    />
-                                )}
-                            </Box>
-
-                            {denunciasPendentes.length === 0 ? (
-                                <Typography variant="caption" color="text.secondary">
-                                    Nenhuma denúncia pendente.
-                                </Typography>
-                            ) : (
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                    {denunciasPendentes.slice(0, 5).map((d) => (
-                                        <Box
-                                            key={d.id}
-                                            onClick={() => onTabChange?.(3)}
-                                            sx={{
-                                                p: 1,
-                                                borderRadius: 1.5,
-                                                cursor: "pointer",
-                                                transition: "background 0.15s",
-                                                "&:hover": {
-                                                    bgcolor: alpha(theme.palette.error.main, 0.07),
-                                                },
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="caption"
-                                                fontWeight={600}
-                                                color="error.main"
-                                                display="block"
-                                            >
-                                                {MOTIVO_LABELS[d.motivo] || d.motivo}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                noWrap
-                                                display="block"
-                                            >
-                                                {d.estabelecimentoNome ||
-                                                    d.profissionalNome ||
-                                                    "Sem contexto"}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.disabled"
-                                                sx={{ fontSize: "0.65rem" }}
-                                            >
-                                                {formatDate(d.dataDenuncia)}
-                                            </Typography>
+                    {/* Últimos Cadastros e Distribuição por Estados */}
+                    <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2, color: 'primary.main' }}>Últimos Cadastros</Typography>
+                        {recentRegistrationsDisplay.length === 0 ? (
+                            <Typography color="text.secondary">Nenhum cadastro recente.</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {recentRegistrationsDisplay.map((r, idx) => (
+                                    <Box key={r.id}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+                                            <Box>
+                                                <Typography variant="body2" fontWeight={700} noWrap sx={{ color: 'text.primary' }}>{r.nome}</Typography>
+                                                <Typography variant="caption" color="text.secondary">{r.tipo} · {formatDate(r._created)}</Typography>
+                                            </Box>
+                                            <Typography variant="caption" color="text.secondary">{new Date(r._created).toLocaleDateString()}</Typography>
                                         </Box>
-                                    ))}
-                                    {denunciasPendentes.length > 5 && (
-                                        <Typography
-                                            variant="caption"
-                                            color="text.disabled"
-                                            sx={{ pl: 1, fontStyle: "italic" }}
-                                        >
-                                            +{denunciasPendentes.length - 5} demais pendentes
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
-
-                        <Divider sx={{ mb: 2.5 }} />
-
-                        {/* Solicitações pendentes */}
-                        <Box>
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mb: 1.5,
-                                }}
-                            >
-                                <Typography
-                                    variant="subtitle2"
-                                    fontWeight={700}
-                                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-                                >
-                                    <FaBell size={12} color={theme.palette.warning.main} />
-                                    Solicitações Pendentes
-                                </Typography>
-                                {solicitacoesPendentes.length > 0 && (
-                                    <Chip
-                                        label={solicitacoesPendentes.length}
-                                        size="small"
-                                        color="warning"
-                                        sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
-                                    />
-                                )}
+                                        {idx < recentRegistrationsDisplay.length - 1 && <Divider sx={{ my: 0.5 }} />}
+                                    </Box>
+                                ))}
                             </Box>
+                        )}
 
-                            {solicitacoesPendentes.length === 0 ? (
-                                <Typography variant="caption" color="text.secondary">
-                                    Nenhuma solicitação pendente.
-                                </Typography>
-                            ) : (
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                    {solicitacoesPendentes.slice(0, 5).map((s) => (
-                                        <Box
-                                            key={s.id}
-                                            onClick={() => onTabChange?.(5)}
-                                            sx={{
-                                                p: 1,
-                                                borderRadius: 1.5,
-                                                cursor: "pointer",
-                                                transition: "background 0.15s",
-                                                "&:hover": {
-                                                    bgcolor: alpha(
-                                                        theme.palette.warning.main,
-                                                        0.07
-                                                    ),
-                                                },
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="caption"
-                                                fontWeight={600}
-                                                color="warning.dark"
-                                                display="block"
-                                            >
-                                                {s.nome}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                noWrap
-                                                display="block"
-                                            >
-                                                {s.solicitante}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.disabled"
-                                                sx={{ fontSize: "0.65rem" }}
-                                            >
-                                                {formatDate(s.dataSolicitacao)}
-                                            </Typography>
+                        <Divider sx={{ my: 2 }} />
+
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Distribuição por Estados</Typography>
+                        {stateDistribution.length === 0 ? (
+                            <Typography color="text.secondary">Sem dados de estado.</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {stateDistribution.map(s => (
+                                    <Box key={s.sigla} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                        <Box sx={{ width: 48 }}><Typography variant="body2">{s.sigla}</Typography></Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <LinearProgress variant="determinate" value={s.pct} sx={{ height: 12, borderRadius: 6 }} />
                                         </Box>
-                                    ))}
-                                    {solicitacoesPendentes.length > 5 && (
-                                        <Typography
-                                            variant="caption"
-                                            color="text.disabled"
-                                            sx={{ pl: 1, fontStyle: "italic" }}
-                                        >
-                                            +{solicitacoesPendentes.length - 5} demais pendentes
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
+                                        <Box sx={{ width: 48, textAlign: 'right' }}><Typography variant="caption" color="text.secondary">{s.pct}%</Typography></Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
                     </Paper>
                 </Box>
             </Box>
