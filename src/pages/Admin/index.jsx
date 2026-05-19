@@ -79,26 +79,30 @@ const AdminPanel = () => {
                     scrollButtons="auto"
                     sx={{ "& .MuiTab-root": { minHeight: 56, textTransform: "none", fontWeight: 600 } }}
                 >
-                    {TABS.map(({ label, icon: Icon }, i) => (
-                        <Tab
-                            key={label}
-                            label={
-                                i === 5 ? (
-                                    <Badge badgeContent={pendingCount} color="error" max={99}>
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: pendingCount > 0 ? 1.5 : 0 }}>
-                                            <Icon size={16} />
-                                            {label}
+                    {TABS.map((tabConfig, i) => {
+                        const TabIcon = tabConfig.icon;
+
+                        return (
+                            <Tab
+                                key={tabConfig.label}
+                                label={
+                                    i === 5 ? (
+                                        <Badge badgeContent={pendingCount} color="error" max={99}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: pendingCount > 0 ? 1.5 : 0 }}>
+                                                <TabIcon size={16} />
+                                                {tabConfig.label}
+                                            </Box>
+                                        </Badge>
+                                    ) : (
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                            <TabIcon size={16} />
+                                            {tabConfig.label}
                                         </Box>
-                                    </Badge>
-                                ) : (
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                        <Icon size={16} />
-                                        {label}
-                                    </Box>
-                                )
-                            }
-                        />
-                    ))}
+                                    )
+                                }
+                            />
+                        );
+                    })}
                 </Tabs>
             </Box>
 

@@ -26,6 +26,9 @@ const getDisplayName = (user) => {
   return user.tipo === "ESTABELECIMENTO" ? user.nomeFantasia || user.email : user.nome || user.email;
 };
 
+const isAdminUser = (user) =>
+  user?.tipo === "ADMINISTRADOR" || user?.role === "ADMIN" || user?.role === "ADMINISTRADOR";
+
 const NavBar = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => authSession.getUser());
@@ -76,7 +79,7 @@ const NavBar = () => {
         maxWidth={false}
         sx={{
           maxWidth: "1680px",
-          px: { xs: 2, sm: 3, md: 4, xl: 5 },
+          px: { xs: 2, sm: 3, md: 4, xl: 8 },
         }}
       >
         <Toolbar disableGutters sx={{ py: 1 }}>
@@ -152,7 +155,7 @@ const NavBar = () => {
                   anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                   transformOrigin={{ vertical: "top", horizontal: "right" }}
                 >
-                {user.role === 'ADMIN' && (
+                {isAdminUser(user) && (
                   <MenuItem component={Link} to="/admin" onClick={handleMenuClose}>
                     <ListItemIcon><FaUserShield size={18} /></ListItemIcon>
                     Painel Admin

@@ -57,8 +57,7 @@ const byRating = (a, b) => {
 };
 
 const getCategoriaNome = (categoria) => {
-  if (typeof categoria === "string") return categoria;
-  return categoria?.nome || categoria?.nomeCategoria || categoria?.atividade || categoria?.name || "";
+  return categoria?.nome || "";
 };
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
@@ -227,11 +226,13 @@ const Home = () => {
   return (
     <Box
       sx={{
-        width: "100vw",
-        ml: "calc(50% - 50vw)",
-        mr: "calc(50% - 50vw)",
+        position: "relative",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "100dvw",
+        maxWidth: "100dvw",
         mt: -4,
-        overflow: "hidden",
+        overflowX: "hidden",
       }}
     >
       <Box

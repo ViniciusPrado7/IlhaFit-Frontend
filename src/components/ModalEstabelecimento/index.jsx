@@ -87,11 +87,15 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
   const temMultiplasFotos = fotos.length > 1;
 
   useEffect(() => {
-    setFotoAtual(0);
-    // Reset and try to find coords if missing
+    let cancelled = false;
     const initialLat = estabelecimento.endereco?.latitude || null;
     const initialLng = estabelecimento.endereco?.longitude || null;
-    setCoords({ lat: initialLat, lng: initialLng });
+
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setFotoAtual(0);
+      setCoords({ lat: initialLat, lng: initialLng });
+    });
 
     if (!initialLat || !initialLng) {
       const addr = estabelecimento.endereco;
@@ -100,7 +104,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
           .then(res => res.json())
           .then(data => {
-            if (data && data.length > 0) {
+            if (!cancelled && data && data.length > 0) {
               setCoords({
                 lat: parseFloat(data[0].lat),
                 lng: parseFloat(data[0].lon)
@@ -110,6 +114,10 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           .catch(err => console.warn("Erro ao geocodificar no modal:", err));
       }
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [estabelecimento?.id, estabelecimento?.endereco]);
 
   const irParaFoto = (index) => {

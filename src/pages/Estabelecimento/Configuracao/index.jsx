@@ -4,11 +4,7 @@ import {
   Button,
   Chip,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Tab,
   Tabs,
   TextField,
@@ -19,13 +15,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEdit, FaImage, FaPlus, FaSave, FaTimes, FaTrash } from "react-icons/fa";
+import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import { authSession } from "../../../service/AuthSession";
-import { categoriaService } from "../../../service/CategoriaService";
 import { estabelecimentoService } from "../../../service/EstabelecimentoService";
+import { CategoriaSolicitacoesSection } from "../../../components/CategoriaSolicitacoes";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
-const NOVA_CATEGORIA_VALUE = "__nova_categoria__";
 const MAX_FOTOS = 6;
 
 const formInicial = {
@@ -68,11 +64,6 @@ const formatCep = (value = "") => {
   return digits.replace(/^(\d{5})(\d)/, "$1-$2");
 };
 
-const getCategoriaNome = (categoria) => {
-  if (typeof categoria === "string") return categoria;
-  return categoria?.nome || categoria?.nomeCategoria || categoria?.atividade || categoria?.name || "";
-};
-
 const getApiError = (error) => {
   const data = error?.response?.data;
   const status = error?.response?.status;
@@ -113,7 +104,7 @@ const normalizeForm = (estabelecimento) => ({
 });
 
 const normalizeGrade = (gradeAtividades) => {
-  if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [gradeInicial];
+  if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [];
 
   return gradeAtividades.map((item) => ({
     id: item.id || null,
@@ -138,10 +129,8 @@ const ConfiguracaoEstabelecimento = () => {
 
   const [activeSection, setActiveSection] = useState(0);
   const [formData, setFormData] = useState(formInicial);
-  const [gradeAtividades, setGradeAtividades] = useState([gradeInicial]);
+  const [gradeAtividades, setGradeAtividades] = useState([]);
   const [fotosUrl, setFotosUrl] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-  const [novaCategoria, setNovaCategoria] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -149,7 +138,7 @@ const ConfiguracaoEstabelecimento = () => {
   const [deleteText, setDeleteText] = useState("");
   const [isEditingDados, setIsEditingDados] = useState(false);
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
-  const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [gradeInicial] });
+  const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [] });
 
   const estabelecimentoId = authSession.isEstabelecimentoAuthenticated() ? user?.id : null;
 
@@ -163,10 +152,7 @@ const ConfiguracaoEstabelecimento = () => {
 
     const carregarDados = async () => {
       try {
-        const [estabelecimentoResponse, categoriasResponse] = await Promise.all([
-          estabelecimentoService.buscarEstabelecimentoPorId(estabelecimentoId),
-          categoriaService.listarCategorias(),
-        ]);
+        const estabelecimentoResponse = await estabelecimentoService.buscarEstabelecimentoPorId(estabelecimentoId);
 
         if (!mounted) return;
 
@@ -178,7 +164,6 @@ const ConfiguracaoEstabelecimento = () => {
         setGradeAtividades(nextGradeAtividades);
         setSavedDados({ formData: nextFormData, gradeAtividades: nextGradeAtividades });
         setFotosUrl(Array.isArray(estabelecimento?.fotosUrl) ? estabelecimento.fotosUrl.slice(0, MAX_FOTOS) : []);
-        setCategorias(Array.isArray(categoriasResponse.data) ? categoriasResponse.data : []);
         setGeneralError("");
       } catch (error) {
         if (mounted) {
@@ -232,7 +217,6 @@ const ConfiguracaoEstabelecimento = () => {
 
   const cancelEditarAtividades = () => {
     setGradeAtividades(savedDados.gradeAtividades);
-    setNovaCategoria("");
     setFieldErrors({});
     setGeneralError("");
     setIsEditingAtividades(false);
@@ -267,21 +251,6 @@ const ConfiguracaoEstabelecimento = () => {
       : [...selected, value];
 
     handleGradeChange(index, field, nextValue);
-  };
-
-  const adicionarCategoriaPendente = (gradeIndex) => {
-    const nome = novaCategoria.trim();
-    if (!nome) return;
-
-    setCategorias((prev) => {
-      const alreadyExists = prev.some((categoria) => getCategoriaNome(categoria).toLowerCase() === nome.toLowerCase());
-      return alreadyExists ? prev : [...prev, { nome }];
-    });
-    setGradeAtividades((prev) =>
-      prev.map((item, index) => (index === gradeIndex ? { ...item, atividade: nome } : item))
-    );
-    setNovaCategoria("");
-    toast.info("Categoria adicionada à sua grade e ficará pendente para aprovação.");
   };
 
   const validarDados = () => {
@@ -319,7 +288,7 @@ const ConfiguracaoEstabelecimento = () => {
       cep: formData.cep,
     },
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .filter((item) => item.atividade)
       .map((item) => ({
         atividade: item.atividade,
         exclusivoMulheres: Boolean(item.exclusivoMulheres),
@@ -332,7 +301,7 @@ const ConfiguracaoEstabelecimento = () => {
 
   const buildGradePayload = () => ({
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .filter((item) => item.atividade)
       .map((item) => ({
         id: item.id,
         atividade: item.atividade,
@@ -378,7 +347,6 @@ const ConfiguracaoEstabelecimento = () => {
   const validarAtividades = () => {
     const gradeInvalida = gradeAtividades.some((item) => (
       !item.atividade ||
-      item.atividade === NOVA_CATEGORIA_VALUE ||
       !item.diasSemana.length ||
       !item.periodos.length
     ));
@@ -390,7 +358,7 @@ const ConfiguracaoEstabelecimento = () => {
 
     setFieldErrors((prev) => ({
       ...prev,
-      gradeAtividades: "Informe atividade, dias da semana e período em todas as atividades.",
+      gradeAtividades: "Informe uma categoria válida, dias da semana e período em todas as atividades.",
     }));
     return false;
   };
@@ -675,7 +643,17 @@ const ConfiguracaoEstabelecimento = () => {
         )}
       </Box>
 
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Use apenas categorias já aprovadas na grade. Se precisar de uma nova, faça a solicitação na aba "Solicitações de Categoria".
+      </Alert>
+
       {fieldErrors.gradeAtividades && <Alert severity="error" sx={{ mb: 2 }}>{fieldErrors.gradeAtividades}</Alert>}
+
+      {gradeAtividades.length === 0 && !isEditingAtividades && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Você ainda não possui atividades cadastradas no perfil.
+        </Alert>
+      )}
 
       {gradeAtividades.map((grade, index) => (
         <Box key={`grade-${index}`} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, mb: 2 }}>
@@ -690,25 +668,14 @@ const ConfiguracaoEstabelecimento = () => {
             )}
           </Box>
 
-          <FormControl fullWidth disabled={!isEditingAtividades} sx={inputStyles}>
-            <InputLabel>Categoria</InputLabel>
-            <Select value={grade.atividade} label="Categoria" onChange={(event) => handleGradeChange(index, "atividade", event.target.value)}>
-              {categorias.map((categoria) => {
-                const nome = getCategoriaNome(categoria);
-                return nome ? <MenuItem key={categoria.id || nome} value={nome}>{nome}</MenuItem> : null;
-              })}
-              <MenuItem value={NOVA_CATEGORIA_VALUE}>Adicionar nova categoria</MenuItem>
-            </Select>
-          </FormControl>
-
-          {grade.atividade === NOVA_CATEGORIA_VALUE && (
-            <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexDirection: { xs: "column", sm: "row" } }}>
-              <TextField fullWidth disabled={!isEditingAtividades} value={novaCategoria} onChange={(event) => setNovaCategoria(event.target.value)} placeholder="Nova categoria" sx={{ ...inputStyles, mb: 0 }} />
-              <Button type="button" variant="outlined" disabled={!isEditingAtividades || !novaCategoria.trim()} onClick={() => adicionarCategoriaPendente(index)} sx={{ minWidth: { sm: 170 }, borderRadius: 2, fontWeight: 800 }}>
-                Adicionar
-              </Button>
-            </Box>
-          )}
+          <CategoriaSelectField
+            label="Categoria"
+            value={grade.atividade}
+            onChange={(nextValue) => handleGradeChange(index, "atividade", nextValue)}
+            disabled={!isEditingAtividades}
+            error={Boolean(fieldErrors.gradeAtividades) && !grade.atividade}
+            sx={inputStyles}
+          />
 
           {label("Dias da semana")}
           {tagSelector(index, "diasSemana", DIAS_SEMANA)}
@@ -750,31 +717,14 @@ const ConfiguracaoEstabelecimento = () => {
         {fotosUrl.map((foto, index) => (
           <Box key={`${foto}-${index}`} sx={{ position: "relative", aspectRatio: "16 / 10", borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
             <Box component="img" src={foto} alt={`Foto ${index + 1}`} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <Button
-              type="button"
-              color="error"
-              onClick={() => setFotosUrl((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
-              sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, width: 36, height: 36, borderRadius: 2, bgcolor: "background.paper" }}
-            >
+            <Button type="button" color="error" onClick={() => setFotosUrl((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, width: 36, height: 36, borderRadius: 2, bgcolor: "background.paper" }}>
               <FaTrash size={14} />
             </Button>
           </Box>
         ))}
 
         {fotosUrl.length < MAX_FOTOS && (
-          <Button
-            component="label"
-            variant="outlined"
-            sx={{
-              aspectRatio: "16 / 10",
-              borderRadius: 2,
-              borderStyle: "dashed",
-              display: "flex",
-              flexDirection: "column",
-              gap: 1,
-              fontWeight: 900,
-            }}
-          >
+          <Button component="label" variant="outlined" sx={{ aspectRatio: "16 / 10", borderRadius: 2, borderStyle: "dashed", display: "flex", flexDirection: "column", gap: 1, fontWeight: 900 }}>
             <FaImage size={24} />
             Adicionar fotos
             <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
@@ -834,16 +784,7 @@ const ConfiguracaoEstabelecimento = () => {
 
       {generalError && <Alert severity="error" sx={{ mb: 3 }}>{generalError}</Alert>}
 
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          overflow: "hidden",
-        }}
-      >
+      <Paper elevation={0} sx={{ borderRadius: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper", overflow: "hidden" }}>
         <Tabs
           value={activeSection}
           onChange={(_, value) => {
@@ -862,6 +803,7 @@ const ConfiguracaoEstabelecimento = () => {
         >
           <Tab label="Dados" />
           <Tab label="Atividades" />
+          <Tab label="Solicitações de Categoria" />
           <Tab label="Galeria" />
           <Tab label="Excluir conta" />
         </Tabs>
@@ -869,8 +811,11 @@ const ConfiguracaoEstabelecimento = () => {
         <Box sx={{ p: { xs: 2.5, md: 4 } }}>
           {activeSection === 0 && renderDados()}
           {activeSection === 1 && renderAtividades()}
-          {activeSection === 2 && renderGaleria()}
-          {activeSection === 3 && renderExcluirConta()}
+          {activeSection === 2 && (
+            <CategoriaSolicitacoesSection onRefreshCategoriasOficiais={async () => {}} />
+          )}
+          {activeSection === 3 && renderGaleria()}
+          {activeSection === 4 && renderExcluirConta()}
         </Box>
       </Paper>
     </Box>

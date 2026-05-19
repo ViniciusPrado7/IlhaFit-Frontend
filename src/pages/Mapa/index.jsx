@@ -313,7 +313,7 @@ const Mapa = () => {
                             }
 
                             await new Promise((resolve) => setTimeout(resolve, 1000));
-                        } catch (error) {
+                        } catch {
                             console.warn(
                                 "Falha ao geocodificar estabelecimento:",
                                 est.nome

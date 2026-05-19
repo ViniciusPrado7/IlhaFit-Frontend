@@ -865,7 +865,7 @@ const DashboardTab = ({ onTabChange }) => {
                                                 noWrap
                                                 display="block"
                                             >
-                                                {s.solicitante}
+                                                {s.solicitanteNome || s.solicitanteEmail || s.solicitante || "Solicitante não informado"}
                                             </Typography>
                                             <Typography
                                                 variant="caption"

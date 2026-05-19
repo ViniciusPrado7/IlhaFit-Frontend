@@ -25,7 +25,7 @@ api.interceptors.response.use(
 
         if (status === 401 && !url.includes("/auth/login") && !url.includes("/auth/me")) {
             authSession.clear();
-            window.location.href = '/login';
+            window.location.href = "/login";
         }
 
         return Promise.reject(error);

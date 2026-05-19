@@ -3,9 +3,8 @@ import { authSession } from "../../service/AuthSession";
 
 const AdminRoute = ({ children }) => {
   const location = useLocation();
-  const user = authSession.getUser();
 
-  if (!user || user.role !== "ADMIN") {
+  if (!authSession.isAdminAuthenticated()) {
     return <Navigate to="/" replace state={{ from: location.pathname }} />;
   }
 
