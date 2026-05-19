@@ -1,17 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   Box,
   Button,
-  Chip,
   Checkbox,
-  FormControl,
+  Chip,
   FormControlLabel,
   IconButton,
   InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
@@ -21,13 +17,11 @@ import {
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { categoriaService } from "../../../service/CategoriaService";
+import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import { profissionalService } from "../../../service/ProfissionalService";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
-const GENEROS = ["FEMININO", "MASCULINO"];
-const NOVA_CATEGORIA_VALUE = "__nova_categoria__";
 
 const formInicial = {
   nome: "",
@@ -75,11 +69,6 @@ const formatCref = (value) => {
   return formatted;
 };
 
-const getCategoriaNome = (categoria) => {
-  if (typeof categoria === "string") return categoria;
-  return categoria?.nome || categoria?.nomeCategoria || categoria?.atividade || categoria?.name || "";
-};
-
 const getApiError = (error) => {
   const data = error?.response?.data;
 
@@ -102,28 +91,12 @@ const CadastroProfissional = () => {
   const [formData, setFormData] = useState(formInicial);
   const [step, setStep] = useState(0);
   const [gradeAtividades, setGradeAtividades] = useState([gradeInicial]);
-  const [categorias, setCategorias] = useState([]);
-  const [novaCategoria, setNovaCategoria] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [categoriaLoading, setCategoriaLoading] = useState(false);
   const generoFeminino = formData.genero === "FEMININO";
-
-  useEffect(() => {
-    const carregarCategorias = async () => {
-      try {
-        const response = await categoriaService.listarCategorias();
-        setCategorias(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        console.warn("Erro ao carregar categorias:", error);
-      }
-    };
-
-    carregarCategorias();
-  }, []);
 
   const inputStyles = {
     "& .MuiOutlinedInput-root": {
@@ -192,30 +165,6 @@ const CadastroProfissional = () => {
     limparErro("gradeAtividades");
   };
 
-  const cadastrarCategoria = async (gradeIndex) => {
-    const nome = novaCategoria.trim();
-    if (!nome) return;
-
-    setCategoriaLoading(true);
-    try {
-      const response = await categoriaService.cadastrarCategoria({ nome });
-      const categoriaCriada = response.data?.categoria || response.data || { nome };
-      const nomeCriado = getCategoriaNome(categoriaCriada) || nome;
-
-      setCategorias((prev) => [...prev, categoriaCriada]);
-      setGradeAtividades((prev) => prev.map((item, index) => (
-        index === gradeIndex ? { ...item, atividade: nomeCriado } : item
-      )));
-      setNovaCategoria("");
-      toast.success("Categoria cadastrada!");
-    } catch (error) {
-      const { generalError: apiGeneralError } = getApiError(error);
-      setGeneralError(apiGeneralError || "Não foi possível cadastrar a categoria.");
-    } finally {
-      setCategoriaLoading(false);
-    }
-  };
-
   const validarEtapaUm = () => {
     const errors = {};
 
@@ -241,16 +190,14 @@ const CadastroProfissional = () => {
     const errors = {};
 
     if (!formData.genero) errors.genero = "Selecione o gênero";
-
     const invalida = gradeAtividades.some((item) => (
       !item.atividade ||
-      item.atividade === NOVA_CATEGORIA_VALUE ||
       !item.diasSemana.length ||
       !item.periodos.length
     ));
 
     if (invalida) {
-      errors.gradeAtividades = "Informe atividade, dias da semana e período em todas as atividades.";
+      errors.gradeAtividades = "Informe uma categoria válida, dias da semana e período em todas as atividades.";
     }
 
     setFieldErrors((prev) => ({ ...prev, ...errors }));
@@ -268,7 +215,7 @@ const CadastroProfissional = () => {
     regiao: formData.regiao.trim(),
     exclusivoMulheres: generoFeminino && gradeAtividades.some((item) => item.exclusivoMulheres),
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade && item.atividade !== NOVA_CATEGORIA_VALUE)
+      .filter((item) => item.atividade)
       .map((item) => ({
         atividade: item.atividade,
         exclusivoMulheres: generoFeminino ? item.exclusivoMulheres : false,
@@ -515,6 +462,10 @@ const CadastroProfissional = () => {
         Grade de atividades
       </Typography>
 
+      <Alert severity="info" sx={{ mb: 2 }}>
+        Não encontrou sua categoria? Conclua o cadastro e solicite uma nova na área de configurações.
+      </Alert>
+
       {fieldErrors.gradeAtividades && <Alert severity="error" sx={{ mb: 2 }}>{fieldErrors.gradeAtividades}</Alert>}
 
       {gradeAtividades.map((grade, index) => (
@@ -530,46 +481,17 @@ const CadastroProfissional = () => {
             )}
           </Box>
 
-          <FormControl fullWidth sx={inputStyles}>
-            <InputLabel>Atividade</InputLabel>
-            <Select value={grade.atividade} label="Atividade" onChange={(e) => handleGradeChange(index, "atividade", e.target.value)}>
-              {categorias.map((categoria) => {
-                const nome = getCategoriaNome(categoria);
-                return nome ? <MenuItem key={categoria.id || nome} value={nome}>{nome}</MenuItem> : null;
-              })}
-              <MenuItem
-                value={NOVA_CATEGORIA_VALUE}
-                sx={{
-                  color: "primary.main",
-                  fontWeight: 800,
-                  bgcolor: "rgba(16, 185, 129, 0.08)",
-                }}
-              >
-                + Adicionar nova categoria
-              </MenuItem>
-            </Select>
-          </FormControl>
+          <CategoriaSelectField
+            label="Atividade"
+            value={grade.atividade}
+            onChange={(nextValue) => handleGradeChange(index, "atividade", nextValue)}
+            error={Boolean(fieldErrors.gradeAtividades) && !grade.atividade}
+            sx={inputStyles}
+          />
 
-          {grade.atividade === NOVA_CATEGORIA_VALUE && (
-            <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexDirection: { xs: "column", sm: "row" } }}>
-              <TextField
-                fullWidth
-                value={novaCategoria}
-                onChange={(e) => setNovaCategoria(e.target.value)}
-                placeholder="Nova categoria"
-                sx={{ ...inputStyles, mb: 0 }}
-              />
-              <Button
-                type="button"
-                variant="outlined"
-                disabled={categoriaLoading || !novaCategoria.trim()}
-                onClick={() => cadastrarCategoria(index)}
-                sx={{ minWidth: { sm: 170 }, borderRadius: 2, fontWeight: 700 }}
-              >
-                {categoriaLoading ? "Adicionando..." : "Adicionar"}
-              </Button>
-            </Box>
-          )}
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+            Use apenas categorias já aprovadas. Novas categorias podem ser solicitadas depois nas configurações.
+          </Typography>
 
           {generoFeminino && (
             <FormControlLabel

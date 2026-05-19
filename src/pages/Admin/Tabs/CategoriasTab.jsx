@@ -1,24 +1,44 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
-  Box, Typography, Button, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, TablePagination, IconButton, Dialog,
-  DialogTitle, DialogContent, DialogActions, TextField, InputAdornment,
-  CircularProgress, Tooltip, Avatar
-} from '@mui/material';
-import { FaEdit, FaTrash, FaPlus, FaTags, FaSearch } from 'react-icons/fa';
-import { toast } from 'react-toastify';
-import { categoriaService } from '../../../services';
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  InputAdornment,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { FaEdit, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
+import { toast } from "react-toastify";
+import { categoriaService } from "../../../services";
 
 const CategoriasTab = () => {
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
+  const [formData, setFormData] = useState({
+    id: null,
+    nome: "",
+  });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -31,31 +51,22 @@ const CategoriasTab = () => {
   const filteredCategorias = useMemo(() => {
     if (!debouncedSearchTerm) return categorias;
     const term = debouncedSearchTerm.toLowerCase();
-    return categorias.filter(c =>
-      c.nome?.toLowerCase().includes(term) ||
-      c.descricao?.toLowerCase().includes(term)
-    );
+    return categorias.filter((categoria) => categoria.nome?.toLowerCase().includes(term));
   }, [categorias, debouncedSearchTerm]);
 
   const paginatedCategorias = useMemo(() => {
     const start = page * rowsPerPage;
     return filteredCategorias.slice(start, start + rowsPerPage);
   }, [filteredCategorias, page, rowsPerPage]);
-  
-  const [formData, setFormData] = useState({
-    id: null,
-    nome: '',
-    descricao: '',
-    iconeUrl: ''
-  });
 
   const carregarCategorias = async () => {
     try {
       setLoading(true);
       const data = await categoriaService.listarTodas();
-      setCategorias(data);
+      setCategorias(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
+      toast.error("Erro ao carregar categorias.");
     } finally {
       setLoading(false);
     }
@@ -66,13 +77,13 @@ const CategoriasTab = () => {
   }, []);
 
   const handleOpenNew = () => {
-    setFormData({ id: null, nome: '', descricao: '', iconeUrl: '' });
+    setFormData({ id: null, nome: "" });
     setEditMode(false);
     setOpenModal(true);
   };
 
   const handleOpenEdit = (categoria) => {
-    setFormData({ ...categoria });
+    setFormData({ id: categoria.id, nome: categoria.nome || "" });
     setEditMode(true);
     setOpenModal(true);
   };
@@ -81,24 +92,25 @@ const CategoriasTab = () => {
     setOpenModal(false);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!formData.nome.trim()) {
       toast.error("O nome da categoria é obrigatório.");
       return;
     }
 
     try {
+      const payload = { nome: formData.nome.trim() };
       if (editMode) {
-        await categoriaService.atualizar(formData.id, formData);
+        await categoriaService.atualizar(formData.id, payload);
         toast.success("Categoria atualizada com sucesso!");
       } else {
-        await categoriaService.criar(formData);
+        await categoriaService.criar(payload);
         toast.success("Categoria criada com sucesso!");
       }
       handleCloseModal();
@@ -115,7 +127,7 @@ const CategoriasTab = () => {
         await categoriaService.excluir(id);
         toast.success("Categoria excluída com sucesso!");
         carregarCategorias();
-      } catch (error) {
+      } catch {
         toast.error("Erro ao excluir categoria. Ela pode estar em uso.");
       }
     }
@@ -123,26 +135,21 @@ const CategoriasTab = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h6" fontWeight="bold">
           Gerenciamento de Categorias
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<FaPlus />}
-          onClick={handleOpenNew}
-          sx={{ borderRadius: 2 }}
-        >
+        <Button variant="contained" startIcon={<FaPlus />} onClick={handleOpenNew} sx={{ borderRadius: 2 }}>
           Nova Categoria
         </Button>
       </Box>
 
-      <Paper elevation={0} sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Paper elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
           <TextField
-            placeholder="Buscar por nome ou descrição..."
+            placeholder="Buscar por nome..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
             size="small"
             sx={{ flex: 1, minWidth: 250 }}
             InputProps={{
@@ -153,58 +160,46 @@ const CategoriasTab = () => {
               ),
             }}
           />
-          {debouncedSearchTerm && (
-            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-              {filteredCategorias.length} resultado{filteredCategorias.length !== 1 ? 's' : ''}
+          {debouncedSearchTerm ? (
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+              {filteredCategorias.length} resultado{filteredCategorias.length !== 1 ? "s" : ""}
             </Typography>
-          )}
+          ) : null}
         </Box>
       </Paper>
 
-      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <TableContainer component={Paper} elevation={0} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <CircularProgress />
           </Box>
         ) : (
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'action.hover' }}>
-                <TableCell>Ícone</TableCell>
+              <TableRow sx={{ bgcolor: "action.hover" }}>
                 <TableCell>Nome</TableCell>
-                <TableCell>Descrição</TableCell>
                 <TableCell align="center">Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {categorias.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
+                  <TableCell colSpan={2} align="center" sx={{ py: 3 }}>
                     Nenhuma categoria encontrada.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedCategorias.map((cat) => (
-                  <TableRow key={cat.id} hover>
-                    <TableCell>
-                      {cat.iconeUrl ? (
-                        <Avatar src={cat.iconeUrl} alt={cat.nome} variant="rounded" sx={{ width: 32, height: 32 }} />
-                      ) : (
-                        <Avatar variant="rounded" sx={{ width: 32, height: 32, bgcolor: 'primary.light' }}>
-                          <FaTags size={14} />
-                        </Avatar>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>{cat.nome}</TableCell>
-                    <TableCell>{cat.descricao || '-'}</TableCell>
+                paginatedCategorias.map((categoria) => (
+                  <TableRow key={categoria.id} hover>
+                    <TableCell sx={{ fontWeight: 500 }}>{categoria.nome}</TableCell>
                     <TableCell align="center">
                       <Tooltip title="Editar">
-                        <IconButton size="small" color="primary" onClick={() => handleOpenEdit(cat)}>
+                        <IconButton size="small" color="primary" onClick={() => handleOpenEdit(categoria)}>
                           <FaEdit size={16} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Excluir">
-                        <IconButton size="small" color="error" onClick={() => handleDelete(cat.id, cat.nome)}>
+                        <IconButton size="small" color="error" onClick={() => handleDelete(categoria.id, categoria.nome)}>
                           <FaTrash size={16} />
                         </IconButton>
                       </Tooltip>
@@ -224,16 +219,16 @@ const CategoriasTab = () => {
         rowsPerPage={rowsPerPage}
         page={page}
         onPageChange={(_, newPage) => setPage(newPage)}
-        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        onRowsPerPageChange={(event) => {
+          setRowsPerPage(parseInt(event.target.value, 10));
+          setPage(0);
+        }}
         labelRowsPerPage="Linhas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
       />
 
-      {/* Modal Formulário */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editMode ? 'Editar Categoria' : 'Nova Categoria'}
-        </DialogTitle>
+        <DialogTitle>{editMode ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent dividers>
             <TextField
@@ -244,25 +239,7 @@ const CategoriasTab = () => {
               onChange={handleInputChange}
               required
               margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Descrição (opcional)"
-              name="descricao"
-              value={formData.descricao}
-              onChange={handleInputChange}
-              margin="normal"
-              multiline
-              rows={2}
-            />
-            <TextField
-              fullWidth
-              label="URL do Ícone (opcional)"
-              name="iconeUrl"
-              value={formData.iconeUrl}
-              onChange={handleInputChange}
-              margin="normal"
-              placeholder="https://..."
+              helperText="Categorias agora usam apenas nome."
             />
           </DialogContent>
           <DialogActions>
