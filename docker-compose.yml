@@ -46,6 +46,8 @@ services:
     restart: on-failure
     ports:
       - "3000:80"
+    environment:
+      API_UPSTREAM_URL: http://backend:8080
     depends_on:
       - backend
     networks:

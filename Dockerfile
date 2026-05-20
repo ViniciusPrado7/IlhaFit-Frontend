@@ -12,8 +12,11 @@ RUN npm run build
 # Stage 2: Serve
 FROM nginx:1.27-alpine
 
+ENV PORT=80
+ENV API_UPSTREAM_URL=http://backend:8080
+
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
