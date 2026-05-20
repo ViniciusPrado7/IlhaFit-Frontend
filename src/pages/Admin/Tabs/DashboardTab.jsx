@@ -963,6 +963,52 @@ const DashboardTab = ({ onTabChange }) => {
                                         <Box sx={{ width: 48 }}><Typography variant="body2">{s.sigla}</Typography></Box>
                                         <Box sx={{ flex: 1 }}>
                                             <LinearProgress variant="determinate" value={s.pct} sx={{ height: 12, borderRadius: 6 }} />
+                            {solicitacoesPendentes.length === 0 ? (
+                                <Typography variant="caption" color="text.secondary">
+                                    Nenhuma solicitação pendente.
+                                </Typography>
+                            ) : (
+                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                                    {solicitacoesPendentes.slice(0, 5).map((s) => (
+                                        <Box
+                                            key={s.id}
+                                            onClick={() => onTabChange?.(5)}
+                                            sx={{
+                                                p: 1,
+                                                borderRadius: 1.5,
+                                                cursor: "pointer",
+                                                transition: "background 0.15s",
+                                                "&:hover": {
+                                                    bgcolor: alpha(
+                                                        theme.palette.warning.main,
+                                                        0.07
+                                                    ),
+                                                },
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="caption"
+                                                fontWeight={600}
+                                                color="warning.dark"
+                                                display="block"
+                                            >
+                                                {s.nome}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                noWrap
+                                                display="block"
+                                            >
+                                                {s.solicitanteNome || s.solicitanteEmail || s.solicitante || "Solicitante não informado"}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.disabled"
+                                                sx={{ fontSize: "0.65rem" }}
+                                            >
+                                                {formatDate(s.dataSolicitacao)}
+                                            </Typography>
                                         </Box>
                                         <Box sx={{ width: 48, textAlign: 'right' }}><Typography variant="caption" color="text.secondary">{s.pct}%</Typography></Box>
                                     </Box>

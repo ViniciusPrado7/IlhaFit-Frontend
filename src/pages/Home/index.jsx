@@ -50,23 +50,14 @@ const getErrorMessage = (error, fallback) => {
   return error?.message || fallback;
 };
 
-const getRecencyValue = (item, index) => {
-  const dateFields = ["createdAt", "criadoEm", "dataCriacao", "dtCriacao", "updatedAt"];
-
-  for (const field of dateFields) {
-    const time = Date.parse(item?.[field]);
-    if (!Number.isNaN(time)) return time;
-  }
-
-  const numericId = Number(item?.id);
-  if (Number.isFinite(numericId)) return numericId;
-
-  return -index;
+const byRating = (a, b) => {
+  const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
+  if (diff !== 0) return diff;
+  return (b.item.totalAvaliacoes ?? 0) - (a.item.totalAvaliacoes ?? 0);
 };
 
 const getCategoriaNome = (categoria) => {
-  if (typeof categoria === "string") return categoria;
-  return categoria?.nome || categoria?.nomeCategoria || categoria?.atividade || categoria?.name || "";
+  return categoria?.nome || "";
 };
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
@@ -137,10 +128,6 @@ const profissionalMatchesSearch = (profissional, searchTerm) => {
   return normalizeText(haystack).includes(normalizeText(searchTerm));
 };
 
-const withSimulatedRating = (item, index, base = 4.9) => ({
-  ...item,
-  avaliacao: item?.avaliacao ?? Number((base - (index % 4) * 0.1).toFixed(1)),
-});
 
 const infoCards = [
   {
@@ -217,10 +204,10 @@ const Home = () => {
       estabelecimentos
         .filter((item) => matchesCategoria(getEstabelecimentoCategorias(item), selectedCategoria))
         .filter((item) => estabelecimentoMatchesSearch(item, searchTerm))
-        .map((item, index) => ({ item, index }))
-        .sort((a, b) => getRecencyValue(b.item, b.index) - getRecencyValue(a.item, a.index))
+        .map((item) => ({ item }))
+        .sort(byRating)
         .slice(0, 6)
-        .map(({ item }, index) => withSimulatedRating(item, index, 4.9)),
+        .map(({ item }) => item),
     [estabelecimentos, searchTerm, selectedCategoria]
   );
 
@@ -229,21 +216,23 @@ const Home = () => {
       profissionais
         .filter((item) => matchesCategoria(getProfissionalCategorias(item), selectedCategoria))
         .filter((item) => profissionalMatchesSearch(item, searchTerm))
-        .map((item, index) => ({ item, index }))
-        .sort((a, b) => getRecencyValue(b.item, b.index) - getRecencyValue(a.item, a.index))
+        .map((item) => ({ item }))
+        .sort(byRating)
         .slice(0, 6)
-        .map(({ item }, index) => withSimulatedRating(item, index, 5)),
+        .map(({ item }) => item),
     [profissionais, searchTerm, selectedCategoria]
   );
 
   return (
     <Box
       sx={{
-        width: "100vw",
-        ml: "calc(50% - 50vw)",
-        mr: "calc(50% - 50vw)",
+        position: "relative",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "100dvw",
+        maxWidth: "100dvw",
         mt: -4,
-        overflow: "hidden",
+        overflowX: "hidden",
       }}
     >
       <Box

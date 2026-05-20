@@ -1,268 +1,212 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
-    Box, Typography, Paper, Table, TableBody, TableCell,
-    TableContainer, TableHead, TableRow, TablePagination, IconButton, Chip,
-    Button, TextField, InputAdornment, CircularProgress, Tooltip, useTheme, alpha,
+  Box,
+  Button,
+  InputAdornment,
+  Paper,
+  TablePagination,
+  TextField,
+  Typography,
 } from "@mui/material";
-import { FaCheck, FaTimes, FaTags, FaSearch } from "react-icons/fa";
-import { solicitacaoCategoriaService } from "../../../services";
+import { FaBell, FaSearch } from "react-icons/fa";
 import { toast } from "react-toastify";
-
-const STATUS_CONFIG = {
-    PENDENTE:  { label: "Pendente",  color: "warning" },
-    APROVADA:  { label: "Aprovada",  color: "success" },
-    REJEITADA: { label: "Rejeitada", color: "error"   },
-};
+import { categoriaPendenteService } from "../../../service/CategoriaService";
+import { CategoriaSolicitacoesList, getCategoriaSolicitacaoErrorMessage } from "../../../components/CategoriaSolicitacoes";
 
 const FILTROS = [
-    { value: null,        label: "Todas"      },
-    { value: "PENDENTE",  label: "Pendentes"  },
-    { value: "APROVADA",  label: "Aprovadas"  },
-    { value: "REJEITADA", label: "Rejeitadas" },
+  { value: null, label: "Todas" },
+  { value: "PENDENTE", label: "Pendentes" },
+  { value: "APROVADA", label: "Aprovadas" },
+  { value: "REJEITADA", label: "Rejeitadas" },
 ];
 
 const SolicitacoesCategoriasTab = ({ onCountChange }) => {
-    const theme = useTheme();
-    const [solicitacoes, setSolicitacoes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState("PENDENTE");
-    const [searchTerm, setSearchTerm] = useState("");
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [solicitacoes, setSolicitacoes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("PENDENTE");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
 
-    useEffect(() => {
-        setPage(0);
-        load();
-    }, [filterStatus]);
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await categoriaPendenteService.listarTodas(filterStatus);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setSolicitacoes(data);
+      if (onCountChange && filterStatus === "PENDENTE") {
+        onCountChange(data.length);
+      }
+    } catch (error) {
+      toast.error(
+        getCategoriaSolicitacaoErrorMessage(
+          error,
+          "Não foi possível carregar as solicitações de categoria."
+        )
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [filterStatus, onCountChange]);
 
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedSearchTerm(searchTerm);
-            setPage(0);
-        }, 400);
-        return () => clearTimeout(handler);
-    }, [searchTerm]);
+  useEffect(() => {
+    setPage(0);
+    load();
+  }, [load]);
 
-    const filteredSolicitacoes = useMemo(() => {
-        if (!debouncedSearchTerm) return solicitacoes;
-        const term = debouncedSearchTerm.toLowerCase();
-        return solicitacoes.filter(s =>
-            s.nome?.toLowerCase().includes(term) ||
-            s.descricao?.toLowerCase().includes(term) ||
-            s.solicitanteEmail?.toLowerCase().includes(term)
-        );
-    }, [solicitacoes, debouncedSearchTerm]);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-    const paginatedSolicitacoes = useMemo(() => {
-        const start = page * rowsPerPage;
-        return filteredSolicitacoes.slice(start, start + rowsPerPage);
-    }, [filteredSolicitacoes, page, rowsPerPage]);
+  const filteredSolicitacoes = useMemo(() => {
+    if (!debouncedSearchTerm) return solicitacoes;
+    const term = debouncedSearchTerm.toLowerCase();
 
-    const load = async () => {
-        try {
-            setLoading(true);
-            const data = await solicitacaoCategoriaService.getAll(filterStatus);
-            setSolicitacoes(data);
-            if (onCountChange && filterStatus === "PENDENTE") {
-                onCountChange(data.length);
-            }
-        } catch {
-            toast.error("Erro ao carregar solicitações.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    return solicitacoes.filter((item) => {
+      const values = [
+        item?.nome,
+        item?.solicitanteNome,
+        item?.solicitanteEmail,
+        item?.tipoSolicitante,
+        item?.observacaoAdmin,
+      ];
+      return values.some((value) => value?.toLowerCase?.().includes(term));
+    });
+  }, [solicitacoes, debouncedSearchTerm]);
 
-    const handleAprovar = async (id) => {
-        try {
-            await solicitacaoCategoriaService.aprovar(id);
-            toast.success("Categoria criada com sucesso!");
-            load();
-        } catch (error) {
-            toast.error(error.response?.data?.erro || "Erro ao aprovar solicitação.");
-        }
-    };
+  const paginatedSolicitacoes = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredSolicitacoes.slice(start, start + rowsPerPage);
+  }, [filteredSolicitacoes, page, rowsPerPage]);
 
-    const handleRejeitar = async (id) => {
-        try {
-            await solicitacaoCategoriaService.rejeitar(id);
-            toast.success("Solicitação rejeitada.");
-            load();
-        } catch (error) {
-            toast.error(error.response?.data?.erro || "Erro ao rejeitar solicitação.");
-        }
-    };
+  const pendingCount = solicitacoes.filter((item) => item.status === "PENDENTE").length;
 
-    const pendentes = solicitacoes.filter(s => s.status === "PENDENTE").length;
+  const handleAprovar = async (solicitacao) => {
+    setActionLoadingId(solicitacao.id);
+    try {
+      await categoriaPendenteService.aprovar(solicitacao.id, { observacaoAdmin: "Aprovada" });
+      toast.success("Solicitação aprovada com sucesso!");
+      await load();
+    } catch (error) {
+      toast.error(
+        getCategoriaSolicitacaoErrorMessage(
+          error,
+          "Não foi possível aprovar a solicitação."
+        )
+      );
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
-    const formatDate = (dateStr) => {
-        if (!dateStr) return "—";
-        return new Date(dateStr).toLocaleDateString("pt-BR", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit",
-        });
-    };
+  const handleRejeitar = async (solicitacao, observacaoAdmin) => {
+    setActionLoadingId(solicitacao.id);
+    try {
+      await categoriaPendenteService.rejeitar(solicitacao.id, {
+        observacaoAdmin: observacaoAdmin || "Solicitação rejeitada.",
+      });
+      toast.success("Solicitação rejeitada.");
+      await load();
+    } catch (error) {
+      toast.error(
+        getCategoriaSolicitacaoErrorMessage(
+          error,
+          "Não foi possível rejeitar a solicitação."
+        )
+      );
+      throw error;
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
-    return (
+  return (
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, gap: 2, flexWrap: "wrap" }}>
         <Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-                <Box>
-                    <Typography variant="h5" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <FaTags /> Solicitações de Categorias
-                    </Typography>
-                    <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                        {solicitacoes.length} solicitaç{solicitacoes.length !== 1 ? "ões" : "ão"}
-                        {pendentes > 0 && ` · ${pendentes} pendente${pendentes !== 1 ? "s" : ""}`}
-                    </Typography>
-                </Box>
-            </Box>
-
-            {/* Busca */}
-            <Paper elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-                <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
-                    <TextField
-                        placeholder="Buscar por nome, descrição ou solicitante..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        size="small"
-                        sx={{ flex: 1, minWidth: 280 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <FaSearch size={16} />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                    {debouncedSearchTerm && (
-                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                            {filteredSolicitacoes.length} resultado{filteredSolicitacoes.length !== 1 ? "s" : ""}
-                        </Typography>
-                    )}
-                </Box>
-            </Paper>
-
-            <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
-                {FILTROS.map((f) => (
-                    <Button
-                        key={f.label}
-                        variant={filterStatus === f.value ? "contained" : "outlined"}
-                        size="small"
-                        onClick={() => setFilterStatus(f.value)}
-                        sx={{ textTransform: "none", fontWeight: 600, borderRadius: 10, px: 2.5 }}
-                    >
-                        {f.label}
-                    </Button>
-                ))}
-            </Box>
-
-            <TableContainer component={Paper} elevation={0}
-                sx={{ border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell><strong>Nome</strong></TableCell>
-                            <TableCell><strong>Descrição</strong></TableCell>
-                            <TableCell><strong>Solicitante</strong></TableCell>
-                            <TableCell><strong>Status</strong></TableCell>
-                            <TableCell><strong>Data</strong></TableCell>
-                            <TableCell align="right"><strong>Ações</strong></TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                                    <CircularProgress size={32} />
-                                </TableCell>
-                            </TableRow>
-                        ) : solicitacoes.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                                    <Typography color="text.secondary">Nenhuma solicitação encontrada.</Typography>
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            paginatedSolicitacoes.map((s) => (
-                                <TableRow key={s.id} hover>
-                                    <TableCell sx={{ fontWeight: 600 }}>{s.nome}</TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" color="text.secondary"
-                                            noWrap sx={{ maxWidth: 220 }} title={s.descricao}>
-                                            {s.descricao || "—"}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {s.solicitanteEmail}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={STATUS_CONFIG[s.status]?.label || s.status}
-                                            color={STATUS_CONFIG[s.status]?.color || "default"}
-                                            size="small"
-                                            sx={{ fontWeight: 600 }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {formatDate(s.dataSolicitacao)}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        {s.status === "PENDENTE" && (
-                                            <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
-                                                <Tooltip title="Aprovar e criar categoria">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleAprovar(s.id)}
-                                                        sx={{
-                                                            color: "success.main",
-                                                            bgcolor: alpha(theme.palette.success.main, 0.08),
-                                                            "&:hover": { bgcolor: alpha(theme.palette.success.main, 0.2) },
-                                                        }}
-                                                    >
-                                                        <FaCheck size={12} />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Rejeitar solicitação">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleRejeitar(s.id)}
-                                                        sx={{
-                                                            color: "error.main",
-                                                            bgcolor: alpha(theme.palette.error.main, 0.08),
-                                                            "&:hover": { bgcolor: alpha(theme.palette.error.main, 0.2) },
-                                                        }}
-                                                    >
-                                                        <FaTimes size={12} />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-
-            <TablePagination
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                component="div"
-                count={filteredSolicitacoes.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-                labelRowsPerPage="Linhas por página:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
-            />
+          <Typography variant="h5" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <FaBell /> Solicitações de Categoria
+          </Typography>
+          <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
+            {solicitacoes.length} solicitaç{solicitacoes.length !== 1 ? "ões" : "ão"}
+            {pendingCount > 0 ? ` · ${pendingCount} pendente${pendingCount !== 1 ? "s" : ""}` : ""}
+          </Typography>
         </Box>
-    );
+      </Box>
+
+      <Paper elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            placeholder="Buscar por categoria, solicitante ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            size="small"
+            sx={{ flex: 1, minWidth: 280 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FaSearch size={16} />
+                </InputAdornment>
+              ),
+            }}
+          />
+          {debouncedSearchTerm ? (
+            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+              {filteredSolicitacoes.length} resultado{filteredSolicitacoes.length !== 1 ? "s" : ""}
+            </Typography>
+          ) : null}
+        </Box>
+      </Paper>
+
+      <Box sx={{ display: "flex", gap: 1, mb: 3, flexWrap: "wrap" }}>
+        {FILTROS.map((filtro) => (
+          <Button
+            key={filtro.label}
+            variant={filterStatus === filtro.value ? "contained" : "outlined"}
+            size="small"
+            onClick={() => setFilterStatus(filtro.value)}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: 10, px: 2.5 }}
+          >
+            {filtro.label}
+          </Button>
+        ))}
+      </Box>
+
+      <CategoriaSolicitacoesList
+        solicitacoes={paginatedSolicitacoes}
+        loading={loading}
+        showRequester
+        showAdminActions
+        actionLoadingId={actionLoadingId}
+        onApprove={handleAprovar}
+        onReject={handleRejeitar}
+        emptyTitle="Nenhuma solicitação encontrada."
+        emptyDescription="Ajuste os filtros ou aguarde novas solicitações para análise."
+      />
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        component="div"
+        count={filteredSolicitacoes.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        labelRowsPerPage="Linhas por página:"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
+      />
+    </Box>
+  );
 };
 
 export default SolicitacoesCategoriasTab;

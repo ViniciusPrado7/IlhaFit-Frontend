@@ -49,7 +49,18 @@ export const authSession = {
   isAuthenticated() {
     const user = this.getUser();
     return Boolean(
-      (user?.tipo === "USUARIO" || user?.tipo === "ESTABELECIMENTO" || user?.tipo === "PROFISSIONAL") &&
+      (user?.tipo === "USUARIO" ||
+        user?.tipo === "ESTABELECIMENTO" ||
+        user?.tipo === "PROFISSIONAL" ||
+        user?.tipo === "ADMINISTRADOR") &&
+        this.getToken()
+    );
+  },
+
+  isAdminAuthenticated() {
+    const user = this.getUser();
+    return Boolean(
+      (user?.tipo === "ADMINISTRADOR" || user?.role === "ADMIN" || user?.role === "ADMINISTRADOR") &&
         this.getToken()
     );
   },

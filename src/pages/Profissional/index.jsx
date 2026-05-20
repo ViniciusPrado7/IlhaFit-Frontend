@@ -21,8 +21,7 @@ const normalizeList = (data) => {
 };
 
 const getCategoriaNome = (categoria) => {
-  if (typeof categoria === "string") return categoria;
-  return categoria?.nome || categoria?.nomeCategoria || categoria?.atividade || categoria?.name || "";
+  return categoria?.nome || "";
 };
 
 const getProfissionalCategorias = (profissional) => {
