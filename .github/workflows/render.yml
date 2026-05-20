@@ -1,0 +1,40 @@
+name: Render Frontend Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Docker image
+        run: docker build -t ilhafit-frontend:${{ github.sha }} .
+
+      - name: Trigger Render deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_FRONTEND_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            --url "https://api.render.com/v1/services/${RENDER_FRONTEND_SERVICE_ID}/deploys" \
+            --header "accept: application/json" \
+            --header "authorization: Bearer ${RENDER_API_KEY}"
