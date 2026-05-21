@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { authSession } from './AuthSession';
 
+const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, "").replace(/\/api$/, "");
+
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: apiUrl ? `${apiUrl}/api` : '/api',
     withCredentials: true,
 })
 
