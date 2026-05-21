@@ -11,6 +11,7 @@ import {
     Chip,
     Divider,
     Tooltip,
+    IconButton,
 } from "@mui/material";
 import {
     FaUser,
@@ -26,7 +27,10 @@ import {
     FaExclamationTriangle,
     FaTimesCircle,
     FaChevronRight,
+    FaChevronLeft,
     FaTrophy,
+    FaClock,
+    FaCalendarAlt,
 } from "react-icons/fa";
 import {
     adminService,
@@ -34,6 +38,7 @@ import {
     solicitacaoCategoriaService,
     categoriaService,
     estabelecimentoService,
+    profissionalService,
 } from "../../../services";
 import { toast } from "react-toastify";
 
@@ -45,14 +50,53 @@ const MOTIVO_LABELS = {
     OUTROS: "Outros",
 };
 
-const formatDate = (dateStr) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("pt-BR", {
+
+
+const formatOnlyDate = (date) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
+        year: "numeric",
+    });
+};
+
+const formatOnlyTime = (date) => {
+    if (!date) return "—";
+    return new Date(date).toLocaleTimeString("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
     });
+};
+
+const parseCreated = (obj) => {
+    if (!obj) return null;
+    const fields = ["createdAt", "dataCriacao", "created_at", "created", "dataCadastro", "createdAt"];
+    for (const f of fields) {
+        const val = obj[f];
+        if (val) {
+            if (Array.isArray(val)) {
+                const [year, month, day, hour = 0, minute = 0, second = 0] = val;
+                const d = new Date(year, month - 1, day, hour, minute, second);
+                if (!isNaN(d.getTime())) return d;
+            }
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d;
+        }
+    }
+    if (obj.endereco) {
+        const val = obj.endereco.createdAt || obj.endereco.created;
+        if (val) {
+            if (Array.isArray(val)) {
+                const [year, month, day, hour = 0, minute = 0, second = 0] = val;
+                const d = new Date(year, month - 1, day, hour, minute, second);
+                if (!isNaN(d.getTime())) return d;
+            }
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d;
+        }
+    }
+    return null;
 };
 
 const DashboardTab = ({ onTabChange }) => {
@@ -67,25 +111,36 @@ const DashboardTab = ({ onTabChange }) => {
         estabelecimentos: 0,
         admins: 0,
     });
+    const [usersList, setUsersList] = useState([]);
+    const [estabelecimentosList, setEstabelecimentosList] = useState([]);
+    const [cepStateCache, setCepStateCache] = useState({});
+    const [recentRegistrationsState, setRecentRegistrationsState] = useState([]);
     const [denunciasPendentes, setDenunciasPendentes] = useState([]);
     const [solicitacoesPendentes, setSolicitacoesPendentes] = useState([]);
     const [totalCategorias, setTotalCategorias] = useState(0);
     const [topCategorias, setTopCategorias] = useState([]);
 
     useEffect(() => {
-        loadAll();
+        loadAll(false);
+
+        const interval = setInterval(() => {
+            loadAll(true);
+        }, 5000);
+
+        return () => clearInterval(interval);
     }, []);
 
-    const loadAll = async () => {
+    const loadAll = async (isSilent = false) => {
         try {
-            setLoading(true);
-            const [users, denuncias, solicitacoes, categorias, estabelecimentos] =
+            if (!isSilent) setLoading(true);
+            const [users, denuncias, solicitacoes, categorias, estabelecimentos, profissionais] =
                 await Promise.all([
                     adminService.getAllUsers(),
                     denunciaService.getAll("PENDENTE"),
                     solicitacaoCategoriaService.getAll("PENDENTE"),
                     categoriaService.listarTodas(),
                     estabelecimentoService.getAll(),
+                    profissionalService.listarProfissionais(),
                 ]);
 
             setStats({
@@ -96,187 +151,425 @@ const DashboardTab = ({ onTabChange }) => {
                 admins: users.filter((u) => u.tipo === "admin").length,
             });
 
+            const mergedUsers = [...(users || [])];
+            const userIds = new Set(mergedUsers.map(u => u.id || u._id));
+            (profissionais || []).forEach(p => {
+                const pid = p.id || p._id;
+                if (!userIds.has(pid)) mergedUsers.push(p);
+            });
+            setUsersList(mergedUsers);
+            setEstabelecimentosList(estabelecimentos || []);
+
             setDenunciasPendentes(denuncias);
             setSolicitacoesPendentes(solicitacoes);
             setTotalCategorias(categorias.length);
 
             const catCount = {};
-            estabelecimentos.forEach((e) => {
-                (e.categorias || []).forEach((c) => {
-                    catCount[c.nome] = (catCount[c.nome] || 0) + 1;
+            const getCatName = (cat) => {
+                if (!cat) return "";
+                if (typeof cat === "string") return cat;
+                return cat.nome || cat.nomeCategoria || cat.atividade || "";
+            };
+
+            (estabelecimentos || []).forEach((e) => {
+                const cats = [];
+                if (Array.isArray(e.categorias)) {
+                    e.categorias.forEach(c => {
+                        const name = getCatName(c);
+                        if (name) cats.push(name);
+                    });
+                }
+                if (Array.isArray(e.gradeAtividades)) {
+                    e.gradeAtividades.forEach(a => {
+                        const name = getCatName(a?.atividade || a);
+                        if (name) cats.push(name);
+                    });
+                }
+                const uniqueCats = [...new Set(cats)];
+                uniqueCats.forEach(name => {
+                    catCount[name] = (catCount[name] || 0) + 1;
                 });
             });
+
+            (profissionais || []).forEach((p) => {
+                const cats = [];
+                if (Array.isArray(p.especialidades)) {
+                    p.especialidades.forEach(e => {
+                        const name = getCatName(e);
+                        if (name) cats.push(name);
+                    });
+                }
+                if (Array.isArray(p.gradeAtividades)) {
+                    p.gradeAtividades.forEach(a => {
+                        const name = getCatName(a?.atividade || a);
+                        if (name) cats.push(name);
+                    });
+                }
+                if (p.especializacao) {
+                    const name = getCatName(p.especializacao);
+                    if (name) cats.push(name);
+                }
+                if (Array.isArray(p.categorias)) {
+                    p.categorias.forEach(c => {
+                        const name = getCatName(c);
+                        if (name) cats.push(name);
+                    });
+                }
+                const uniqueCats = [...new Set(cats)];
+                uniqueCats.forEach(name => {
+                    catCount[name] = (catCount[name] || 0) + 1;
+                });
+            });
+
             const sorted = Object.entries(catCount)
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
                 .map(([nome, count]) => ({ nome, count }));
             setTopCategorias(sorted);
-        } catch {
-            toast.error("Erro ao carregar dados do dashboard");
+
+            const makeEntry = (item, tipo) => ({
+                id: `${tipo || item.tipo || 'usuario'}-${item.id || item._id || Math.random()}`,
+                nome: item.nome || item.nomeFantasia || item.email || 'Sem nome',
+                tipo: tipo || item.tipo || 'usuario',
+                _created: parseCreated(item) || new Date(0),
+            });
+
+            const fetchedEntries = (users || [])
+                .map(u => makeEntry(u, u.tipo || 'usuario'))
+                .filter(r => r._created instanceof Date && !isNaN(r._created));
+
+            const existingMap = {};
+            fetchedEntries.forEach(fe => {
+                existingMap[fe.id] = fe;
+            });
+            const merged = Object.values(existingMap).sort((a, b) => b._created - a._created).slice(0, 5);
+            setRecentRegistrationsState(merged);
+        } catch (error) {
+            console.error("Erro ao carregar dados do dashboard:", error);
+            if (!isSilent) toast.error("Erro ao carregar dados do dashboard");
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
     const pct = (value) =>
         stats.total === 0 ? 0 : Math.round((value / stats.total) * 100);
 
+    const onlyDigits = (value) => (value ? String(value).replace(/\D/g, '') : '');
+
+    const normalizeState = (value) => {
+        const candidate = value ? String(value).trim().toUpperCase() : '';
+        return candidate.match(/^[A-Z]{2}$/) ? candidate : null;
+    };
+
+    const getStateFromObj = (obj) => {
+        const direct = normalizeState(
+            obj?.estado?.sigla || obj?.estado || obj?.uf || obj?.endereco?.uf || obj?.endereco?.estado || obj?.endereco?.state || obj?.address?.state
+        );
+        if (direct) return direct;
+
+        const cep = onlyDigits(obj?.cep || obj?.endereco?.cep || obj?.address?.cep);
+        if (cep && cepStateCache[cep]) return cepStateCache[cep];
+        return null;
+    };
+
+    const getCepFromObj = (obj) => onlyDigits(obj?.cep || obj?.endereco?.cep || obj?.address?.cep);
+
+    const fetchStateByCep = async (cep) => {
+        if (!cep || cep.length !== 8) return null;
+        if (cepStateCache[cep]) return cepStateCache[cep];
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            if (!response.ok) return null;
+            const data = await response.json();
+            const uf = normalizeState(data.uf);
+            if (uf) {
+                setCepStateCache((prev) => ({ ...prev, [cep]: uf }));
+                return uf;
+            }
+        } catch (error) {
+            console.warn('Falha ao resolver estado pelo CEP', cep, error);
+        }
+        return null;
+    };
+
+    const resolveCepStates = async () => {
+        const sourceItems = [...(usersList || []), ...(estabelecimentosList || [])];
+        const ceps = new Set();
+        sourceItems.forEach((item) => {
+            const state = getStateFromObj(item);
+            if (!state) {
+                const cep = getCepFromObj(item);
+                if (cep && !cepStateCache[cep]) ceps.add(cep);
+            }
+        });
+        if (ceps.size === 0) return;
+        await Promise.all(Array.from(ceps).map(fetchStateByCep));
+    };
+
+    useEffect(() => {
+        resolveCepStates();
+    }, [usersList, estabelecimentosList, cepStateCache]);
+
     const maxCatCount = topCategorias[0]?.count || 1;
 
+    const locationSources = [...(usersList || []), ...(estabelecimentosList || [])];
+    const cityCount = {};
+    const stateCount = {};
+    locationSources.forEach((it) => {
+        const city = (it.cidade && (it.cidade.nome || it.cidade)) || it.cidadeNome || (it.endereco && (it.endereco.cidade || it.endereco.city)) || (it.address && it.address.city) || null;
+        const state = getStateFromObj(it);
+        if (city) cityCount[city] = (cityCount[city] || 0) + 1;
+        if (state) stateCount[state] = (stateCount[state] || 0) + 1;
+    });
+    const topCities = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([nome, count]) => ({ nome, count }));
+    const stateTotal = Object.values(stateCount).reduce((sum, value) => sum + value, 0);
+    const stateDistribution = Object.entries(stateCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([sigla, count]) => ({ sigla, count, pct: stateTotal === 0 ? 0 : Math.round((count / stateTotal) * 100) }));
+
+    const recentRegistrationsDisplay = (recentRegistrationsState || []).slice(0, 5);
+
+    const getRoleConfig = (tipo) => {
+        switch (tipo?.toLowerCase()) {
+            case "aluno": {
+                const baseColor = theme.palette.primary.main;
+                return {
+                    label: "Aluno",
+                    color: "primary",
+                    icon: <FaUser size={14} />,
+                    bgColor: alpha(baseColor, 0.08),
+                    textColor: baseColor,
+                    borderColor: alpha(baseColor, 0.15),
+                };
+            }
+            case "profissional": {
+                const baseColor = theme.palette.success.main;
+                return {
+                    label: "Profissional",
+                    color: "success",
+                    icon: <FaUserTie size={14} />,
+                    bgColor: alpha(baseColor, 0.08),
+                    textColor: baseColor,
+                    borderColor: alpha(baseColor, 0.15),
+                };
+            }
+            case "estabelecimento": {
+                const baseColor = theme.palette.warning.main;
+                return {
+                    label: "Estabelecimento",
+                    color: "warning",
+                    icon: <FaBuilding size={14} />,
+                    bgColor: alpha(baseColor, 0.08),
+                    textColor: baseColor,
+                    borderColor: alpha(baseColor, 0.15),
+                };
+            }
+            case "admin": {
+                const baseColor = theme.palette.secondary.main;
+                return {
+                    label: "Administrador",
+                    color: "secondary",
+                    icon: <FaUserShield size={14} />,
+                    bgColor: alpha(baseColor, 0.08),
+                    textColor: baseColor,
+                    borderColor: alpha(baseColor, 0.15),
+                };
+            }
+            default: {
+                const baseColor = theme.palette.text.disabled;
+                return {
+                    label: "Usuário",
+                    color: "default",
+                    icon: <FaUser size={14} />,
+                    bgColor: alpha(baseColor, 0.08),
+                    textColor: baseColor,
+                    borderColor: alpha(baseColor, 0.15),
+                };
+            }
+        }
+    };
+
     const pendingTotal = denunciasPendentes.length + solicitacoesPendentes.length;
-    const systemStatus =
+    const systemStatus = 
         pendingTotal === 0
             ? { label: "Sistema operando normalmente", color: "success", Icon: FaCheckCircle }
             : pendingTotal <= 5
             ? { label: "Itens aguardando revisão", color: "warning", Icon: FaExclamationTriangle }
             : { label: "Atenção: múltiplos pendentes", color: "error", Icon: FaTimesCircle };
 
-    const StatCard = ({ title, value, icon, color, percentage, sub }) => (
-        <Paper
-            elevation={0}
-            sx={{
-                p: 2.5,
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
-                position: "relative",
-                overflow: "hidden",
-            }}
-        >
-            <Box
+    const StatCard = ({ title, value, icon, color, percentage, sub }) => {
+        const c = color || "primary";
+        const baseColor = theme.palette[c]?.main || theme.palette.primary.main;
+        const bg = alpha(baseColor, 0.02);
+        const bgAccent = alpha(baseColor, 0.08);
+        const border = alpha(baseColor, 0.15);
+        return (
+            <Paper
+                elevation={0}
                 sx={{
+                    p: 2.5,
+                    height: "100%",
                     display: "flex",
+                    flexDirection: "column",
                     justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 1.5,
+                    border: "1px solid",
+                    borderColor: border,
+                    borderRadius: 3,
+                    bgcolor: bg,
+                    position: "relative",
+                    overflow: "hidden",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    '&:hover': {
+                        transform: "translateY(-2px)",
+                        boxShadow: `0 8px 24px ${bgAccent}`,
+                    }
                 }}
             >
-                <Box>
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        fontWeight={600}
-                        sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                    >
-                        {title}
-                    </Typography>
-                    <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>
-                        {value}
-                    </Typography>
-                </Box>
                 <Box
                     sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: alpha(
-                            theme.palette[color]?.main || theme.palette.primary.main,
-                            0.12
-                        ),
-                        color: `${color}.main`,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        mb: 1.5,
                     }}
                 >
-                    {icon}
-                </Box>
-            </Box>
-
-            {percentage !== undefined && (
-                <Box>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                        <Typography variant="caption" color="text.secondary">
-                            {sub || "Do total"}
+                    <Box>
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={700}
+                            sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+                        >
+                            {title}
                         </Typography>
-                        <Typography variant="caption" fontWeight={700} color={`${color}.main`}>
-                            {percentage}%
+                        <Typography variant="h4" fontWeight={850} sx={{ mt: 0.5, color: baseColor }}>
+                            {value}
                         </Typography>
                     </Box>
-                    <LinearProgress
-                        variant="determinate"
-                        value={percentage}
-                        color={color}
-                        sx={{
-                            height: 5,
-                            borderRadius: 3,
-                            bgcolor: alpha(
-                                theme.palette.text.primary,
-                                isDark ? 0.1 : 0.05
-                            ),
-                        }}
-                    />
-                </Box>
-            )}
-        </Paper>
-    );
-
-    const AlertCard = ({ title, value, icon, color, tabIndex, label }) => (
-        <Paper
-            elevation={0}
-            onClick={() => tabIndex !== undefined && onTabChange?.(tabIndex)}
-            sx={{
-                p: 2.5,
-                height: "100%",
-                border: "1px solid",
-                borderColor: `${color}.main`,
-                borderLeft: "4px solid",
-                borderLeftColor: `${color}.main`,
-                borderRadius: 3,
-                cursor: tabIndex !== undefined ? "pointer" : "default",
-                transition: "all 0.2s ease",
-                "&:hover":
-                    tabIndex !== undefined
-                        ? {
-                              bgcolor: alpha(theme.palette[color].main, 0.05),
-                              transform: "translateY(-2px)",
-                              boxShadow: `0 4px 20px ${alpha(theme.palette[color].main, 0.15)}`,
-                          }
-                        : {},
-            }}
-        >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Box>
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        fontWeight={600}
-                        sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                    >
-                        {title}
-                    </Typography>
-                    <Typography
-                        variant="h4"
-                        fontWeight={800}
-                        color={`${color}.main`}
-                        sx={{ mt: 0.5 }}
-                    >
-                        {value}
-                    </Typography>
-                    {label && (
-                        <Typography variant="caption" color="text.secondary">
-                            {label}
-                        </Typography>
-                    )}
-                </Box>
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                     <Box
                         sx={{
                             p: 1.5,
-                            borderRadius: 2,
-                            bgcolor: alpha(theme.palette[color].main, 0.12),
-                            color: `${color}.main`,
+                            borderRadius: "50%",
+                            bgcolor: bgAccent,
+                            color: baseColor,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
                         }}
                     >
                         {icon}
                     </Box>
-                    {tabIndex !== undefined && (
-                        <FaChevronRight size={11} color={theme.palette.text.disabled} />
-                    )}
                 </Box>
-            </Box>
-        </Paper>
-    );
+
+                {percentage !== undefined && (
+                    <Box>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">
+                                {sub || "Do total"}
+                            </Typography>
+                            <Typography variant="caption" fontWeight={700} color={baseColor}>
+                                {percentage}%
+                            </Typography>
+                        </Box>
+                        <LinearProgress
+                            variant="determinate"
+                            value={percentage}
+                            sx={{
+                                height: 5,
+                                borderRadius: 3,
+                                bgcolor: bgAccent,
+                                "& .MuiLinearProgress-bar": {
+                                    bgcolor: baseColor,
+                                    borderRadius: 3,
+                                },
+                            }}
+                        />
+                    </Box>
+                )}
+            </Paper>
+        );
+    };
+
+    const AlertCard = ({ title, value, icon, color, label }) => {
+        const c = color || "error";
+        const baseColor = theme.palette[c]?.main || theme.palette.error.main;
+        const bg = alpha(baseColor, 0.02);
+        const bgAccent = alpha(baseColor, 0.08);
+        const border = alpha(baseColor, 0.15);
+        return (
+            <Paper
+                elevation={0}
+                sx={{
+                    p: 2.5,
+                    height: "100%",
+                    border: "1px solid",
+                    borderColor: border,
+                    borderLeft: `4px solid ${baseColor}`,
+                    borderRadius: 3,
+                    bgcolor: bg,
+                    cursor: "default",
+                    transition: "transform 0.2s, box-shadow 0.2s",
+                    '&:hover': {
+                        transform: "translateY(-2px)",
+                        boxShadow: `0 8px 24px ${bgAccent}`,
+                    }
+                }}
+            >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Box>
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            fontWeight={700}
+                            sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
+                        >
+                            {title}
+                        </Typography>
+                        <Typography
+                            variant="h4"
+                            fontWeight={850}
+                            color={baseColor}
+                            sx={{ mt: 0.5 }}
+                        >
+                            {value}
+                        </Typography>
+                        {label && (
+                            <Typography variant="caption" color="text.secondary">
+                                {label}
+                            </Typography>
+                        )}
+                    </Box>
+                    <Box
+                        sx={{
+                            p: 1.5,
+                            borderRadius: "50%",
+                            bgcolor: bgAccent,
+                            color: baseColor,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        {icon}
+                    </Box>
+                </Box>
+            </Paper>
+        );
+    };
+
+    const IconButtonCarousel = ({ direction }) => {
+        const handle = () => {
+            const el = document.getElementById("primary-cards-carousel");
+            if (!el) return;
+            const amount = direction === "left" ? -360 : 360;
+            el.scrollBy({ left: amount, behavior: "smooth" });
+        };
+
+        return (
+            <IconButton size="small" onClick={handle} sx={{ bgcolor: alpha(theme.palette.background.paper, 0.6) }}>
+                {direction === "left" ? <FaChevronLeft /> : <FaChevronRight />}
+            </IconButton>
+        );
+    };
 
     if (loading) {
         return (
@@ -302,96 +595,20 @@ const DashboardTab = ({ onTabChange }) => {
                     <FaChartPie /> Visão Geral do Sistema
                 </Typography>
                 <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                    Acompanhe métricas de crescimento, distribuição de usuários e saúde da
-                    plataforma.
+                    Acompanhe métricas de crescimento, distribuição de usuários e relatórios reais do sistema.
                 </Typography>
             </Box>
 
-            {/* Row 1 — Usuários */}
-            <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Paper
-                        elevation={0}
-                        sx={{
-                            p: 2.5,
-                            height: "100%",
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 3,
-                            position: "relative",
-                            overflow: "hidden",
-                        }}
-                    >
-                        <Box
-                            sx={{
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                height: 4,
-                                bgcolor: "primary.main",
-                            }}
-                        />
-                        <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            fontWeight={600}
-                            sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}
-                        >
-                            Total de Usuários
-                        </Typography>
-                        <Typography variant="h3" fontWeight={800} sx={{ my: 1 }}>
-                            {stats.total}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Cadastrados na plataforma
-                        </Typography>
-                        <Box sx={{ mt: 1.5, display: "flex", justifyContent: "flex-end" }}>
-                            <FaUsers
-                                size={36}
-                                style={{ opacity: 0.1 }}
-                                color={theme.palette.primary.main}
-                            />
-                        </Box>
-                    </Paper>
-                </Grid>
-
+            {/* Row 1 — Métricas Principais */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard
-                        title="Alunos"
-                        value={stats.alunos}
-                        icon={<FaUser size={18} />}
+                        title="Total de Usuários"
+                        value={stats.total}
+                        icon={<FaUsers size={20} />}
                         color="primary"
-                        percentage={pct(stats.alunos)}
-                        sub="Do total de usuários"
                     />
                 </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Profissionais"
-                        value={stats.profissionais}
-                        icon={<FaUserTie size={18} />}
-                        color="secondary"
-                        percentage={pct(stats.profissionais)}
-                        sub="Do total de usuários"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Estabelecimentos"
-                        value={stats.estabelecimentos}
-                        icon={<FaBuilding size={18} />}
-                        color="warning"
-                        percentage={pct(stats.estabelecimentos)}
-                        sub="Do total de usuários"
-                    />
-                </Grid>
-            </Grid>
-
-            {/* Row 2 — Plataforma */}
-            <Grid container spacing={2.5} sx={{ mb: 3.5 }}>
                 <Grid item xs={12} sm={6} md={3}>
                     <StatCard
                         title="Categorias Ativas"
@@ -400,35 +617,20 @@ const DashboardTab = ({ onTabChange }) => {
                         color="info"
                     />
                 </Grid>
-
                 <Grid item xs={12} sm={6} md={3}>
-                    <AlertCard
+                    <StatCard
                         title="Denúncias Pendentes"
                         value={denunciasPendentes.length}
                         icon={<FaFlag size={18} />}
                         color={denunciasPendentes.length > 0 ? "error" : "success"}
-                        tabIndex={3}
-                        label="Clique para revisar"
                     />
                 </Grid>
-
                 <Grid item xs={12} sm={6} md={3}>
-                    <AlertCard
+                    <StatCard
                         title="Solicitações Pendentes"
                         value={solicitacoesPendentes.length}
                         icon={<FaBell size={18} />}
                         color={solicitacoesPendentes.length > 0 ? "warning" : "success"}
-                        tabIndex={5}
-                        label="Clique para revisar"
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={3}>
-                    <StatCard
-                        title="Administradores"
-                        value={stats.admins}
-                        icon={<FaUserShield size={18} />}
-                        color="secondary"
                     />
                 </Grid>
             </Grid>
@@ -455,154 +657,134 @@ const DashboardTab = ({ onTabChange }) => {
                     {/* User Distribution */}
                     <Paper
                         elevation={0}
-                        sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}
+                        sx={{
+                            p: 3,
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.divider, 0.5),
+                            borderRadius: 3,
+                            bgcolor: alpha(theme.palette.background.paper, 0.5),
+                        }}
                     >
-                        <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>
-                            Distribuição de Usuários
-                        </Typography>
-
-                        {/* Stacked bar */}
-                        <Box
-                            sx={{
-                                display: "flex",
-                                height: 20,
-                                borderRadius: 10,
-                                overflow: "hidden",
-                                mb: 3,
-                                bgcolor: alpha(theme.palette.text.primary, isDark ? 0.06 : 0.04),
-                            }}
-                        >
-                            {stats.alunos > 0 && (
-                                <Tooltip
-                                    title={`Alunos: ${stats.alunos} (${pct(stats.alunos)}%)`}
-                                    arrow
-                                >
-                                    <Box
-                                        sx={{
-                                            width: `${pct(stats.alunos)}%`,
-                                            bgcolor: "primary.main",
-                                            transition: "width 0.8s ease",
-                                            cursor: "default",
-                                        }}
-                                    />
-                                </Tooltip>
-                            )}
-                            {stats.profissionais > 0 && (
-                                <Tooltip
-                                    title={`Profissionais: ${stats.profissionais} (${pct(stats.profissionais)}%)`}
-                                    arrow
-                                >
-                                    <Box
-                                        sx={{
-                                            width: `${pct(stats.profissionais)}%`,
-                                            bgcolor: "secondary.main",
-                                            transition: "width 0.8s ease",
-                                            cursor: "default",
-                                        }}
-                                    />
-                                </Tooltip>
-                            )}
-                            {stats.estabelecimentos > 0 && (
-                                <Tooltip
-                                    title={`Estabelecimentos: ${stats.estabelecimentos} (${pct(stats.estabelecimentos)}%)`}
-                                    arrow
-                                >
-                                    <Box
-                                        sx={{
-                                            width: `${pct(stats.estabelecimentos)}%`,
-                                            bgcolor: "warning.main",
-                                            transition: "width 0.8s ease",
-                                            cursor: "default",
-                                        }}
-                                    />
-                                </Tooltip>
-                            )}
-                            {stats.admins > 0 && (
-                                <Tooltip
-                                    title={`Admins: ${stats.admins} (${pct(stats.admins)}%)`}
-                                    arrow
-                                >
-                                    <Box
-                                        sx={{
-                                            flex: 1,
-                                            bgcolor: "secondary.dark",
-                                            transition: "width 0.8s ease",
-                                            cursor: "default",
-                                        }}
-                                    />
-                                </Tooltip>
-                            )}
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="h6" fontWeight={750} color="text.primary">
+                                Distribuição de Usuários
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                Análise proporcional de perfis cadastrados na plataforma IlhaFit.
+                            </Typography>
                         </Box>
 
-                        {/* Legend */}
-                        <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                             {[
                                 {
                                     label: "Alunos",
-                                    color: "primary.main",
+                                    icon: <FaUser size={14} />,
+                                    color: "primary",
                                     count: stats.alunos,
                                 },
                                 {
                                     label: "Profissionais",
-                                    color: "secondary.main",
+                                    icon: <FaUserTie size={14} />,
+                                    color: "success",
                                     count: stats.profissionais,
                                 },
                                 {
                                     label: "Estabelecimentos",
-                                    color: "warning.main",
+                                    icon: <FaBuilding size={14} />,
+                                    color: "warning",
                                     count: stats.estabelecimentos,
                                 },
                                 {
-                                    label: "Admins",
-                                    color: "secondary.dark",
+                                    label: "Administradores",
+                                    icon: <FaUserShield size={14} />,
+                                    color: "secondary",
                                     count: stats.admins,
                                 },
-                            ].map(({ label, color, count }) => (
-                                <Box
-                                    key={label}
-                                    sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                                >
-                                    <Box
-                                        sx={{
-                                            width: 10,
-                                            height: 10,
-                                            borderRadius: "50%",
-                                            bgcolor: color,
-                                            flexShrink: 0,
-                                        }}
-                                    />
-                                    <Typography variant="caption" color="text.secondary">
-                                        {label} ·{" "}
-                                        <Box
-                                            component="span"
-                                            sx={{ fontWeight: 700, color: "text.primary" }}
-                                        >
-                                            {count}
-                                        </Box>{" "}
-                                        ({pct(count)}%)
-                                    </Typography>
-                                </Box>
-                            ))}
+                            ].map(({ label, icon, color, count }) => {
+                                const baseColor = theme.palette[color]?.main || theme.palette.primary.main;
+                                const percentage = pct(count);
+                                return (
+                                    <Box key={label} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                                <Box
+                                                    sx={{
+                                                        width: 28,
+                                                        height: 28,
+                                                        borderRadius: "50%",
+                                                        bgcolor: alpha(baseColor, 0.08),
+                                                        color: baseColor,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                    }}
+                                                >
+                                                    {icon}
+                                                </Box>
+                                                <Typography variant="body2" fontWeight={600} color="text.primary">
+                                                    {label}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                                <Typography variant="body2" fontWeight={750} color="text.primary">
+                                                    {count}
+                                                </Typography>
+                                                <Chip
+                                                    label={`${percentage}%`}
+                                                    size="small"
+                                                    sx={{
+                                                        height: 20,
+                                                        fontSize: "0.7rem",
+                                                        fontWeight: 700,
+                                                        bgcolor: alpha(baseColor, 0.08),
+                                                        color: baseColor,
+                                                        border: "none",
+                                                    }}
+                                                />
+                                            </Box>
+                                        </Box>
+                                        <LinearProgress
+                                            variant="determinate"
+                                            value={parseFloat(percentage)}
+                                            sx={{
+                                                height: 8,
+                                                borderRadius: 4,
+                                                bgcolor: alpha(baseColor, 0.05),
+                                                "& .MuiLinearProgress-bar": {
+                                                    bgcolor: baseColor,
+                                                    borderRadius: 4,
+                                                },
+                                            }}
+                                        />
+                                    </Box>
+                                );
+                            })}
                         </Box>
                     </Paper>
 
                     {/* Top Categories */}
                     <Paper
                         elevation={0}
-                        sx={{ p: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}
+                        sx={{
+                            p: 3,
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.divider, 0.5),
+                            borderRadius: 3,
+                            bgcolor: alpha(theme.palette.background.paper, 0.5),
+                        }}
                     >
                         <Typography
                             variant="h6"
-                            fontWeight={700}
-                            sx={{ mb: 2.5, display: "flex", alignItems: "center", gap: 1 }}
+                            fontWeight={750}
+                            sx={{ mb: 2.5, display: "flex", alignItems: "center", gap: 1, color: "text.primary" }}
                         >
                             <FaTrophy size={16} color={theme.palette.warning.main} />
-                            Top Categorias de Estabelecimentos
+                            Top Categorias
                         </Typography>
 
                         {topCategorias.length === 0 ? (
                             <Typography color="text.secondary" variant="body2">
-                                Nenhum estabelecimento com categorias cadastradas.
+                                Nenhuma categoria cadastrada.
                             </Typography>
                         ) : (
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
@@ -631,7 +813,7 @@ const DashboardTab = ({ onTabChange }) => {
                                                         textAlign: "center",
                                                         color:
                                                             i === 0
-                                                                ? "warning.main"
+                                                                ? theme.palette.warning.main
                                                                 : "text.disabled",
                                                     }}
                                                 >
@@ -646,22 +828,21 @@ const DashboardTab = ({ onTabChange }) => {
                                                 fontWeight={700}
                                                 color="text.secondary"
                                             >
-                                                {count} estabelecimento
-                                                {count !== 1 ? "s" : ""}
+                                                {count} {count === 1 ? "uso" : "usos"}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ pl: 4.5 }}>
                                             <LinearProgress
                                                 variant="determinate"
                                                 value={(count / maxCatCount) * 100}
-                                                color={i === 0 ? "warning" : "primary"}
                                                 sx={{
                                                     height: 8,
                                                     borderRadius: 4,
-                                                    bgcolor: alpha(
-                                                        theme.palette.text.primary,
-                                                        isDark ? 0.08 : 0.05
-                                                    ),
+                                                    bgcolor: alpha(i === 0 ? theme.palette.warning.main : theme.palette.primary.main, 0.08),
+                                                    "& .MuiLinearProgress-bar": {
+                                                        bgcolor: i === 0 ? theme.palette.warning.main : theme.palette.primary.main,
+                                                        borderRadius: 4,
+                                                    },
                                                 }}
                                             />
                                         </Box>
@@ -670,164 +851,118 @@ const DashboardTab = ({ onTabChange }) => {
                             </Box>
                         )}
                     </Paper>
-                </Box>
-
-                {/* Right column (30%) — System Health */}
-                <Box sx={{ flex: "3 1 280px" }}>
+                    {/* Últimos Cadastros e Distribuição por Estados */}
                     <Paper
                         elevation={0}
                         sx={{
                             p: 3,
                             border: "1px solid",
-                            borderColor: "divider",
+                            borderColor: alpha(theme.palette.divider, 0.5),
                             borderRadius: 3,
-                            bgcolor: isDark
-                                ? alpha(theme.palette.background.default, 0.5)
-                                : alpha(theme.palette.grey[50], 0.9),
+                            bgcolor: alpha(theme.palette.background.paper, 0.5),
                         }}
                     >
-                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>
-                            Saúde da Plataforma
+                        <Typography
+                            variant="h6"
+                            fontWeight={750}
+                            sx={{ mb: 2.5, color: "text.primary" }}
+                        >
+                            Últimos Cadastros
                         </Typography>
-
-                        {/* Status indicator */}
-                        <Chip
-                            icon={
-                                <systemStatus.Icon
-                                    size={13}
-                                    style={{ marginLeft: 8, flexShrink: 0 }}
-                                />
-                            }
-                            label={systemStatus.label}
-                            color={systemStatus.color}
-                            size="small"
-                            sx={{
-                                mb: 3,
-                                fontWeight: 600,
-                                width: "100%",
-                                justifyContent: "flex-start",
-                                borderRadius: 2,
-                            }}
-                        />
-
-                        {/* Denúncias pendentes */}
-                        <Box sx={{ mb: 2.5 }}>
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mb: 1.5,
-                                }}
-                            >
-                                <Typography
-                                    variant="subtitle2"
-                                    fontWeight={700}
-                                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-                                >
-                                    <FaFlag size={12} color={theme.palette.error.main} />
-                                    Denúncias Pendentes
-                                </Typography>
-                                {denunciasPendentes.length > 0 && (
-                                    <Chip
-                                        label={denunciasPendentes.length}
-                                        size="small"
-                                        color="error"
-                                        sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
-                                    />
-                                )}
-                            </Box>
-
-                            {denunciasPendentes.length === 0 ? (
-                                <Typography variant="caption" color="text.secondary">
-                                    Nenhuma denúncia pendente.
-                                </Typography>
-                            ) : (
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                    {denunciasPendentes.slice(0, 5).map((d) => (
-                                        <Box
-                                            key={d.id}
-                                            onClick={() => onTabChange?.(3)}
-                                            sx={{
-                                                p: 1,
-                                                borderRadius: 1.5,
-                                                cursor: "pointer",
-                                                transition: "background 0.15s",
-                                                "&:hover": {
-                                                    bgcolor: alpha(theme.palette.error.main, 0.07),
-                                                },
-                                            }}
-                                        >
-                                            <Typography
-                                                variant="caption"
-                                                fontWeight={600}
-                                                color="error.main"
-                                                display="block"
+                        {recentRegistrationsDisplay.length === 0 ? (
+                            <Typography color="text.secondary" variant="body2">Nenhum cadastro recente.</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {recentRegistrationsDisplay.map((r, idx) => {
+                                    const config = getRoleConfig(r.tipo);
+                                    return (
+                                        <Box key={r.id}>
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    py: 1.5,
+                                                    px: 1,
+                                                    borderRadius: 2,
+                                                    transition: "background-color 0.2s",
+                                                    '&:hover': {
+                                                        bgcolor: alpha(theme.palette.text.primary, 0.02),
+                                                    }
+                                                }}
                                             >
-                                                {MOTIVO_LABELS[d.motivo] || d.motivo}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                noWrap
-                                                display="block"
-                                            >
-                                                {d.estabelecimentoNome ||
-                                                    d.profissionalNome ||
-                                                    "Sem contexto"}
-                                            </Typography>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.disabled"
-                                                sx={{ fontSize: "0.65rem" }}
-                                            >
-                                                {formatDate(d.dataDenuncia)}
-                                            </Typography>
+                                                {/* Left side: Avatar + User Info */}
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
+                                                    <Box
+                                                        sx={{
+                                                            p: 1.2,
+                                                            borderRadius: '50%',
+                                                            bgcolor: config.bgColor,
+                                                            color: config.textColor,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            flexShrink: 0,
+                                                        }}
+                                                    >
+                                                        {config.icon}
+                                                    </Box>
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                        <Typography variant="body2" fontWeight={700} noWrap sx={{ color: 'text.primary', mb: 0.5 }}>
+                                                            {r.nome}
+                                                        </Typography>
+                                                        <Chip
+                                                            label={config.label}
+                                                            size="small"
+                                                            sx={{
+                                                                height: 20,
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 700,
+                                                                textTransform: 'uppercase',
+                                                                bgcolor: config.bgColor,
+                                                                color: config.textColor,
+                                                                border: "none",
+                                                                '& .MuiChip-label': { px: 1 }
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                </Box>
+
+                                                {/* Right side: Date and Time */}
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0, gap: 0.5 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                                                        <FaCalendarAlt size={11} />
+                                                        <Typography variant="caption" fontWeight={600}>
+                                                            {formatOnlyDate(r._created)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
+                                                        <FaClock size={11} />
+                                                        <Typography variant="caption" fontWeight={600}>
+                                                            {formatOnlyTime(r._created)}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                            {idx < recentRegistrationsDisplay.length - 1 && <Divider sx={{ my: 0.5 }} />}
                                         </Box>
-                                    ))}
-                                    {denunciasPendentes.length > 5 && (
-                                        <Typography
-                                            variant="caption"
-                                            color="text.disabled"
-                                            sx={{ pl: 1, fontStyle: "italic" }}
-                                        >
-                                            +{denunciasPendentes.length - 5} demais pendentes
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
-
-                        <Divider sx={{ mb: 2.5 }} />
-
-                        {/* Solicitações pendentes */}
-                        <Box>
-                            <Box
-                                sx={{
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    mb: 1.5,
-                                }}
-                            >
-                                <Typography
-                                    variant="subtitle2"
-                                    fontWeight={700}
-                                    sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-                                >
-                                    <FaBell size={12} color={theme.palette.warning.main} />
-                                    Solicitações Pendentes
-                                </Typography>
-                                {solicitacoesPendentes.length > 0 && (
-                                    <Chip
-                                        label={solicitacoesPendentes.length}
-                                        size="small"
-                                        color="warning"
-                                        sx={{ height: 20, fontSize: "0.65rem", fontWeight: 700 }}
-                                    />
-                                )}
+                                    );
+                                })}
                             </Box>
+                        )}
 
+                        <Divider sx={{ my: 2 }} />
+
+                        <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Distribuição por Estados</Typography>
+                        {stateDistribution.length === 0 ? (
+                            <Typography color="text.secondary">Sem dados de estado.</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                {stateDistribution.map(s => (
+                                    <Box key={s.sigla} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                        <Box sx={{ width: 48 }}><Typography variant="body2">{s.sigla}</Typography></Box>
+                                        <Box sx={{ flex: 1 }}>
+                                            <LinearProgress variant="determinate" value={s.pct} sx={{ height: 12, borderRadius: 6 }} />
                             {solicitacoesPendentes.length === 0 ? (
                                 <Typography variant="caption" color="text.secondary">
                                     Nenhuma solicitação pendente.
@@ -875,19 +1010,11 @@ const DashboardTab = ({ onTabChange }) => {
                                                 {formatDate(s.dataSolicitacao)}
                                             </Typography>
                                         </Box>
-                                    ))}
-                                    {solicitacoesPendentes.length > 5 && (
-                                        <Typography
-                                            variant="caption"
-                                            color="text.disabled"
-                                            sx={{ pl: 1, fontStyle: "italic" }}
-                                        >
-                                            +{solicitacoesPendentes.length - 5} demais pendentes
-                                        </Typography>
-                                    )}
-                                </Box>
-                            )}
-                        </Box>
+                                        <Box sx={{ width: 48, textAlign: 'right' }}><Typography variant="caption" color="text.secondary">{s.pct}%</Typography></Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
                     </Paper>
                 </Box>
             </Box>
