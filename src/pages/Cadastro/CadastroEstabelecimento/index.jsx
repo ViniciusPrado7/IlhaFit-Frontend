@@ -10,7 +10,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaImage, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
@@ -18,6 +18,7 @@ import { estabelecimentoService } from "../../../service/EstabelecimentoService"
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
+const MAX_FOTOS = 6;
 
 const formInicial = {
   nomeFantasia: "",
@@ -34,7 +35,7 @@ const formInicial = {
   cidade: "",
   estado: "",
   cep: "",
-  fotoUrl: "",
+  fotosUrl: [],
   latitude: null,
   longitude: null,
 };
@@ -257,16 +258,43 @@ const CadastroEstabelecimento = () => {
 
   const handleCepBlur = () => preencherEnderecoPorCep(formData.cep);
 
-  const handleFotoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFotosChange = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({ ...prev, fotoUrl: reader.result || "" }));
+    const availableSlots = MAX_FOTOS - formData.fotosUrl.length;
+    const selectedFiles = files.slice(0, availableSlots);
+
+    if (files.length > availableSlots) {
+      toast.info(`A galeria permite ate ${MAX_FOTOS} imagens.`);
+    }
+
+    Promise.all(
+      selectedFiles.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || "");
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((images) => {
+      setFormData((prev) => ({
+        ...prev,
+        fotosUrl: [...prev.fotosUrl, ...images.filter(Boolean)].slice(0, MAX_FOTOS),
+      }));
       setFieldErrors((prev) => ({ ...prev, fotoUrl: "", fotosUrl: "" }));
-    };
-    reader.readAsDataURL(file);
+    });
+
+    event.target.value = "";
+  };
+
+  const handleRemoveFoto = (indexToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      fotosUrl: prev.fotosUrl.filter((_, index) => index !== indexToRemove),
+    }));
+    setFieldErrors((prev) => ({ ...prev, fotoUrl: "", fotosUrl: "" }));
   };
 
   const handleGradeChange = (index, name, value) => {
@@ -290,7 +318,8 @@ const CadastroEstabelecimento = () => {
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
-    if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
+    if (!formData.fotosUrl.length) errors.fotosUrl = "Selecione pelo menos uma imagem";
+    if (formData.fotosUrl.length > MAX_FOTOS) errors.fotosUrl = `Selecione no maximo ${MAX_FOTOS} imagens`;
     if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
     if (!validarSenha(formData.senha)) {
       errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
@@ -341,7 +370,7 @@ const CadastroEstabelecimento = () => {
         diasSemana: item.diasSemana,
         periodos: item.periodos,
       })),
-    fotosUrl: formData.fotoUrl ? [formData.fotoUrl] : [],
+    fotosUrl: formData.fotosUrl.slice(0, MAX_FOTOS),
   });
 
   const handleSubmit = async (e) => {
@@ -519,29 +548,76 @@ const CadastroEstabelecimento = () => {
       {passwordFields()}
 
       <Box sx={{ mb: 2 }}>
-        {label("Foto")}
-        <Button
-          component="label"
-          variant="outlined"
-          fullWidth
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(16, 185, 129, 0.2)",
-            color: "text.secondary",
-            justifyContent: "flex-start",
-          }}
-        >
-          {formData.fotoUrl ? "Trocar imagem" : "Selecionar imagem"}
-          <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
-        </Button>
+        {label("Galeria de imagens")}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Adicione ate {MAX_FOTOS} imagens do estabelecimento.
+        </Typography>
+
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2 }}>
+          {formData.fotosUrl.map((foto, index) => (
+            <Box
+              key={`${foto}-${index}`}
+              sx={{
+                position: "relative",
+                aspectRatio: "16 / 10",
+                borderRadius: 2,
+                overflow: "hidden",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Box component="img" src={foto} alt={`Preview ${index + 1}`} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <Button
+                type="button"
+                color="error"
+                onClick={() => handleRemoveFoto(index)}
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  minWidth: 0,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: "background.paper",
+                }}
+              >
+                <FaTrash size={14} />
+              </Button>
+            </Box>
+          ))}
+
+          {formData.fotosUrl.length < MAX_FOTOS && (
+            <Button
+              component="label"
+              variant="outlined"
+              sx={{
+                aspectRatio: "16 / 10",
+                borderRadius: 2,
+                borderStyle: "dashed",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "rgba(16, 185, 129, 0.25)",
+                color: "text.secondary",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              <FaImage size={22} />
+              Adicionar imagens
+              <Typography variant="caption" color="inherit">
+                {formData.fotosUrl.length}/{MAX_FOTOS}
+              </Typography>
+              <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
+            </Button>
+          )}
+        </Box>
+
         {(fieldErrors.fotosUrl || fieldErrors.fotoUrl) && (
-          <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5 }}>
+          <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.75 }}>
             {fieldErrors.fotosUrl || fieldErrors.fotoUrl}
           </Typography>
-        )}
-        {formData.fotoUrl && (
-          <Box component="img" src={formData.fotoUrl} alt="Preview do estabelecimento" sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 2, mt: 1.5, border: "1px solid", borderColor: "divider" }} />
         )}
       </Box>
     </>

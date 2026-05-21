@@ -7,7 +7,6 @@ import {
   Dialog,
   Divider,
   InputAdornment,
-  MenuItem,
   Paper,
   TextField,
   Typography,
@@ -27,8 +26,8 @@ import {
 } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
 import CardProfissional from "../../components/Card/CardProfissional";
+import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
-import { categoriaService } from "../../service/CategoriaService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 import { profissionalService } from "../../service/ProfissionalService";
 
@@ -54,10 +53,6 @@ const byRating = (a, b) => {
   const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
   if (diff !== 0) return diff;
   return (b.item.totalAvaliacoes ?? 0) - (a.item.totalAvaliacoes ?? 0);
-};
-
-const getCategoriaNome = (categoria) => {
-  return categoria?.nome || "";
 };
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
@@ -153,7 +148,6 @@ const Home = () => {
   const isDark = theme.palette.mode === "dark";
   const [estabelecimentos, setEstabelecimentos] = useState([]);
   const [profissionais, setProfissionais] = useState([]);
-  const [categorias, setCategorias] = useState([]);
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -165,17 +159,15 @@ const Home = () => {
 
     const carregarHome = async () => {
       try {
-        const [estabelecimentosResponse, profissionaisResponse, categoriasResponse] = await Promise.all([
+        const [estabelecimentosResponse, profissionaisResponse] = await Promise.all([
           estabelecimentoService.listarEstabelecimentos(),
           profissionalService.listarProfissionais(),
-          categoriaService.listarCategorias(),
         ]);
 
         if (!isMounted) return;
 
         setEstabelecimentos(normalizeList(estabelecimentosResponse.data));
         setProfissionais(normalizeList(profissionaisResponse.data));
-        setCategorias(normalizeList(categoriasResponse.data));
         setError("");
       } catch (err) {
         if (!isMounted) return;
@@ -193,11 +185,6 @@ const Home = () => {
       isMounted = false;
     };
   }, []);
-
-  const categoryOptions = useMemo(() => {
-    const names = categorias.map(getCategoriaNome).filter(Boolean);
-    return ["Todas", ...new Set(names)];
-  }, [categorias]);
 
   const featuredEstabelecimentos = useMemo(
     () =>
@@ -585,30 +572,23 @@ const Home = () => {
                     }}
                   />
 
-                  <TextField
-                    select
-                    fullWidth
+                  <CategoriaSelectField
                     label="Categoria"
                     value={selectedCategoria}
-                    onChange={(event) => setSelectedCategoria(event.target.value)}
+                    onChange={setSelectedCategoria}
+                    allOptionLabel="Todas"
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: 3,
                         bgcolor: alpha(theme.palette.background.default, isDark ? 0.2 : 0.55),
                       },
                     }}
-                  >
-                    {categoryOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                  />
 
                   <Button
                     variant="outlined"
                     startIcon={<FaMapMarkerAlt />}
-                    onClick={() => navigate("/estabelecimento")}
+                    onClick={() => navigate("/mapa")}
                     sx={{
                       py: 1.8,
                       px: 2.6,

@@ -560,7 +560,26 @@ const ConfiguracaoEstabelecimento = () => {
       </Box>
 
       {label("Email")}
-      <TextField fullWidth disabled={!isEditingDados} name="email" type="email" value={formData.email} onChange={handleInputChange} error={Boolean(fieldErrors.email)} helperText={fieldErrors.email} sx={inputStyles} />
+      <TextField
+        fullWidth
+        disabled
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleInputChange}
+        error={Boolean(fieldErrors.email)}
+        helperText={fieldErrors.email || "Email apenas para visualizacao."}
+        sx={{
+          ...inputStyles,
+          "& .MuiOutlinedInput-root": {
+            ...inputStyles["& .MuiOutlinedInput-root"],
+            bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.05)",
+          },
+          "& .MuiInputBase-input.Mui-disabled": {
+            WebkitTextFillColor: theme.palette.text.secondary,
+          },
+        }}
+      />
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box>

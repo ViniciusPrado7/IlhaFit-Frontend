@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -14,7 +15,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaTimes } from "react-icons/fa";
 import { categoriaService } from "../../service/CategoriaService";
 
 const PAGE_SIZE = 10;
@@ -54,6 +55,7 @@ const CategoriaSelectField = ({
   label,
   value,
   onChange,
+  allOptionLabel = "",
   disabled = false,
   error = false,
   helperText = "",
@@ -73,7 +75,8 @@ const CategoriaSelectField = ({
     () => modalOptions.length > PAGE_SIZE || (!modalLastPage && modalOptions.length >= PAGE_SIZE),
     [modalLastPage, modalOptions.length]
   );
-  const shouldShowSelectedOutsideFirstPage = value && !selectOptions.some((item) => item.nome === value);
+  const shouldShowSelectedOutsideFirstPage =
+    value && value !== allOptionLabel && !selectOptions.some((item) => item.nome === value);
 
   const fetchPage = async ({ page, search, append }) => {
     const response = await categoriaService.listarCategoriasPaginadas(page, PAGE_SIZE, search);
@@ -179,6 +182,8 @@ const CategoriaSelectField = ({
       <FormControl fullWidth disabled={disabled || selectLoading} error={error} sx={sx}>
         <InputLabel>{label}</InputLabel>
         <Select value={value} label={label} onChange={handleSelectChange}>
+          {allOptionLabel ? <MenuItem value={allOptionLabel}>{allOptionLabel}</MenuItem> : null}
+
           {shouldShowSelectedOutsideFirstPage ? <MenuItem value={value}>{value}</MenuItem> : null}
 
           {selectOptions.map((item) => (
@@ -201,7 +206,12 @@ const CategoriaSelectField = ({
       </FormControl>
 
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Todas as categorias</DialogTitle>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+          Todas as categorias
+          <IconButton onClick={() => setModalOpen(false)} aria-label="Fechar categorias" size="small">
+            <FaTimes size={14} />
+          </IconButton>
+        </DialogTitle>
         <DialogContent dividers>
           <TextField
             fullWidth
