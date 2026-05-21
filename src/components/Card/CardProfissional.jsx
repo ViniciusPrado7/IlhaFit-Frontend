@@ -69,6 +69,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                 overflow: "hidden",
                 bgcolor: "background.paper",
                 cursor: "pointer",
+                position: "relative",
                 "&:hover": {
                     boxShadow: theme.shadows[6],
                     transform: "translateY(-4px)",
@@ -144,7 +145,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         mb: 2,
                     }}
                 >
-                    {especialidades.map((esp) => (
+                    {(especialidades.length > 3 ? especialidades.slice(0, 2) : especialidades.slice(0, 3)).map((esp) => (
                         <Chip
                             key={esp}
                             label={esp}
@@ -157,7 +158,35 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                             }}
                         />
                     ))}
+                    {especialidades.length > 3 && (
+                        <Chip
+                            label={`+${especialidades.length - 2}`}
+                            size="medium"
+                            sx={{
+                                bgcolor: "primary.main",
+                                color: "white",
+                                fontWeight: 500,
+                                fontSize: "0.9rem",
+                            }}
+                        />
+                    )}
                 </Box>
+
+                {profissional.exclusivoMulheres && (
+                    <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+                        <Chip
+                            label="Exclusiva para Mulheres"
+                            size="small"
+                            sx={{
+                                bgcolor: "rgba(244, 63, 94, 0.15)",
+                                color: "#e11d48",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                border: "1px solid rgba(244, 63, 94, 0.4)",
+                            }}
+                        />
+                    </Box>
+                )}
 
                 {profissional.telefone && (
                     <Box
