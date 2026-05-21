@@ -1,10 +1,10 @@
-import { Alert, Box, CircularProgress, Dialog, InputAdornment, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, Dialog, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
+import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
-import { categoriaService } from "../../service/CategoriaService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const getErrorMessage = (error) => {
@@ -35,10 +35,6 @@ const normalizeList = (data) => {
   }
 
   return [];
-};
-
-const getCategoriaNome = (categoria) => {
-  return categoria?.nome || "";
 };
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
@@ -81,7 +77,6 @@ const Estabelecimento = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [estabelecimentos, setEstabelecimentos] = useState([]);
-  const [categorias, setCategorias] = useState([]);
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEstabelecimento, setSelectedEstabelecimento] = useState(null);
@@ -93,14 +88,10 @@ const Estabelecimento = () => {
 
     const carregarEstabelecimentos = async () => {
       try {
-        const [estabelecimentosResponse, categoriasResponse] = await Promise.all([
-          estabelecimentoService.listarEstabelecimentos(),
-          categoriaService.listarCategorias(),
-        ]);
+        const estabelecimentosResponse = await estabelecimentoService.listarEstabelecimentos();
 
         if (isMounted) {
           setEstabelecimentos(normalizeList(estabelecimentosResponse.data));
-          setCategorias(normalizeList(categoriasResponse.data));
           setError("");
         }
       } catch (err) {
@@ -120,11 +111,6 @@ const Estabelecimento = () => {
       isMounted = false;
     };
   }, []);
-
-  const categoryOptions = useMemo(() => {
-    const names = categorias.map(getCategoriaNome).filter(Boolean);
-    return ["Todas", ...new Set(names)];
-  }, [categorias]);
 
   const filteredEstabelecimentos = useMemo(
     () =>
@@ -190,25 +176,18 @@ const Estabelecimento = () => {
               }}
             />
 
-            <TextField
-              select
-              fullWidth
+            <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={(event) => setSelectedCategoria(event.target.value)}
+              onChange={setSelectedCategoria}
+              allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 3,
                   bgcolor: alpha(theme.palette.background.default, isDark ? 0.2 : 0.55),
                 },
               }}
-            >
-              {categoryOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Box>
         </Paper>
       </Box>

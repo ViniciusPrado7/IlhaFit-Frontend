@@ -1,9 +1,9 @@
-import { Alert, Box, CircularProgress, InputAdornment, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, CircularProgress, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import CardProfissional from "../../components/Card/CardProfissional";
-import { categoriaService } from "../../service/CategoriaService";
+import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { profissionalService } from "../../service/ProfissionalService";
 
 const getErrorMessage = (error) => {
@@ -18,10 +18,6 @@ const normalizeList = (data) => {
   if (Array.isArray(data?.content)) return data.content;
   if (Array.isArray(data?.data)) return data.data;
   return [];
-};
-
-const getCategoriaNome = (categoria) => {
-  return categoria?.nome || "";
 };
 
 const getProfissionalCategorias = (profissional) => {
@@ -67,7 +63,6 @@ const Profissional = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [profissionais, setProfissionais] = useState([]);
-  const [categorias, setCategorias] = useState([]);
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -78,13 +73,9 @@ const Profissional = () => {
 
     const carregarProfissionais = async () => {
       try {
-        const [profissionaisResponse, categoriasResponse] = await Promise.all([
-          profissionalService.listarProfissionais(),
-          categoriaService.listarCategorias(),
-        ]);
+        const profissionaisResponse = await profissionalService.listarProfissionais();
         if (mounted) {
           setProfissionais(normalizeList(profissionaisResponse.data));
-          setCategorias(normalizeList(categoriasResponse.data));
           setError("");
         }
       } catch (err) {
@@ -104,11 +95,6 @@ const Profissional = () => {
       mounted = false;
     };
   }, []);
-
-  const categoryOptions = useMemo(() => {
-    const names = categorias.map(getCategoriaNome).filter(Boolean);
-    return ["Todas", ...new Set(names)];
-  }, [categorias]);
 
   const filteredProfissionais = useMemo(
     () =>
@@ -170,25 +156,18 @@ const Profissional = () => {
               }}
             />
 
-            <TextField
-              select
-              fullWidth
+            <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={(event) => setSelectedCategoria(event.target.value)}
+              onChange={setSelectedCategoria}
+              allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 3,
                   bgcolor: alpha(theme.palette.background.default, isDark ? 0.2 : 0.55),
                 },
               }}
-            >
-              {categoryOptions.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Box>
         </Paper>
       </Box>
