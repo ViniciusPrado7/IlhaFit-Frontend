@@ -22,7 +22,16 @@ export const authService = {
   },
 
   async esqueciSenha(email) {
-    const response = await api.post("/auth/esqueci-senha", { email });
+    const response = await api.post("/auth/forgot-password", { email }, { skipAuth: true });
+    return response.data;
+  },
+
+  async redefinirSenha(token, novaSenha, confirmacaoSenha) {
+    const response = await api.post(
+      "/auth/reset-password",
+      { token, novaSenha, confirmacaoSenha },
+      { skipAuth: true }
+    );
     return response.data;
   },
 };

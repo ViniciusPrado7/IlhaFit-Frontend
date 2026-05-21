@@ -1,59 +1,81 @@
 import React, { useState } from "react";
 import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  IconButton,
-  useTheme,
   Alert,
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TextField,
+  Typography,
+  useTheme,
 } from "@mui/material";
-import { FaArrowLeft } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { authService } from "../../../service/AuthService";
+
+const RECOVERY_MESSAGE = "Se o email estiver cadastrado, enviaremos as instruções de recuperação.";
+const RESET_SUCCESS_MESSAGE = "Senha alterada com sucesso.";
+
+const passwordRules = [
+  {
+    test: (value) => value.length >= 8,
+    message: "A senha deve ter no mínimo 8 caracteres.",
+  },
+  {
+    test: (value) => /[A-Z]/.test(value),
+    message: "A senha deve ter pelo menos 1 letra maiúscula.",
+  },
+  {
+    test: (value) => /[a-z]/.test(value),
+    message: "A senha deve ter pelo menos 1 letra minúscula.",
+  },
+  {
+    test: (value) => /\d/.test(value),
+    message: "A senha deve ter pelo menos 1 número.",
+  },
+  {
+    test: (value) => /[^A-Za-z0-9]/.test(value),
+    message: "A senha deve ter pelo menos 1 caractere especial.",
+  },
+];
 
 const getApiError = (error) => {
   const data = error?.response?.data;
 
-  if (data?.erro) return data.erro;
-  if (data?.email) return data.email;
   if (typeof data === "string") return data;
+  if (data?.erro) return data.erro;
+  if (data?.message) return data.message;
+  if (data?.mensagem) return data.mensagem;
 
-  return error?.message || "Erro ao processar solicitacao";
+  return "Erro ao processar solicitação.";
+};
+
+const validatePassword = (senha, confirmacaoSenha) => {
+  if (!senha) return "Senha obrigatória.";
+  if (!confirmacaoSenha) return "Confirmação obrigatória.";
+  if (senha !== confirmacaoSenha) return "As senhas precisam ser iguais.";
+
+  const failedRule = passwordRules.find((rule) => !rule.test(senha));
+  return failedRule?.message || "";
 };
 
 const EsqueciSenha = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
+  const isResetMode = Boolean(token);
   const isDark = theme.palette.mode === "dark";
 
   const [email, setEmail] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMessage("");
-
-    if (!email.trim()) {
-      toast.error("Preencha o email");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await authService.esqueciSenha(email.trim());
-      toast.success("Email de recuperacao enviado! Verifique sua caixa de entrada.");
-      setTimeout(() => navigate("/login", { state: { email: email.trim() } }), 3000);
-    } catch (error) {
-      console.error("Erro ao solicitar recuperacao:", error);
-      setErrorMessage(getApiError(error));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [successMessage, setSuccessMessage] = useState("");
 
   const inputStyles = {
     "& .MuiOutlinedInput-root": {
@@ -68,6 +90,63 @@ const EsqueciSenha = () => {
       py: 1.65,
     },
     mb: 2.5,
+  };
+
+  const clearMessages = () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const handleForgotPassword = async (event) => {
+    event.preventDefault();
+    clearMessages();
+
+    if (!email.trim()) {
+      setErrorMessage("Email obrigatório.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.esqueciSenha(email.trim());
+      setSuccessMessage(RECOVERY_MESSAGE);
+    } catch (error) {
+      console.error("Erro ao solicitar recuperação:", error);
+      const apiMessage = getApiError(error);
+      const isEmailNotFound = /email.*(nao|não).*existe|email.*(nao|não).*cadastrado/i.test(apiMessage);
+
+      if (error?.response?.status === 404 || isEmailNotFound) {
+        setSuccessMessage(RECOVERY_MESSAGE);
+        return;
+      }
+
+      setErrorMessage(apiMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (event) => {
+    event.preventDefault();
+    clearMessages();
+
+    const validationError = validatePassword(novaSenha, confirmacaoSenha);
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.redefinirSenha(token, novaSenha, confirmacaoSenha);
+      setSuccessMessage(RESET_SUCCESS_MESSAGE);
+      setTimeout(() => navigate("/login"), 1800);
+    } catch (error) {
+      console.error("Erro ao redefinir senha:", error);
+      setErrorMessage(getApiError(error));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,40 +194,102 @@ const EsqueciSenha = () => {
             mt: 1,
           }}
         >
-          Recuperar senha
+          {isResetMode ? "Redefinir senha" : "Recuperar senha"}
         </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ mb: 4, textAlign: "center" }}
-        >
-          Digite seu email para receber um link de redefinicao de senha.
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 4, textAlign: "center" }}>
+          {isResetMode
+            ? "Informe e confirme sua nova senha."
+            : "Digite seu email para receber as instruções de recuperação."}
         </Typography>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={isResetMode ? handleResetPassword : handleForgotPassword}>
+          {successMessage && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
+
           {errorMessage && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {errorMessage}
             </Alert>
           )}
 
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
-            Email
-          </Typography>
-          <TextField
-            fullWidth
-            name="email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setErrorMessage("");
-            }}
-            placeholder="seu@email.com"
-            error={Boolean(errorMessage)}
-            sx={inputStyles}
-          />
+          {isResetMode ? (
+            <>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
+                Nova senha
+              </Typography>
+              <TextField
+                fullWidth
+                name="novaSenha"
+                type={showPassword ? "text" : "password"}
+                value={novaSenha}
+                onChange={(event) => {
+                  setNovaSenha(event.target.value);
+                  clearMessages();
+                }}
+                placeholder="NovaSenha@123"
+                error={Boolean(errorMessage)}
+                sx={inputStyles}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword((current) => !current)} edge="end" size="small">
+                        {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
+                Confirmar nova senha
+              </Typography>
+              <TextField
+                fullWidth
+                name="confirmacaoSenha"
+                type={showConfirmation ? "text" : "password"}
+                value={confirmacaoSenha}
+                onChange={(event) => {
+                  setConfirmacaoSenha(event.target.value);
+                  clearMessages();
+                }}
+                placeholder="NovaSenha@123"
+                error={Boolean(errorMessage)}
+                sx={inputStyles}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowConfirmation((current) => !current)} edge="end" size="small">
+                        {showConfirmation ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
+                Email
+              </Typography>
+              <TextField
+                fullWidth
+                name="email"
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearMessages();
+                }}
+                placeholder="seu@email.com"
+                error={Boolean(errorMessage)}
+                sx={inputStyles}
+              />
+            </>
+          )}
 
           <Button
             type="submit"
@@ -169,7 +310,11 @@ const EsqueciSenha = () => {
               },
             }}
           >
-            {loading ? "Enviando..." : "Enviar link"}
+            {loading
+              ? "Enviando..."
+              : isResetMode
+                ? "Alterar senha"
+                : "Enviar link de recuperação"}
           </Button>
         </form>
       </Paper>

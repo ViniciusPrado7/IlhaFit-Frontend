@@ -1,12 +1,18 @@
 import axios from 'axios';
 import { authSession } from './AuthSession';
 
+const apiUrl = import.meta.env.VITE_API_URL?.replace(/\/+$/, "").replace(/\/api$/, "");
+
 export const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: apiUrl ? `${apiUrl}/api` : '/api',
     withCredentials: true,
 })
 
 api.interceptors.request.use((config) => {
+    if (config.skipAuth) {
+        return config;
+    }
+
     const token = authSession.getToken();
     const tokenType = authSession.getTokenType();
 
@@ -23,7 +29,7 @@ api.interceptors.response.use(
         const status = error?.response?.status;
         const url = error?.config?.url || "";
 
-        if (status === 401 && !url.includes("/auth/login") && !url.includes("/auth/me")) {
+        if (status === 401 && !error?.config?.skipAuth && !url.includes("/auth/login") && !url.includes("/auth/me")) {
             authSession.clear();
             window.location.href = "/login";
         }
