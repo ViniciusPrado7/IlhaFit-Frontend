@@ -62,13 +62,18 @@ const Footer = () => {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1.1fr 0.9fr 0.9fr 1fr" },
-            gap: { xs: 4, md: 3 },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, minmax(0, 1fr))",
+              xl: "1.1fr 0.9fr 0.9fr 1fr",
+            },
+            gap: { xs: 3, sm: 4, md: 3 },
           }}
         >
           <Box
             sx={{
-              pr: { md: 3 },
+              pr: { xl: 3 },
+              gridColumn: { sm: "1 / -1", xl: "auto" },
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
@@ -159,6 +164,7 @@ const Footer = () => {
                 bgcolor: alpha(theme.palette.background.paper, isDark ? 0.5 : 0.65),
                 borderRadius: 3,
                 p: 2.25,
+                height: "100%",
               }}
             >
               <Button
@@ -193,13 +199,18 @@ const Footer = () => {
             borderTop: "1px solid",
             borderColor: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.08),
             display: "flex",
-            alignItems: "center",
+            alignItems: { xs: "stretch", sm: "center" },
             justifyContent: "space-between",
+            flexDirection: { xs: "column-reverse", sm: "row" },
             gap: 2,
             flexWrap: "wrap",
           }}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontWeight: 600, textAlign: { xs: "center", sm: "left" } }}
+          >
             {"\u00A9"} {year} IlhaFit. Todos os direitos reservados.
           </Typography>
 
@@ -209,6 +220,7 @@ const Footer = () => {
             sx={{
               width: 48,
               height: 48,
+              alignSelf: { xs: "flex-end", sm: "auto" },
               borderRadius: 2.5,
               bgcolor: "primary.main",
               color: "#FFFFFF",
