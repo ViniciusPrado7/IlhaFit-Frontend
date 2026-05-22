@@ -30,6 +30,7 @@ import {
     FaStar,
     FaTimes,
     FaLocationArrow,
+    FaCheck,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { estabelecimentoService } from "../../services";
@@ -52,12 +53,52 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 const DEFAULT_ZOOM = 12;
 const VISIBLE_CHIPS = 5;
 const FALLBACK_COORDS = { lat: -27.5948, lng: -48.5482 };
+const PERIOD_ORDER = ["MANHA", "TARDE", "NOITE"];
 
 const formatDistance = (distance) =>
     Number.isFinite(distance) ? distance.toFixed(1) : null;
 
+const formatPhone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+
+    if (!digits) return "Nao informado";
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) {
+        return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatPeriodLabel = (periodo) => {
+    const labels = {
+        MANHA: "Manha",
+        TARDE: "Tarde",
+        NOITE: "Noite",
+    };
+
+    return labels[periodo] || periodo;
+};
+
+const formatPeriods = (gradeAtividades = []) => {
+    const uniquePeriods = Array.from(
+        new Set(
+            gradeAtividades.flatMap((item) =>
+                Array.isArray(item?.periodos) ? item.periodos : []
+            )
+        )
+    )
+        .filter(Boolean)
+        .sort((a, b) => PERIOD_ORDER.indexOf(a) - PERIOD_ORDER.indexOf(b));
+
+    if (uniquePeriods.length === 0) return "Periodos nao informados";
+    return uniquePeriods.map(formatPeriodLabel).join(" e ");
+};
+
 const Mapa = () => {
     const theme = useTheme();
+    const isDark = theme.palette.mode === "dark";
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
@@ -259,6 +300,7 @@ const Mapa = () => {
                 const mapped = data.map((est) => {
                     const lat = est.endereco?.latitude ?? null;
                     const lng = est.endereco?.longitude ?? null;
+                    const gradeAtividades = est.gradeAtividades || [];
                     const atividades = (est.gradeAtividades || [])
                         .map((g) => g.atividade)
                         .filter(Boolean);
@@ -274,9 +316,9 @@ const Mapa = () => {
                             est.fotosUrl?.[0] ||
                             "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=60",
                         telefone: est.telefone,
-                        horario: "06:00 - 22:00",
                         aberto: true,
                         atividades,
+                        periodosLabel: formatPeriods(gradeAtividades),
                         bairro: est.endereco?.bairro || "",
                     };
                 });
@@ -424,11 +466,12 @@ const Mapa = () => {
     return (
         <Box
             sx={{
-                p: 3,
-                height: "calc(100vh - 80px)",
+                p: 2,
+                minHeight: "calc(100vh - 80px)",
+                height: { xs: "auto", lg: "calc(100vh - 64px)" },
                 display: "flex",
                 flexDirection: "column",
-                gap: 3,
+                gap: 1.5,
                 bgcolor: "background.default",
             }}
         >
@@ -589,7 +632,7 @@ const Mapa = () => {
                                     }}
                                     sx={{
                                         borderRadius: 3,
-                                        minWidth: 220,
+                                        minWidth: { xs: "100%", sm: 260 },
                                         bgcolor: "background.paper",
                                         "& .MuiSelect-select": {
                                             display: "flex",
@@ -597,10 +640,48 @@ const Mapa = () => {
                                             py: 1,
                                         },
                                     }}
+                                    MenuProps={{
+                                        PaperProps: {
+                                            sx: {
+                                                maxHeight: 224, // approx 5 items
+                                                overflowY: "auto",
+                                                "&::-webkit-scrollbar": {
+                                                    display: "none",
+                                                },
+                                                msOverflowStyle: "none",
+                                                scrollbarWidth: "none",
+                                            }
+                                        }
+                                    }}
                                 >
                                     {allCategories.map((cat) => (
-                                        <MenuItem key={cat} value={cat}>
+                                        <MenuItem
+                                            key={cat}
+                                            value={cat}
+                                            sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                gap: 1,
+                                            }}
+                                        >
                                             <MuiListItemText primary={cat} />
+                                            <Box
+                                                component="span"
+                                                sx={{
+                                                    display: "inline-flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    color: "primary.main",
+                                                    opacity: selectedCategories.includes(cat) ? 1 : 0,
+                                                    transform: selectedCategories.includes(cat)
+                                                        ? "scale(1)"
+                                                        : "scale(0.7)",
+                                                    transition: "all 0.18s ease",
+                                                }}
+                                            >
+                                                <FaCheck size={13} />
+                                            </Box>
                                         </MenuItem>
                                     ))}
                                 </Select>
@@ -664,11 +745,12 @@ const Mapa = () => {
                         flex: 1,
                         minHeight: 0,
                         flexDirection: isMobile ? "column" : "row",
+                        alignItems: "stretch",
                     }}
                 >
                     <Box
                         sx={{
-                            flex: 1,
+                            flex: isMobile ? "1 1 auto" : "1.2 1 0%",
                             bgcolor: "background.paper",
                             borderRadius: 6,
                             overflow: "hidden",
@@ -676,7 +758,8 @@ const Mapa = () => {
                             border: "1px solid",
                             borderColor: "divider",
                             boxShadow: "inset 0 2px 10px rgba(0,0,0,0.05)",
-                            height: isMobile ? 400 : "100%",
+                            minHeight: isMobile ? 440 : 0,
+                            height: isMobile ? 440 : "100%",
                             flexShrink: 0,
                         }}
                     >
@@ -699,88 +782,112 @@ const Mapa = () => {
 
                     <Box
                         sx={{
-                            width: isMobile ? "100%" : isTablet ? 300 : 380,
+                            width: isMobile ? "100%" : isTablet ? 400 : 520,
                             display: "flex",
                             flexDirection: "column",
-                            gap: 2.5,
+                            gap: 1.5,
+                            height: isMobile ? "auto" : "100%",
+                            minHeight: 0,
+                            p: { xs: 1.25, md: 1.5 },
+                            borderRadius: 5,
+                            bgcolor: isDark
+                                ? alpha("#052E2B", 0.72)
+                                : alpha("#DDF7EF", 0.92),
+                            border: "1px solid",
+                            borderColor: alpha(theme.palette.primary.main, isDark ? 0.22 : 0.16),
+                            boxShadow: isDark
+                                ? "0 22px 42px rgba(2, 12, 27, 0.34)"
+                                : "0 20px 38px rgba(16, 185, 129, 0.14)",
+                            backdropFilter: "blur(10px)",
                         }}
                     >
                         <Paper
                             elevation={4}
                             sx={{
-                                p: 2.5,
-                                borderRadius: 5,
-                                minHeight: 200,
+                                p: 1.8,
+                                borderRadius: 3.5,
+                                minHeight: "auto",
                                 display: "flex",
                                 flexDirection: "column",
                                 justifyContent: "center",
                                 transition: "all 0.3s ease",
-                                bgcolor: alpha(theme.palette.background.paper, 0.8),
+                                bgcolor: alpha(theme.palette.background.paper, isDark ? 0.74 : 0.88),
                                 backdropFilter: "blur(10px)",
                                 border: "1px solid",
-                                borderColor: "divider",
+                                borderColor: alpha(theme.palette.primary.main, 0.12),
                                 opacity: selectedId ? 1 : 0.8,
+                                flexShrink: 0,
                             }}
                         >
                             {selectedEstablishment ? (
                                 <>
-                                    <Box sx={{ display: "flex", gap: 2, mb: 2.5 }}>
-                                        <Avatar
-                                            src={selectedEstablishment.imagem}
-                                            variant="rounded"
-                                            sx={{
-                                                width: 60,
-                                                height: 60,
-                                                borderRadius: 3,
-                                            }}
-                                        />
-                                        <Box>
-                                            <Typography variant="h6" fontWeight={700}>
-                                                {selectedEstablishment.nome}
-                                            </Typography>
-                                            <Box
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, mb: 1 }}>
+                                        <Box sx={{ display: "flex", gap: 1.25 }}>
+                                            <Avatar
+                                                src={selectedEstablishment.imagem}
+                                                variant="rounded"
                                                 sx={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    mt: 0.5,
+                                                    width: 56,
+                                                    height: 56,
+                                                    borderRadius: 2,
                                                 }}
-                                            >
-                                                <Rating
-                                                    value={selectedEstablishment.avaliacao}
-                                                    readOnly
-                                                    size="small"
-                                                    precision={0.1}
-                                                />
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{ ml: 1, fontWeight: 600 }}
-                                                >
-                                                    {selectedEstablishment.avaliacao}
+                                            />
+                                            <Box>
+                                                <Typography variant="subtitle1" fontWeight={800} sx={{ lineHeight: 1.2 }}>
+                                                    {selectedEstablishment.nome}
                                                 </Typography>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        mt: 0.25,
+                                                    }}
+                                                >
+                                                    <Rating
+                                                        value={selectedEstablishment.avaliacao}
+                                                        readOnly
+                                                        size="small"
+                                                        precision={0.1}
+                                                    />
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ ml: 0.5, fontWeight: 600 }}
+                                                    >
+                                                        {selectedEstablishment.avaliacao}
+                                                    </Typography>
+                                                </Box>
                                             </Box>
                                         </Box>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setSelectedId(null)}
+                                            sx={{ mt: -0.5, mr: -0.5 }}
+                                        >
+                                            <FaTimes size={13} />
+                                        </IconButton>
                                     </Box>
 
                                     <Box
                                         sx={{
                                             display: "flex",
                                             flexDirection: "column",
-                                            gap: 1.5,
-                                            mb: 2.5,
+                                            gap: 0.65,
+                                            mb: 1,
                                         }}
                                     >
                                         <Box
                                             sx={{
                                                 display: "flex",
                                                 alignItems: "center",
-                                                gap: 1.5,
+                                                gap: 1,
                                                 color: "text.secondary",
                                             }}
                                         >
                                             <FaMapMarkerAlt
+                                                size={12}
                                                 color={theme.palette.primary.main}
                                             />
-                                            <Typography variant="body2">
+                                            <Typography variant="caption">
                                                 {selectedEstablishment.distancia
                                                     ? `${selectedEstablishment.distancia}km de voce`
                                                     : "Distancia indisponivel"}
@@ -790,31 +897,32 @@ const Mapa = () => {
                                             sx={{
                                                 display: "flex",
                                                 alignItems: "center",
-                                                gap: 1.5,
+                                                gap: 1,
                                                 color: "text.secondary",
                                             }}
                                         >
                                             <FaPhone
+                                                size={12}
                                                 color={theme.palette.primary.main}
                                             />
-                                            <Typography variant="body2">
-                                                {selectedEstablishment.telefone ||
-                                                    "Nao informado"}
+                                            <Typography variant="caption">
+                                                {formatPhone(selectedEstablishment.telefone)}
                                             </Typography>
                                         </Box>
                                         <Box
                                             sx={{
                                                 display: "flex",
                                                 alignItems: "center",
-                                                gap: 1.5,
+                                                gap: 1,
                                                 color: "text.secondary",
                                             }}
                                         >
                                             <FaClock
+                                                size={12}
                                                 color={theme.palette.primary.main}
                                             />
-                                            <Typography variant="body2">
-                                                {selectedEstablishment.horario}
+                                            <Typography variant="caption">
+                                                {selectedEstablishment.periodosLabel}
                                             </Typography>
                                         </Box>
                                     </Box>
@@ -822,6 +930,7 @@ const Mapa = () => {
                                     <Button
                                         fullWidth
                                         variant="contained"
+                                        size="small"
                                         onClick={async () => {
                                             try {
                                                 const fullData =
@@ -838,9 +947,10 @@ const Mapa = () => {
                                             }
                                         }}
                                         sx={{
-                                            py: 1.5,
-                                            borderRadius: 3,
+                                            py: 0.95,
+                                            borderRadius: 1.5,
                                             fontWeight: 700,
+                                            fontSize: "0.88rem",
                                             textTransform: "none",
                                             bgcolor: "primary.main",
                                             boxShadow: `0 4px 12px ${alpha(
@@ -864,22 +974,22 @@ const Mapa = () => {
                                 <Box
                                     sx={{
                                         display: "flex",
-                                        flexDirection: "column",
                                         alignItems: "center",
+                                        gap: 1.5,
+                                        py: 0.25,
                                     }}
                                 >
                                     <FaMapMarkerAlt
-                                        size={40}
+                                        size={18}
                                         color={theme.palette.primary.main}
-                                        style={{ opacity: 0.5, marginBottom: 16 }}
+                                        style={{ opacity: 0.6, flexShrink: 0 }}
                                     />
                                     <Typography
                                         variant="body2"
                                         color="text.secondary"
-                                        textAlign="center"
+                                        sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}
                                     >
-                                        Clique em um marcador no mapa para ver os
-                                        detalhes do estabelecimento
+                                        Selecione um local no mapa para ver detalhes.
                                     </Typography>
                                 </Box>
                             )}
@@ -887,10 +997,11 @@ const Mapa = () => {
 
                         <Box
                             sx={{
-                                flex: 1,
+                                flex: "1 1 0%",
                                 display: "flex",
                                 flexDirection: "column",
                                 minHeight: 0,
+                                overflow: "hidden",
                             }}
                         >
                             <Typography variant="subtitle1" fontWeight={700} mb={2}>
@@ -901,8 +1012,10 @@ const Mapa = () => {
                                     overflowY: "auto",
                                     display: "flex",
                                     flexDirection: "column",
-                                    gap: 1.5,
+                                    gap: 1.75,
                                     pr: 1,
+                                    flex: 1,
+                                    minHeight: 0,
                                 }}
                             >
                                 {filteredEstablishments.map((est) => (
@@ -912,9 +1025,9 @@ const Mapa = () => {
                                         sx={{
                                             display: "flex",
                                             alignItems: "center",
-                                            gap: 1.5,
-                                            p: 1.5,
-                                            borderRadius: 4,
+                                            gap: 1.2,
+                                            p: 1.2,
+                                            borderRadius: 2,
                                             cursor: "pointer",
                                             transition: "all 0.2s",
                                             border: "1px solid",
@@ -924,19 +1037,26 @@ const Mapa = () => {
                                                           theme.palette.primary.main,
                                                           0.3
                                                       )
-                                                    : "transparent",
+                                                    : theme.palette.divider,
                                             bgcolor:
                                                 selectedId === est.id
                                                     ? alpha(
                                                           theme.palette.primary.main,
                                                           0.1
                                                       )
-                                                    : "transparent",
+                                                    : theme.palette.background.paper,
+                                            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
                                             "&:hover": {
                                                 bgcolor: alpha(
                                                     theme.palette.primary.main,
-                                                    0.05
+                                                    0.04
                                                 ),
+                                                borderColor: alpha(
+                                                    theme.palette.primary.main,
+                                                    0.15
+                                                ),
+                                                transform: "translateY(-1px)",
+                                                boxShadow: "0 4px 8px rgba(0, 0, 0, 0.04)",
                                             },
                                         }}
                                     >
@@ -944,24 +1064,40 @@ const Mapa = () => {
                                             src={est.imagem}
                                             variant="rounded"
                                             sx={{
-                                                width: 48,
-                                                height: 48,
+                                                width: 44,
+                                                height: 44,
                                                 borderRadius: 2,
                                             }}
                                         />
                                         <Box sx={{ flexGrow: 1 }}>
-                                            <Typography variant="body2" fontWeight={700}>
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight={700}
+                                                sx={{ fontSize: "0.88rem", lineHeight: 1.2 }}
+                                            >
                                                 {est.nome}
                                             </Typography>
                                             <Typography
                                                 variant="caption"
                                                 color="text.secondary"
+                                                sx={{ fontSize: "0.7rem" }}
                                             >
                                                 {est.categoria}
                                                 {est.bairro ? ` • ${est.bairro}` : ""}
                                                 {est.distancia
                                                     ? ` • ${est.distancia}km`
                                                     : ""}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                sx={{
+                                                    display: "block",
+                                                    mt: 0.18,
+                                                    fontSize: "0.69rem",
+                                                }}
+                                            >
+                                                {est.periodosLabel}
                                             </Typography>
                                         </Box>
                                         <FaChevronRight
