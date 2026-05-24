@@ -161,7 +161,7 @@ const CadastroEstabelecimento = () => {
       if (!geoData || geoData.length === 0) {
         setFieldErrors((prev) => ({
           ...prev,
-          rua: prev.rua || "Nao foi possivel localizar esse endereco com precisao.",
+          rua: prev.rua || "Não foi possível localizar esse endereço com precisão.",
         }));
         return false;
       }
@@ -266,7 +266,7 @@ const CadastroEstabelecimento = () => {
     const selectedFiles = files.slice(0, availableSlots);
 
     if (files.length > availableSlots) {
-      toast.info(`A galeria permite ate ${MAX_FOTOS} imagens.`);
+      toast.info(`A galeria permite até ${MAX_FOTOS} imagens.`);
     }
 
     Promise.all(
@@ -319,10 +319,10 @@ const CadastroEstabelecimento = () => {
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
     if (!formData.fotosUrl.length) errors.fotosUrl = "Selecione pelo menos uma imagem";
-    if (formData.fotosUrl.length > MAX_FOTOS) errors.fotosUrl = `Selecione no maximo ${MAX_FOTOS} imagens`;
+    if (formData.fotosUrl.length > MAX_FOTOS) errors.fotosUrl = `Selecione no máximo ${MAX_FOTOS} imagens`;
     if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
     if (!validarSenha(formData.senha)) {
-      errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
+      errors.senha = "A senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.";
     }
 
     setFieldErrors(errors);
@@ -339,7 +339,7 @@ const CadastroEstabelecimento = () => {
 
     setFieldErrors((prev) => ({
       ...prev,
-      gradeAtividades: "Informe uma categoria válida, dias da semana e período em todas as atividades.",
+      gradeAtividades: "Informe uma categoria válida, os dias da semana e o período em todas as atividades.",
     }));
     return false;
   };
@@ -381,7 +381,7 @@ const CadastroEstabelecimento = () => {
       if (validarEtapaUm()) {
         const coordenadasOk = await atualizarCoordenadas(formData);
         if (!coordenadasOk) {
-          setGeneralError("Revise o endereco e o numero para encontrarmos a localizacao correta do estabelecimento.");
+          setGeneralError("Revise o endereço e o número para encontrarmos a localização correta do estabelecimento.");
           return;
         }
         setStep(1);
@@ -397,7 +397,7 @@ const CadastroEstabelecimento = () => {
       if (!formData.latitude || !formData.longitude) {
         const coordenadasOk = await atualizarCoordenadas(formData);
         if (!coordenadasOk) {
-          setGeneralError("Nao foi possivel confirmar a localizacao do endereco informado.");
+          setGeneralError("Não foi possível confirmar a localização do endereço informado.");
           return;
         }
       }
@@ -550,7 +550,7 @@ const CadastroEstabelecimento = () => {
       <Box sx={{ mb: 2 }}>
         {label("Galeria de imagens")}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          Adicione ate {MAX_FOTOS} imagens do estabelecimento.
+          Adicione até {MAX_FOTOS} imagens do estabelecimento.
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2 }}>

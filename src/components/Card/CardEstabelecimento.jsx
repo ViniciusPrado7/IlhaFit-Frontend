@@ -25,9 +25,9 @@ const getNome = (estabelecimento) => estabelecimento.nomeFantasia || "Estabeleci
 
 const getLocalizacao = (estabelecimento) => {
   const endereco = estabelecimento.endereco;
-  if (!endereco) return estabelecimento.telefone || "Localizacao nao informada";
+  if (!endereco) return estabelecimento.telefone || "Localização não informada";
 
-  return [endereco.bairro, endereco.cidade].filter(Boolean).join(", ") || endereco.rua || "Localizacao nao informada";
+  return [endereco.bairro, endereco.cidade].filter(Boolean).join(", ") || endereco.rua || "Localização não informada";
 };
 
 const getCategorias = (estabelecimento) => {
@@ -44,7 +44,7 @@ const getDescricao = (estabelecimento) => {
     return `Espaco com atividades de ${categorias.join(", ")}.`;
   }
 
-  return estabelecimento.email || "Conheca este estabelecimento da comunidade IlhaFit.";
+  return estabelecimento.email || "Conheça este estabelecimento da comunidade IlhaFit.";
 };
 
 const CardEstabelecimento = ({ estabelecimento, onClick }) => {
