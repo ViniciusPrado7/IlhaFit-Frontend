@@ -18,6 +18,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
+import PrivacyPolicyConsent from "../../../components/PrivacyPolicyConsent";
 import { profissionalService } from "../../../service/ProfissionalService";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
@@ -94,6 +95,7 @@ const CadastroProfissional = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(false);
   const generoFeminino = formData.genero === "FEMININO";
@@ -190,6 +192,7 @@ const CadastroProfissional = () => {
     const errors = {};
 
     if (!formData.genero) errors.genero = "Selecione o gênero";
+    if (!privacyAccepted) errors.privacyAccepted = "Voce precisa aceitar a Politica de Privacidade para continuar.";
     const invalida = gradeAtividades.some((item) => (
       !item.atividade ||
       !item.diasSemana.length ||
@@ -517,6 +520,15 @@ const CadastroProfissional = () => {
       <Button type="button" variant="outlined" onClick={() => setGradeAtividades((prev) => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
         Adicionar atividade
       </Button>
+
+      <PrivacyPolicyConsent
+        checked={privacyAccepted}
+        onChange={(checked) => {
+          setPrivacyAccepted(checked);
+          if (checked) limparErro("privacyAccepted");
+        }}
+        error={fieldErrors.privacyAccepted}
+      />
     </>
   );
 
