@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from "@mui/material";
 import ModalEstabelecimentoContent from "../ModalEstabelecimento";
 
 const ModalDetalhesEstabelecimento = ({ open, onClose, estabelecimento }) => (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth disableRestoreFocus>
         <DialogContent sx={{ p: 0 }}>
             {estabelecimento && (
                 <ModalEstabelecimentoContent

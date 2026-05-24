@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Button, Chip, Dialog, DialogContent, Paper, Typography } from "@mui/material";
 import { FaStar, FaWhatsapp } from "react-icons/fa";
 import AvaliacoesPanel from "../AvaliacoesPanel";
+import LimitedChipList from "../LimitedChipList";
 
 const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
@@ -50,10 +51,18 @@ const periodoTagSx = {
   borderRadius: 1.5,
 };
 
+const ACTIVITIES_PAGE_SIZE = 5;
+
 const ModalProfissional = ({ open, onClose, profissional }) => {
   if (!profissional) return null;
 
   const categorias = getCategorias(profissional);
+  const atividades = profissional.gradeAtividades || [];
+  const [visibleActivitiesCount, setVisibleActivitiesCount] = React.useState(ACTIVITIES_PAGE_SIZE);
+
+  React.useEffect(() => {
+    setVisibleActivitiesCount(ACTIVITIES_PAGE_SIZE);
+  }, [profissional?.id]);
 
   const handleClose = (_, reason) => {
     if (reason === "backdropClick" || reason === "escapeKeyDown" || !reason) {
@@ -67,6 +76,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
       onClose={handleClose}
       fullWidth
       maxWidth="md"
+      disableRestoreFocus
       PaperProps={{
         sx: {
           borderRadius: 2,
@@ -147,10 +157,15 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
               )}
             </Box>
 
-            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", my: 2.5 }}>
-              {categorias.map((categoria) => (
-                <Chip key={categoria} label={categoria} size="small" sx={tagSx} />
-              ))}
+            <Box sx={{ my: 2.5 }}>
+              <LimitedChipList
+                items={categorias}
+                limit={5}
+                chipSx={tagSx}
+                title="Categorias do profissional"
+                dialogLabel={`Categorias oferecidas por ${getNome(profissional)}`}
+                buttonLabel="Ver mais"
+              />
             </Box>
 
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
@@ -177,7 +192,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
               Atividades oferecidas
             </Typography>
             <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
-              {(profissional.gradeAtividades || []).map((grade, index) => (
+              {atividades.slice(0, visibleActivitiesCount).map((grade, index) => (
                 <Box
                   key={`${grade.atividade}-${index}`}
                   sx={{
@@ -229,6 +244,16 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                   </Box>
                 </Box>
               ))}
+
+              {atividades.length > visibleActivitiesCount && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setVisibleActivitiesCount((current) => current + ACTIVITIES_PAGE_SIZE)}
+                  sx={{ justifySelf: "center", borderRadius: 2, fontWeight: 900, mt: 0.5 }}
+                >
+                  Ver mais atividades
+                </Button>
+              )}
             </Box>
 
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>

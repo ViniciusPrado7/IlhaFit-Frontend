@@ -8,8 +8,8 @@ import {
   Typography,
 } from "@mui/material";
 import { FaArrowRight, FaMapMarkerAlt, FaStar } from "react-icons/fa";
-import { CiTimer } from "react-icons/ci";
 import { useState } from "react";
+import { formatarAvaliacao } from "../../utils/avaliacao";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80";
 
@@ -52,6 +52,8 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
   const nome = getNome(estabelecimento);
   const avaliacao = estabelecimento.avaliacao ?? 0;
   const categorias = getCategorias(estabelecimento);
+  const visibleCategorias = categorias.slice(0, 3);
+  const hiddenCategoriasCount = Math.max(categorias.length - visibleCategorias.length, 0);
 
   return (
     <Card
@@ -110,7 +112,7 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
         >
           <FaStar size={13} color="#FBBF24" />
           <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 800 }}>
-            {avaliacao}
+            {formatarAvaliacao(avaliacao)}
           </Typography>
         </Box>
         <Box sx={{ position: "absolute", left: 20, right: 20, bottom: 16 }}>
@@ -128,7 +130,7 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
 
       <CardContent sx={{ display: "flex", flexDirection: "column", flexGrow: 1, p: 2.5 }}>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
-          {categorias.slice(0, 3).map((cat) => (
+          {visibleCategorias.map((cat) => (
             <Chip
               key={cat}
               label={cat}
@@ -141,6 +143,18 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
               }}
             />
           ))}
+          {hiddenCategoriasCount > 0 && (
+            <Chip
+              label={`+${hiddenCategoriasCount}`}
+              size="small"
+              sx={{
+                bgcolor: "rgba(16, 185, 129, 0.10)",
+                color: "primary.main",
+                fontWeight: 900,
+                borderRadius: 1.5,
+              }}
+            />
+          )}
         </Box>
 
         <Typography
@@ -160,13 +174,7 @@ const CardEstabelecimento = ({ estabelecimento, onClick }) => {
 
         <Divider sx={{ mt: "auto", mb: 1.5 }} />
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "text.secondary" }}>
-            <CiTimer size={18} />
-            <Typography variant="caption" fontWeight={700}>
-              Aberto hoje
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "primary.main", fontSize: 14, fontWeight: 800 }}>
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.75, color: "primary.main", fontSize: 14, fontWeight: 800 }}>
             Ver detalhes
             <FaArrowRight size={13} />
           </Box>

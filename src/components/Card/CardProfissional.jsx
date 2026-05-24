@@ -43,6 +43,8 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
     const isDark = theme.palette.mode === "dark";
     const [modalOpen, setModalOpen] = useState(false);
     const especialidades = getEspecialidades(profissional);
+    const visibleEspecialidades = especialidades.slice(0, 3);
+    const hiddenEspecialidadesCount = Math.max(especialidades.length - visibleEspecialidades.length, 0);
     const abrirModal = () => {
         onVisualizar?.(profissional);
         setModalOpen(true);
@@ -144,7 +146,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         mb: 2,
                     }}
                 >
-                    {especialidades.map((esp) => (
+                    {visibleEspecialidades.map((esp) => (
                         <Chip
                             key={esp}
                             label={esp}
@@ -157,6 +159,18 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                             }}
                         />
                     ))}
+                    {hiddenEspecialidadesCount > 0 && (
+                        <Chip
+                            label={`+${hiddenEspecialidadesCount}`}
+                            size="medium"
+                            sx={{
+                                bgcolor: "rgba(16, 185, 129, 0.10)",
+                                color: "primary.main",
+                                fontWeight: 700,
+                                fontSize: "0.9rem",
+                            }}
+                        />
+                    )}
                 </Box>
 
                 {profissional.telefone && (
