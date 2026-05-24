@@ -28,6 +28,7 @@ import { CategoriaSolicitacoesSection } from "../../../components/CategoriaSolic
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
 const GENEROS = ["FEMININO", "MASCULINO"];
+const normalizeActivityKey = (value = "") => String(value).trim().toLowerCase();
 
 const formInicial = {
   nome: "",
@@ -97,14 +98,23 @@ const normalizeForm = (profissional) => ({
   fotoUrl: profissional?.fotoUrl || "",
 });
 
+const resolveAtividadeNome = (atividade) => {
+  if (!atividade) return "";
+  if (typeof atividade === "string") return atividade;
+  if (typeof atividade === "object") {
+    return atividade.nome || atividade.atividade || atividade.categoria?.nome || "";
+  }
+  return "";
+};
+
 const normalizeGrade = (gradeAtividades) => {
   if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [];
 
   return gradeAtividades.map((item) => ({
-    atividade: item.atividade || "",
-    exclusivoMulheres: item.exclusivoMulheres || false,
-    diasSemana: Array.isArray(item.diasSemana) ? item.diasSemana : [],
-    periodos: Array.isArray(item.periodos) ? item.periodos : [],
+    atividade: resolveAtividadeNome(typeof item === "string" ? item : item?.atividade || item?.categoria || item),
+    exclusivoMulheres: Boolean(item?.exclusivoMulheres),
+    diasSemana: Array.isArray(item?.diasSemana) ? item.diasSemana : [],
+    periodos: Array.isArray(item?.periodos) ? item.periodos : [],
   }));
 };
 
@@ -301,9 +311,23 @@ const ConfiguracaoProfissional = () => {
       !item.periodos.length
     ));
 
-    if (!gradeInvalida) {
+    const categoriasPreenchidas = gradeAtividades
+      .map((item) => normalizeActivityKey(item.atividade))
+      .filter(Boolean);
+    const hasDuplicateCategorias = new Set(categoriasPreenchidas).size !== categoriasPreenchidas.length;
+
+    if (!gradeInvalida && !hasDuplicateCategorias) {
       setFieldErrors((prev) => ({ ...prev, gradeAtividades: "" }));
       return true;
+    }
+
+    if (hasDuplicateCategorias) {
+      toast.error("Existem categorias iguais na grade de atividades.");
+      setFieldErrors((prev) => ({
+        ...prev,
+        gradeAtividades: "Você não pode cadastrar a mesma categoria mais de uma vez na grade de atividades.",
+      }));
+      return false;
     }
 
     setFieldErrors((prev) => ({
