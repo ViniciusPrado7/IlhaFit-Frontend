@@ -242,8 +242,8 @@ const CadastroProfissional = () => {
     setLoading(true);
     try {
       await profissionalService.cadastrarProfissional(payload());
-      toast.success("Profissional cadastrado com sucesso!");
-      navigate("/login", { state: { accountType: "profissional", email: formData.email } });
+      toast.success("Cadastro realizado! Enviamos um codigo para seu email.");
+      navigate("/confirmar-email", { state: { accountType: "profissional", email: formData.email } });
     } catch (error) {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);

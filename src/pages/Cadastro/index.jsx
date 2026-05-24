@@ -73,8 +73,8 @@ const Cadastro = () => {
         setLoading(true);
         try {
             await authService.register(formData);
-            toast.success("Usuário cadastrado com sucesso!");
-            navigate("/login", { state: { accountType: "aluno", email: formData.email } });
+            toast.success("Cadastro realizado! Enviamos um codigo para seu email.");
+            navigate("/confirmar-email", { state: { accountType: "aluno", email: formData.email } });
         } catch (error) {
             console.error("Erro no cadastro:", error);
             const data = error?.response?.data;

@@ -21,6 +21,11 @@ export const authService = {
     return response.data;
   },
 
+  async confirmarEmail(email, codigo) {
+    const response = await api.post("/auth/confirmar-email", { email, codigo }, { skipAuth: true });
+    return response.data;
+  },
+
   async esqueciSenha(email) {
     const response = await api.post("/auth/forgot-password", { email }, { skipAuth: true });
     return response.data;

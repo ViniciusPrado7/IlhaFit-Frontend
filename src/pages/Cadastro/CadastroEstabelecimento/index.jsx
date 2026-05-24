@@ -402,8 +402,8 @@ const CadastroEstabelecimento = () => {
         }
       }
       await estabelecimentoService.cadastrarEstabelecimento(payload());
-      toast.success("Estabelecimento cadastrado com sucesso!");
-      navigate("/login", { state: { accountType: "estabelecimento", email: formData.email } });
+      toast.success("Cadastro realizado! Enviamos um codigo para seu email.");
+      navigate("/confirmar-email", { state: { accountType: "estabelecimento", email: formData.email } });
     } catch (error) {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);

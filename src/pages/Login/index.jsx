@@ -20,9 +20,25 @@ const isFieldErrorObject = (data) => {
   return data && typeof data === "object" && !Array.isArray(data);
 };
 
+const getBackendMessage = (data) => {
+  if (isFieldErrorObject(data)) {
+    return data.erro || data.mensagem || data.message || "";
+  }
+
+  return typeof data === "string" ? data : "";
+};
+
 const getApiError = (error) => {
   const data = error?.response?.data;
   const status = error?.response?.status;
+  const backendMessage = getBackendMessage(data);
+
+  if (backendMessage === "Confirme seu email antes de fazer login") {
+    return {
+      fieldErrors: {},
+      generalError: backendMessage
+    };
+  }
 
   if (status === 401 || status === 403) {
     return {
@@ -109,6 +125,13 @@ const Login = () => {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = error?.response
         ? getApiError(error)
         : { fieldErrors: {}, generalError: error?.message || "Erro ao fazer login" };
+
+      if (apiGeneralError === "Confirme seu email antes de fazer login") {
+        toast.info("Confirme seu email para continuar.");
+        navigate("/confirmar-email", { state: { accountType: location.state?.accountType || "aluno", email } });
+        return;
+      }
+
       setFieldErrors(apiFieldErrors);
       setGeneralError(apiGeneralError);
     } finally {
