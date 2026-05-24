@@ -15,7 +15,9 @@ import {
   FaWhatsapp,
 } from "react-icons/fa";
 import AvaliacoesPanel from "../AvaliacoesPanel";
+import LimitedChipList from "../LimitedChipList";
 import MapComponent from "../MapComponent";
+import { calcularResumoAvaliacoes, formatarAvaliacao } from "../../utils/avaliacao";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -76,10 +78,18 @@ const periodoTagSx = {
   borderRadius: 1.5,
 };
 
-export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar" }) => {
+const ACTIVITIES_PAGE_SIZE = 5;
+
+export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar", onEstabelecimentoChange }) => {
   const categorias = getCategorias(estabelecimento);
   const fotos = getFotos(estabelecimento);
+  const atividades = estabelecimento.gradeAtividades || [];
   const [fotoAtual, setFotoAtual] = useState(0);
+  const [visibleActivitiesCount, setVisibleActivitiesCount] = useState(ACTIVITIES_PAGE_SIZE);
+  const [resumoAvaliacoes, setResumoAvaliacoes] = useState(() => ({
+    avaliacao: Number(estabelecimento?.avaliacao) || 0,
+    totalAvaliacoes: Number(estabelecimento?.totalAvaliacoes) || 0,
+  }));
   const [coords, setCoords] = useState({ 
     lat: estabelecimento.endereco?.latitude || null, 
     lng: estabelecimento.endereco?.longitude || null 
@@ -95,6 +105,11 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
       if (cancelled) return;
       setFotoAtual(0);
       setCoords({ lat: initialLat, lng: initialLng });
+      setVisibleActivitiesCount(ACTIVITIES_PAGE_SIZE);
+      setResumoAvaliacoes({
+        avaliacao: Number(estabelecimento?.avaliacao) || 0,
+        totalAvaliacoes: Number(estabelecimento?.totalAvaliacoes) || 0,
+      });
     });
 
     if (!initialLat || !initialLng) {
@@ -119,6 +134,15 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
       cancelled = true;
     };
   }, [estabelecimento?.id, estabelecimento?.endereco]);
+
+  const handleAvaliacoesChange = (avaliacoes) => {
+    const resumo = calcularResumoAvaliacoes(avaliacoes, estabelecimento);
+    setResumoAvaliacoes(resumo);
+    onEstabelecimentoChange?.({
+      ...estabelecimento,
+      ...resumo,
+    });
+  };
 
   const irParaFoto = (index) => {
     setFotoAtual(index);
@@ -249,7 +273,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
               <FaStar color="#FBBF24" />
               <Typography variant="body2" fontWeight={800}>
-                {estabelecimento.avaliacao ?? 0} avaliação
+                {formatarAvaliacao(resumoAvaliacoes.avaliacao)} Estrelas
               </Typography>
             </Box>
           </Box>
@@ -267,15 +291,15 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           )}
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", my: 2.5 }}>
-          {categorias.map((categoria) => (
-            <Chip
-              key={categoria}
-              label={categoria}
-              size="small"
-              sx={tagSx}
-            />
-          ))}
+        <Box sx={{ my: 2.5 }}>
+          <LimitedChipList
+            items={categorias}
+            limit={5}
+            chipSx={tagSx}
+            title="Categorias do estabelecimento"
+            dialogLabel={`Categorias oferecidas por ${getNome(estabelecimento)}`}
+            buttonLabel="Ver mais"
+          />
         </Box>
 
         <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
@@ -337,7 +361,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           Atividades oferecidas
         </Typography>
         <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
-          {estabelecimento.gradeAtividades?.map((grade, index) => (
+          {atividades.slice(0, visibleActivitiesCount).map((grade, index) => (
             <Box
               key={`${grade.atividade}-${index}`}
               sx={{
@@ -384,12 +408,26 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               </Box>
             </Box>
           ))}
+
+          {atividades.length > visibleActivitiesCount && (
+            <Button
+              variant="outlined"
+              onClick={() => setVisibleActivitiesCount((current) => current + ACTIVITIES_PAGE_SIZE)}
+              sx={{ justifySelf: "center", borderRadius: 2, fontWeight: 900, mt: 0.5 }}
+            >
+              Ver mais atividades
+            </Button>
+          )}
         </Box>
 
         <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
           Avaliações
         </Typography>
-        <AvaliacoesPanel targetType="estabelecimento" targetId={estabelecimento.id} />
+        <AvaliacoesPanel
+          targetType="estabelecimento"
+          targetId={estabelecimento.id}
+          onAvaliacoesChange={handleAvaliacoesChange}
+        />
       </Box>
     </Paper>
   );

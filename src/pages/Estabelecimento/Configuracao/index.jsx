@@ -42,6 +42,7 @@ const formInicial = {
 const gradeInicial = { id: null, atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
+const normalizeActivityKey = (value = "") => String(value).trim().toLowerCase();
 
 const formatTelefone = (value = "") => {
   const digits = onlyDigits(value).slice(0, 11);
@@ -103,15 +104,24 @@ const normalizeForm = (estabelecimento) => ({
   cep: onlyDigits(estabelecimento?.endereco?.cep || ""),
 });
 
+const resolveAtividadeNome = (atividade) => {
+  if (!atividade) return "";
+  if (typeof atividade === "string") return atividade;
+  if (typeof atividade === "object") {
+    return atividade.nome || atividade.atividade || atividade.categoria?.nome || "";
+  }
+  return "";
+};
+
 const normalizeGrade = (gradeAtividades) => {
   if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [];
 
   return gradeAtividades.map((item) => ({
-    id: item.id || null,
-    atividade: item.atividade || "",
-    exclusivoMulheres: Boolean(item.exclusivoMulheres),
-    diasSemana: Array.isArray(item.diasSemana) ? item.diasSemana : [],
-    periodos: Array.isArray(item.periodos) ? item.periodos : [],
+    id: typeof item === "object" && item !== null ? item.id || null : null,
+    atividade: resolveAtividadeNome(typeof item === "string" ? item : item?.atividade || item?.categoria || item),
+    exclusivoMulheres: Boolean(item?.exclusivoMulheres),
+    diasSemana: Array.isArray(item?.diasSemana) ? item.diasSemana : [],
+    periodos: Array.isArray(item?.periodos) ? item.periodos : [],
   }));
 };
 
@@ -318,7 +328,24 @@ const ConfiguracaoEstabelecimento = () => {
     periodos: item.periodos,
   });
 
-  const extractGradeResponse = (data, fallback) => data?.atividade || data || fallback;
+  const extractGradeResponse = (data, fallback) => {
+    if (typeof data === "string") {
+      return {
+        ...fallback,
+        atividade: data,
+      };
+    }
+
+    if (data?.atividade || data?.categoria?.nome || data?.nome) {
+      return {
+        ...fallback,
+        ...data,
+        atividade: resolveAtividadeNome(data.atividade || data.categoria || data.nome || fallback?.atividade || ""),
+      };
+    }
+
+    return fallback;
+  };
 
   const syncGradeFromEstabelecimento = (estabelecimentoAtualizado) => {
     if (!Array.isArray(estabelecimentoAtualizado?.gradeAtividades)) return;
@@ -351,9 +378,23 @@ const ConfiguracaoEstabelecimento = () => {
       !item.periodos.length
     ));
 
-    if (!gradeInvalida) {
+    const categoriasPreenchidas = gradeAtividades
+      .map((item) => normalizeActivityKey(item.atividade))
+      .filter(Boolean);
+    const hasDuplicateCategorias = new Set(categoriasPreenchidas).size !== categoriasPreenchidas.length;
+
+    if (!gradeInvalida && !hasDuplicateCategorias) {
       setFieldErrors((prev) => ({ ...prev, gradeAtividades: "" }));
       return true;
+    }
+
+    if (hasDuplicateCategorias) {
+      toast.error("Existem categorias iguais na grade de atividades.");
+      setFieldErrors((prev) => ({
+        ...prev,
+        gradeAtividades: "Você não pode cadastrar a mesma categoria mais de uma vez na grade de atividades.",
+      }));
+      return false;
     }
 
     setFieldErrors((prev) => ({

@@ -216,7 +216,10 @@ const Footer = () => {
 
           <IconButton
             aria-label="Voltar ao topo"
-            onClick={handleScrollTop}
+            onClick={(event) => {
+              event.currentTarget.blur();
+              handleScrollTop();
+            }}
             sx={{
               width: 48,
               height: 48,
