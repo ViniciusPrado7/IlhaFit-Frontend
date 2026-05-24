@@ -19,6 +19,7 @@ import { toast } from "react-toastify";
 import { avaliacaoService } from "../../service/AvaliacaoService";
 import { authSession } from "../../service/AuthSession";
 import { denunciaService } from "../../service/DenunciaService";
+import { normalizeAvaliacoes } from "../../utils/avaliacao";
 
 const MOTIVOS_DENUNCIA = [
   { value: "PRECONCEITO", label: "Preconceito" },
@@ -85,7 +86,9 @@ const isOwnReview = (avaliacao, user) => {
   return Number(avaliacao.autorId) === Number(user.id) && avaliacao.tipoAutor === user.tipo;
 };
 
-const AvaliacoesPanel = ({ targetType, targetId }) => {
+const REVIEWS_PAGE_SIZE = 5;
+
+const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -97,6 +100,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   const [motivo, setMotivo] = useState("");
   const [descricaoAdicional, setDescricaoAdicional] = useState("");
   const [denunciando, setDenunciando] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(REVIEWS_PAGE_SIZE);
 
   const [user, setUser] = useState(() => authSession.getUser());
   const token = authSession.getToken();
@@ -133,7 +137,9 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
       const response = targetType === "profissional"
         ? await avaliacaoService.listarPorProfissional(targetId)
         : await avaliacaoService.listarPorEstabelecimento(targetId);
-      setAvaliacoes(Array.isArray(response.data) ? response.data : []);
+      const lista = normalizeAvaliacoes(response.data);
+      setAvaliacoes(lista);
+      onAvaliacoesChange?.(lista);
       setError("");
     } catch (err) {
       setError(getApiError(err, "Nao foi possivel carregar as avaliacoes."));
@@ -145,6 +151,10 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
   useEffect(() => {
     carregarAvaliacoes();
   }, [carregarAvaliacoes]);
+
+  useEffect(() => {
+    setVisibleCount(REVIEWS_PAGE_SIZE);
+  }, [targetId, targetType]);
 
   const handleCriarAvaliacao = async (event) => {
     event.preventDefault();
@@ -237,6 +247,9 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
     }
   };
 
+  const avaliacoesVisiveis = avaliacoes.slice(0, visibleCount);
+  const hasMoreAvaliacoes = avaliacoes.length > visibleCount;
+
   return (
     <Box>
       {authMessage && (
@@ -287,7 +300,7 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
 
       {!loading && !error && avaliacoes.length > 0 && (
         <Box sx={{ display: "grid", gap: 1.5 }}>
-          {avaliacoes.map((avaliacao) => {
+          {avaliacoesVisiveis.map((avaliacao) => {
             const ownReview = isOwnReview(avaliacao, user);
 
             return (
@@ -326,10 +339,26 @@ const AvaliacoesPanel = ({ targetType, targetId }) => {
               </Paper>
             );
           })}
+
+          {hasMoreAvaliacoes && (
+            <Button
+              variant="outlined"
+              onClick={() => setVisibleCount((current) => current + REVIEWS_PAGE_SIZE)}
+              sx={{ justifySelf: "center", borderRadius: 2, fontWeight: 900, mt: 0.5 }}
+            >
+              Ver mais avaliacoes
+            </Button>
+          )}
         </Box>
       )}
 
-      <Dialog open={denunciaOpen} onClose={() => setDenunciaOpen(false)} fullWidth maxWidth="sm">
+      <Dialog
+        open={denunciaOpen}
+        onClose={() => setDenunciaOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        disableRestoreFocus
+      >
         <DialogTitle>Denunciar avaliacao</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
           <Select

@@ -28,8 +28,10 @@ import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
 import CardProfissional from "../../components/Card/CardProfissional";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
+import { avaliacaoService } from "../../service/AvaliacaoService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 import { profissionalService } from "../../service/ProfissionalService";
+import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/avaliacao";
 
 const normalizeList = (data) => {
   if (Array.isArray(data)) return data;
@@ -166,7 +168,15 @@ const Home = () => {
 
         if (!isMounted) return;
 
-        setEstabelecimentos(normalizeList(estabelecimentosResponse.data));
+        const estabelecimentosNormalizados = normalizeList(estabelecimentosResponse.data);
+        const estabelecimentosComMedia = await enriquecerListaEstabelecimentosComAvaliacoes(
+          estabelecimentosNormalizados,
+          avaliacaoService.listarPorEstabelecimento
+        );
+
+        if (!isMounted) return;
+
+        setEstabelecimentos(estabelecimentosComMedia);
         setProfissionais(normalizeList(profissionaisResponse.data));
         setError("");
       } catch (err) {
@@ -209,6 +219,13 @@ const Home = () => {
         .map(({ item }) => item),
     [profissionais, searchTerm, selectedCategoria]
   );
+
+  const handleEstabelecimentoChange = (updatedEstabelecimento) => {
+    setEstabelecimentos((current) =>
+      current.map((item) => (item.id === updatedEstabelecimento.id ? { ...item, ...updatedEstabelecimento } : item))
+    );
+    setSelectedEstabelecimento(updatedEstabelecimento);
+  };
 
   return (
     <Box
@@ -796,6 +813,7 @@ const Home = () => {
         fullWidth
         maxWidth="md"
         scroll="body"
+        disableRestoreFocus
         slotProps={{
           backdrop: {
             sx: {
@@ -818,6 +836,7 @@ const Home = () => {
             estabelecimento={selectedEstabelecimento}
             onClose={() => setSelectedEstabelecimento(null)}
             closeLabel="Fechar"
+            onEstabelecimentoChange={handleEstabelecimentoChange}
           />
         )}
       </Dialog>

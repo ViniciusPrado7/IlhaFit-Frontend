@@ -5,7 +5,9 @@ import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
+import { avaliacaoService } from "../../service/AvaliacaoService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
+import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/avaliacao";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -89,9 +91,14 @@ const Estabelecimento = () => {
     const carregarEstabelecimentos = async () => {
       try {
         const estabelecimentosResponse = await estabelecimentoService.listarEstabelecimentos();
+        const estabelecimentosNormalizados = normalizeList(estabelecimentosResponse.data);
+        const estabelecimentosComMedia = await enriquecerListaEstabelecimentosComAvaliacoes(
+          estabelecimentosNormalizados,
+          avaliacaoService.listarPorEstabelecimento
+        );
 
         if (isMounted) {
-          setEstabelecimentos(normalizeList(estabelecimentosResponse.data));
+          setEstabelecimentos(estabelecimentosComMedia);
           setError("");
         }
       } catch (err) {
@@ -120,6 +127,13 @@ const Estabelecimento = () => {
       }),
     [estabelecimentos, searchTerm, selectedCategoria]
   );
+
+  const handleEstabelecimentoChange = (updatedEstabelecimento) => {
+    setEstabelecimentos((current) =>
+      current.map((item) => (item.id === updatedEstabelecimento.id ? { ...item, ...updatedEstabelecimento } : item))
+    );
+    setSelectedEstabelecimento(updatedEstabelecimento);
+  };
 
   return (
     <Box>
@@ -260,6 +274,7 @@ const Estabelecimento = () => {
         fullWidth
         maxWidth="md"
         scroll="body"
+        disableRestoreFocus
         slotProps={{
           backdrop: {
             sx: {
@@ -282,6 +297,7 @@ const Estabelecimento = () => {
             estabelecimento={selectedEstabelecimento}
             onClose={() => setSelectedEstabelecimento(null)}
             closeLabel="Fechar"
+            onEstabelecimentoChange={handleEstabelecimentoChange}
           />
         )}
       </Dialog>
