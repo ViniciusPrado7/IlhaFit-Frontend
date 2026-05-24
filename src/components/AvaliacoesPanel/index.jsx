@@ -25,7 +25,7 @@ const MOTIVOS_DENUNCIA = [
   { value: "PRECONCEITO", label: "Preconceito" },
   { value: "LINGUAGEM_OFENSIVA", label: "Linguagem ofensiva" },
   { value: "SPAM", label: "Spam" },
-  { value: "INFORMACAO_FALSA", label: "Informacao falsa" },
+  { value: "INFORMACAO_FALSA", label: "Informação falsa" },
   { value: "OUTROS", label: "Outros" },
 ];
 
@@ -35,7 +35,7 @@ const getApiError = (error, fallback) => {
   if (data?.erro) return data.erro;
   if (typeof data === "string") return data;
   if ([401, 403].includes(error?.response?.status)) {
-    return "Sessao invalida ou sem permissao. Saia da conta e faca login novamente.";
+    return "Sessão inválida ou sem permissão. Saia da conta e faça login novamente.";
   }
 
   return error?.message || fallback;
@@ -43,30 +43,30 @@ const getApiError = (error, fallback) => {
 
 const getAvaliacaoSubmitError = (error) => {
   if (error?.response?.status === 403) {
-    return "Usuarios do tipo estabelecimento nao podem realizar avaliacoes.";
+    return "Usuários do tipo estabelecimento não podem realizar avaliações.";
   }
 
   if (error?.response?.status === 422) {
-    return "Nao foi possivel enviar sua avaliacao porque o comentario contem conteudo ofensivo ou inadequado.";
+    return "Não foi possível enviar sua avaliação porque o comentário contém conteúdo ofensivo ou inadequado.";
   }
 
   if (error?.response?.status === 503) {
-    return "Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.";
+    return "Não foi possível validar sua mensagem no momento. Tente novamente em instantes.";
   }
 
-  return getApiError(error, "Nao foi possivel enviar a avaliacao.");
+  return getApiError(error, "Não foi possível enviar a avaliação.");
 };
 
 const getDenunciaSubmitError = (error) => {
   if (error?.response?.status === 422) {
-    return "Nao foi possivel enviar sua denuncia porque a descricao contem conteudo ofensivo ou inadequado.";
+    return "Não foi possível enviar sua denúncia porque a descrição contém conteúdo ofensivo ou inadequado.";
   }
 
   if (error?.response?.status === 503) {
-    return "Nao foi possivel validar sua mensagem no momento. Tente novamente em instantes.";
+    return "Não foi possível validar sua mensagem no momento. Tente novamente em instantes.";
   }
 
-  return getApiError(error, "Nao foi possivel enviar a denuncia.");
+  return getApiError(error, "Não foi possível enviar a denúncia.");
 };
 
 const formatDate = (date) => {
@@ -120,9 +120,9 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
     (targetType === "profissional" && user?.tipo === "PROFISSIONAL" && Number(user?.id) === Number(targetId));
 
   const authMessage = useMemo(() => {
-    if (!isAutenticado) return "Faca login para avaliar.";
-    if (!canCreateReview) return "Usuarios do tipo estabelecimento nao podem realizar avaliacoes.";
-    if (isSelfTarget) return user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.";
+    if (!isAutenticado) return "Faça login para avaliar.";
+    if (!canCreateReview) return "Usuários do tipo estabelecimento não podem realizar avaliações.";
+    if (isSelfTarget) return user?.tipo === "PROFISSIONAL" ? "Você não pode avaliar seu próprio perfil." : "Você não pode avaliar seu próprio estabelecimento.";
     return "";
   }, [canCreateReview, isAutenticado, isSelfTarget, user]);
 
@@ -142,7 +142,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
       onAvaliacoesChange?.(lista);
       setError("");
     } catch (err) {
-      setError(getApiError(err, "Nao foi possivel carregar as avaliacoes."));
+      setError(getApiError(err, "Não foi possível carregar as avaliações."));
     } finally {
       setLoading(false);
     }
@@ -160,17 +160,17 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
     event.preventDefault();
 
     if (!isAutenticado) {
-      toast.warning("Faca login para avaliar.");
+      toast.warning("Faça login para avaliar.");
       return;
     }
 
     if (!canCreateReview) {
-      toast.warning("Usuarios do tipo estabelecimento nao podem realizar avaliacoes.");
+      toast.warning("Usuários do tipo estabelecimento não podem realizar avaliações.");
       return;
     }
 
     if (isSelfTarget) {
-      toast.warning(user?.tipo === "PROFISSIONAL" ? "Voce nao pode avaliar seu proprio perfil." : "Voce nao pode avaliar seu proprio estabelecimento.");
+      toast.warning(user?.tipo === "PROFISSIONAL" ? "Você não pode avaliar seu próprio perfil." : "Você não pode avaliar seu próprio estabelecimento.");
       return;
     }
 
@@ -190,7 +190,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
       await avaliacaoService.criarAvaliacao(payload);
       setNota(0);
       setComentario("");
-      toast.success("Avaliacao enviada com sucesso.");
+      toast.success("Avaliação enviada com sucesso.");
       await carregarAvaliacoes();
     } catch (err) {
       toast.error(getAvaliacaoSubmitError(err));
@@ -201,12 +201,12 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
 
   const abrirDenuncia = (avaliacao) => {
     if (!isAutenticado) {
-      toast.warning("Faca login para denunciar.");
+      toast.warning("Faça login para denunciar.");
       return;
     }
 
     if (isOwnReview(avaliacao, user)) {
-      toast.warning("Voce nao pode denunciar sua propria avaliacao.");
+      toast.warning("Você não pode denunciar sua própria avaliação.");
       return;
     }
 
@@ -226,7 +226,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
         motivo,
         descricaoAdicional: descricaoAdicional.trim() || null,
       });
-      toast.success("Denuncia enviada com sucesso.");
+      toast.success("Denúncia enviada com sucesso.");
       setDenunciaOpen(false);
     } catch (err) {
       toast.error(getDenunciaSubmitError(err));
@@ -240,10 +240,10 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
 
     try {
       await avaliacaoService.deletarAvaliacao(avaliacao.id);
-      toast.success("Avaliacao excluida com sucesso.");
+      toast.success("Avaliação excluída com sucesso.");
       await carregarAvaliacoes();
     } catch (err) {
-      toast.error(getApiError(err, "Nao foi possivel excluir a avaliacao."));
+      toast.error(getApiError(err, "Não foi possível excluir a avaliação."));
     }
   };
 
@@ -266,7 +266,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
           sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, mb: 2 }}
         >
           <Typography variant="subtitle2" fontWeight={900} sx={{ mb: 1 }}>
-            Deixe sua avaliacao
+            Deixe sua avaliação
           </Typography>
           <Rating value={nota} onChange={(_, value) => setNota(value || 0)} sx={{ mb: 1 }} />
           <TextField
@@ -275,11 +275,11 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
             minRows={3}
             value={comentario}
             onChange={(event) => setComentario(event.target.value)}
-            placeholder="Conte como foi sua experiencia..."
+            placeholder="Conte como foi sua experiência..."
             sx={{ mb: 1.5 }}
           />
           <Button type="submit" variant="contained" disabled={saving || !nota} sx={{ borderRadius: 2, fontWeight: 900 }}>
-            {saving ? "Enviando..." : "Enviar avaliacao"}
+            {saving ? "Enviando..." : "Enviar avaliação"}
           </Button>
         </Paper>
       )}
@@ -294,7 +294,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
 
       {!loading && !error && avaliacoes.length === 0 && (
         <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, textAlign: "center", color: "text.secondary" }}>
-          Nenhuma avaliacao encontrada.
+          Nenhuma avaliação encontrada.
         </Box>
       )}
 
@@ -308,7 +308,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
                 <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, mb: 1, flexWrap: "wrap" }}>
                   <Box>
                     <Typography variant="subtitle2" fontWeight={900}>
-                      {avaliacao.nomeAutor || "Usuario"}
+                      {avaliacao.nomeAutor || "Usuário"}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {formatDate(avaliacao.dataAvaliacao)}
@@ -346,7 +346,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
               onClick={() => setVisibleCount((current) => current + REVIEWS_PAGE_SIZE)}
               sx={{ justifySelf: "center", borderRadius: 2, fontWeight: 900, mt: 0.5 }}
             >
-              Ver mais avaliacoes
+              Ver mais avaliações
             </Button>
           )}
         </Box>
@@ -359,7 +359,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
         maxWidth="sm"
         disableRestoreFocus
       >
-        <DialogTitle>Denunciar avaliacao</DialogTitle>
+        <DialogTitle>Denunciar avaliação</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 2, pt: 1 }}>
           <Select
             value={motivo}
@@ -380,13 +380,13 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
             minRows={3}
             value={descricaoAdicional}
             onChange={(event) => setDescricaoAdicional(event.target.value)}
-            placeholder="Descricao adicional"
+            placeholder="Descrição adicional"
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDenunciaOpen(false)}>Cancelar</Button>
           <Button variant="contained" color="warning" disabled={!motivo || denunciando} onClick={handleDenunciar}>
-            {denunciando ? "Enviando..." : "Enviar denuncia"}
+            {denunciando ? "Enviando..." : "Enviar denúncia"}
           </Button>
         </DialogActions>
       </Dialog>

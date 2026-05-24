@@ -118,7 +118,7 @@ const Mapa = () => {
     const requestUserLocation = useCallback(() => {
         if (!navigator.geolocation) {
             setLocationStatus("unsupported");
-            setLocationError("Seu navegador nao suporta geolocalizacao.");
+            setLocationError("Seu navegador não suporta geolocalização.");
             return;
         }
 
@@ -137,14 +137,14 @@ const Mapa = () => {
                 if (error.code === error.PERMISSION_DENIED) {
                     setLocationStatus("denied");
                     setLocationError(
-                        "Ative a localizacao do navegador/computador para ver os locais mais proximos de voce."
+                        "Ative a localização do navegador/computador para ver os locais mais próximos de você."
                     );
                     return;
                 }
 
                 setLocationStatus("error");
                 setLocationError(
-                    "Nao foi possivel obter sua localizacao agora. Tente ativar a localizacao do dispositivo e recarregar a pagina."
+                    "Não foi possível obter sua localização agora. Tente ativar a localização do dispositivo e recarregar a página."
                 );
             },
             {
@@ -177,9 +177,9 @@ const Mapa = () => {
 
         const messageByStatus = {
             requesting:
-                "Permita o acesso a localizacao no navegador para exibirmos os locais proximos de voce.",
+                "Permita o acesso à localização no navegador para exibirmos os locais próximos de você.",
             pending:
-                "Ao abrir o mapa, o sistema pode pedir acesso a sua localizacao para mostrar opcoes proximas.",
+                "Ao abrir o mapa, o sistema pode pedir acesso à sua localização para mostrar opções próximas.",
             unsupported: locationError,
             denied: locationError,
             error: locationError,
@@ -217,7 +217,7 @@ const Mapa = () => {
                             fontWeight={800}
                             sx={{ color: "text.primary", lineHeight: 1.2 }}
                         >
-                            Localizacao necessaria
+                            Localização necessária
                         </Typography>
                         <Typography
                             variant="body2"
@@ -251,7 +251,7 @@ const Mapa = () => {
                             },
                         }}
                     >
-                        {userLocation ? "Atualizar localizacao" : "Ativar localizacao"}
+                        {userLocation ? "Atualizar localização" : "Ativar localização"}
                     </Button>
                 </Box>
             </Box>

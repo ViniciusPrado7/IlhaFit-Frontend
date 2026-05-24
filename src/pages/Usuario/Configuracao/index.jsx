@@ -22,7 +22,7 @@ const getApiError = (error) => {
   if ([401, 403].includes(error?.response?.status)) {
     return {
       fieldErrors: {},
-      generalError: "Sessao invalida ou sem permissao. Faca login novamente.",
+      generalError: "Sessão inválida ou sem permissão. Faça login novamente.",
     };
   }
 
@@ -33,7 +33,7 @@ const getApiError = (error) => {
 
   return {
     fieldErrors: {},
-    generalError: typeof data === "string" ? data : error?.message || "Nao foi possivel concluir a operacao.",
+    generalError: typeof data === "string" ? data : error?.message || "Não foi possível concluir a operação.",
   };
 };
 
@@ -126,7 +126,7 @@ const ConfiguracaoUsuario = () => {
     try {
       await usuarioService.excluirUsuario(usuarioId);
       authSession.clear();
-      toast.success("Conta excluida com sucesso.");
+      toast.success("Conta excluída com sucesso.");
       navigate("/");
     } catch (error) {
       handleProtectedError(error);
@@ -219,14 +219,14 @@ const ConfiguracaoUsuario = () => {
         Excluir conta
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Esta acao remove sua conta de aluno e deve ser usada apenas quando tiver certeza.
+        Esta ação remove sua conta de aluno e deve ser usada apenas quando tiver certeza.
       </Typography>
 
       <Alert severity="warning" sx={{ mb: 3 }}>
-        Para confirmar a exclusao, digite EXCLUIR no campo abaixo.
+        Para confirmar a exclusão, digite EXCLUIR no campo abaixo.
       </Alert>
 
-      {label("Confirmacao")}
+      {label("Confirmação")}
       <TextField
         fullWidth
         value={deleteText}
@@ -253,10 +253,10 @@ const ConfiguracaoUsuario = () => {
   return (
     <Box sx={{ width: "100%", pb: 8 }}>
       <Typography variant="h4" fontWeight={950} sx={{ mb: 1 }}>
-        Configuracoes
+        Configurações
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 4 }}>
-        Gerencie as informacoes da sua conta no IlhaFit.
+        Gerencie as informações da sua conta no IlhaFit.
       </Typography>
 
       {generalError && (
