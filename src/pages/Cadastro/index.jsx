@@ -14,6 +14,7 @@ import {
 import { FaBuilding, FaEye, FaEyeSlash, FaTimes, FaUser, FaUserTie } from "react-icons/fa";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import PrivacyPolicyConsent from "../../components/PrivacyPolicyConsent";
 import { authService } from "../../service/AuthService";
 import CadastroEstabelecimento from "./CadastroEstabelecimento";
 import CadastroProfissional from "./CadastroProfissional";
@@ -33,6 +34,8 @@ const Cadastro = () => {
     const [formData, setFormData] = useState(alunoInicial);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [privacyAccepted, setPrivacyAccepted] = useState(false);
+    const [privacyError, setPrivacyError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const inputStyles = {
@@ -49,6 +52,8 @@ const Cadastro = () => {
         if (newType !== null && newType !== accountType) {
             setAccountType(newType);
             setFormData(alunoInicial);
+            setPrivacyAccepted(false);
+            setPrivacyError("");
         }
     };
 
@@ -67,6 +72,11 @@ const Cadastro = () => {
 
         if (!validarSenha(formData.senha)) {
             toast.error("Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 caractere especial e 1 número.");
+            return;
+        }
+
+        if (!privacyAccepted) {
+            setPrivacyError("Voce precisa aceitar a Politica de Privacidade para continuar.");
             return;
         }
 
@@ -156,6 +166,15 @@ const Cadastro = () => {
             <TextField fullWidth name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="seu@email.com" sx={inputStyles} required />
 
             {passwordFields()}
+
+            <PrivacyPolicyConsent
+                checked={privacyAccepted}
+                onChange={(checked) => {
+                    setPrivacyAccepted(checked);
+                    if (checked) setPrivacyError("");
+                }}
+                error={privacyError}
+            />
 
             <Button
                 type="submit"
