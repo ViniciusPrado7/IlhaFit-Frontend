@@ -5,10 +5,10 @@ import {
     Box,
     Avatar,
     Chip,
-    Button,
+    Divider,
     useTheme,
 } from "@mui/material";
-import { FaStar, FaPhone, FaEnvelope, FaCalendarAlt } from "react-icons/fa";
+import { FaStar, FaPhone, FaEnvelope, FaArrowRight, FaFemale, FaMapMarkerAlt } from "react-icons/fa";
 import { useState } from "react";
 import ModalProfissional from "../ModalProfissional";
 
@@ -38,6 +38,16 @@ const getEspecialidades = (profissional) => {
     return [];
 };
 
+const isExclusivoMulheres = (profissional) => {
+    if (profissional.exclusivoMulheres) return true;
+    if (Array.isArray(profissional.gradeAtividades)) {
+        return profissional.gradeAtividades.some((item) => item.exclusivoMulheres);
+    }
+    return false;
+};
+
+const getRegiao = (profissional) => profissional.regiao || profissional.zona || "";
+
 const CardProfissional = ({ profissional, onVisualizar }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
@@ -45,6 +55,8 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
     const especialidades = getEspecialidades(profissional);
     const visibleEspecialidades = especialidades.slice(0, 3);
     const hiddenEspecialidadesCount = Math.max(especialidades.length - visibleEspecialidades.length, 0);
+    const exclusivoMulheres = isExclusivoMulheres(profissional);
+    const regiao = getRegiao(profissional);
     const abrirModal = () => {
         onVisualizar?.(profissional);
         setModalOpen(true);
@@ -60,7 +72,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
             sx={{
                 width: "100%",
                 maxWidth: 400,
-                height: 530,
+                height: 560,
                 display: "flex",
                 flexDirection: "column",
                 borderRadius: 3,
@@ -83,8 +95,29 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     background: isDark
                         ? `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.background.default} 100%)`
                         : "linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%)",
+                    position: "relative",
                 }}
-            />
+            >
+                {exclusivoMulheres && (
+                    <Chip
+                        icon={<FaFemale size={12} />}
+                        label="Exclusivo para mulheres"
+                        size="small"
+                        sx={{
+                            position: "absolute",
+                            top: 12,
+                            left: 12,
+                            bgcolor: "rgba(16, 185, 129, 0.12)",
+                            color: theme.palette.primary.main,
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            borderRadius: 1.5,
+                            border: "1px solid rgba(16, 185, 129, 0.25)",
+                            "& .MuiChip-icon": { color: theme.palette.primary.main },
+                        }}
+                    />
+                )}
+            </Box>
 
             <CardContent
                 sx={{
@@ -195,7 +228,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                             display: "flex",
                             alignItems: "center",
                             gap: 1,
-                            mb: 2.5,
+                            mb: 1,
                         }}
                     >
                         <FaEnvelope size={14} color={theme.palette.primary.main} />
@@ -205,31 +238,38 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     </Box>
                 )}
 
-                <Button
-                    variant="contained"
-                    fullWidth
-                    startIcon={<FaCalendarAlt />}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        abrirModal();
-                    }}
+                {regiao && (
+                    <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 1,
+                        }}
+                    >
+                        <FaMapMarkerAlt size={14} color={theme.palette.primary.main} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
+                            {regiao}
+                        </Typography>
+                    </Box>
+                )}
+
+                <Divider sx={{ mt: "auto", mb: 1.5, width: "100%" }} />
+                <Box
                     sx={{
-                        mt: "auto",
-                        bgcolor: "primary.main",
-                        color: "white",
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: "1rem",
-                        py: 1.2,
-                        borderRadius: 3,
-                        "&:hover": {
-                            bgcolor: theme.palette.custom.primaryHover,
-                            boxShadow: `0 4px 12px ${isDark ? "rgba(52, 211, 153, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
-                        },
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-end",
+                        width: "100%",
+                        gap: 0.75,
+                        color: "primary.main",
+                        fontSize: 14,
+                        fontWeight: 800,
                     }}
                 >
-                    Visualizar
-                </Button>
+                    Ver detalhes
+                    <FaArrowRight size={13} />
+                </Box>
             </CardContent>
             <ModalProfissional open={modalOpen} onClose={() => setModalOpen(false)} profissional={profissional} />
         </Card>
