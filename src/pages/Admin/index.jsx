@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
     Box,
     Container,
@@ -42,7 +43,8 @@ const TABS = [
 
 const AdminPanel = () => {
     const theme = useTheme();
-    const [tab, setTab] = useState(0);
+    const location = useLocation();
+    const [tab, setTab] = useState(location.state?.tab ?? 0);
     const [pendingCount, setPendingCount] = useState(0);
 
     useEffect(() => {

@@ -17,6 +17,7 @@ import Menu from "./Menu";
 import ToggleThemeButton from "../ToggleThemeButton";
 import LoginButton from "./Login/Login";
 import CadastroButton from "./Cadastro/Cadastro";
+import NotificationBell from "./NotificationBell";
 import { authSession } from "../../service/AuthSession";
 import logo from "../../assets/logo.svg";
 
@@ -103,6 +104,8 @@ const NavBar = () => {
 
           <Box sx={{ display: "flex", gap: 1.5, ml: 2, alignItems: "center" }}>
             <ToggleThemeButton />
+
+            {user && isAdminUser(user) && <NotificationBell />}
 
             {user ? (
               <>
