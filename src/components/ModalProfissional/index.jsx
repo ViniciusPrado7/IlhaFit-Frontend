@@ -4,6 +4,13 @@ import { FaStar, FaWhatsapp } from "react-icons/fa";
 import AvaliacoesPanel from "../AvaliacoesPanel";
 import LimitedChipList from "../LimitedChipList";
 
+const formatTelefone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
 const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
 const getFoto = (profissional) => profissional?.fotoUrl || profissional?.Imagem || fallbackImage;
@@ -87,7 +94,15 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
         },
       }}
     >
-      <DialogContent sx={{ p: 0 }} onClick={(e) => e.stopPropagation()}>
+      <DialogContent
+        sx={{
+          p: 0,
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+          msOverflowStyle: "none",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <Paper
           elevation={0}
           sx={{
@@ -181,7 +196,8 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
               </Typography>
               <Box sx={{ display: "grid", gap: 1, color: "text.secondary", mb: 3 }}>
                 <Typography variant="body2"><strong>Email:</strong> {profissional.email || "Não informado"}</Typography>
-                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone ? formatTelefone(profissional.telefone) : "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Região:</strong> {profissional.regiao || profissional.zona || "Não informado"}</Typography>
                 <Typography variant="body2"><strong>Gênero:</strong> {formatLabel(profissional.sexo || profissional.genero) || "Não informado"}</Typography>
                 <Typography variant="body2"><strong>CREF:</strong> {profissional.registroCref || "Não informado"}</Typography>
               </Box>

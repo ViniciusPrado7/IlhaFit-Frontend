@@ -501,7 +501,26 @@ const ConfiguracaoProfissional = () => {
         </Box>
         <Box>
           {label("Email")}
-          <TextField fullWidth disabled={!isEditingDados} name="email" type="email" value={formData.email} onChange={handleInputChange} error={Boolean(fieldErrors.email)} helperText={fieldErrors.email} sx={inputStyles} />
+          <TextField
+            fullWidth
+            disabled
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            error={Boolean(fieldErrors.email)}
+            helperText={fieldErrors.email}
+            sx={{
+              ...inputStyles,
+              "& .MuiOutlinedInput-root": {
+                ...inputStyles["& .MuiOutlinedInput-root"],
+                bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.05)",
+              },
+              "& .MuiInputBase-input.Mui-disabled": {
+                WebkitTextFillColor: theme.palette.text.secondary,
+              },
+            }}
+          />
         </Box>
       </Box>
 
@@ -519,7 +538,21 @@ const ConfiguracaoProfissional = () => {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box>
           {label("Gênero")}
-          <FormControl fullWidth disabled={!isEditingDados} error={Boolean(fieldErrors.genero)} sx={inputStyles}>
+          <FormControl
+            fullWidth
+            disabled
+            error={Boolean(fieldErrors.genero)}
+            sx={{
+              ...inputStyles,
+              "& .MuiOutlinedInput-root": {
+                ...inputStyles["& .MuiOutlinedInput-root"],
+                bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(15, 23, 42, 0.05)",
+              },
+              "& .MuiSelect-select.Mui-disabled": {
+                WebkitTextFillColor: theme.palette.text.secondary,
+              },
+            }}
+          >
             <Select name="genero" value={formData.genero} onChange={handleInputChange}>
               {GENEROS.map((genero) => (
                 <MenuItem key={genero} value={genero}>
@@ -654,19 +687,47 @@ const ConfiguracaoProfissional = () => {
         Selecione uma foto para seu perfil no IlhaFit.
       </Typography>
 
-      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, mb: 3 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
         {fotoUrl ? (
-          <Box sx={{ position: "relative", width: 200, height: 200, borderRadius: 2, overflow: "hidden", border: "2px solid", borderColor: "divider" }}>
+          <Box sx={{ position: "relative", aspectRatio: "16 / 10", borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
             <Box component="img" src={fotoUrl} alt="Foto de perfil" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <Button component="label" variant="contained" sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, width: 40, height: 40, borderRadius: 1, p: 0 }}>
-              <FaImage size={16} />
-              <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
+            <Button
+              type="button"
+              color="error"
+              onClick={() => setFotoUrl("")}
+              sx={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                minWidth: 0,
+                width: 36,
+                height: 36,
+                borderRadius: 2,
+                bgcolor: "background.paper",
+              }}
+            >
+              <FaTrash size={14} />
             </Button>
           </Box>
         ) : (
-          <Button component="label" variant="outlined" sx={{ width: 200, height: 200, borderRadius: 2, borderStyle: "dashed", display: "flex", flexDirection: "column", gap: 1, fontWeight: 900 }}>
-            <FaImage size={32} />
-            Selecionar foto
+          <Button
+            component="label"
+            variant="outlined"
+            sx={{
+              aspectRatio: "16 / 10",
+              borderRadius: 2,
+              borderStyle: "dashed",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "rgba(16, 185, 129, 0.25)",
+              color: "text.secondary",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
+              fontWeight: 700,
+              textTransform: "none",
+            }}
+          >
+            <FaImage size={22} />
+            Adicionar foto
             <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
           </Button>
         )}

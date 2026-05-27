@@ -44,9 +44,9 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
     const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
@@ -383,11 +383,11 @@ const Mapa = () => {
                         Number.isFinite(item.lat) && Number.isFinite(item.lng);
                     const distance = hasCoords
                         ? haversineDistance(
-                              referenceLocation.lat,
-                              referenceLocation.lng,
-                              item.lat,
-                              item.lng
-                          )
+                            referenceLocation.lat,
+                            referenceLocation.lng,
+                            item.lat,
+                            item.lng
+                        )
                         : null;
 
                     return {
@@ -643,7 +643,7 @@ const Mapa = () => {
                                     MenuProps={{
                                         PaperProps: {
                                             sx: {
-                                                maxHeight: 224, // approx 5 items
+                                                maxHeight: 224,
                                                 overflowY: "auto",
                                                 "&::-webkit-scrollbar": {
                                                     display: "none",
@@ -1034,16 +1034,16 @@ const Mapa = () => {
                                             borderColor:
                                                 selectedId === est.id
                                                     ? alpha(
-                                                          theme.palette.primary.main,
-                                                          0.3
-                                                      )
+                                                        theme.palette.primary.main,
+                                                        0.3
+                                                    )
                                                     : theme.palette.divider,
                                             bgcolor:
                                                 selectedId === est.id
                                                     ? alpha(
-                                                          theme.palette.primary.main,
-                                                          0.1
-                                                      )
+                                                        theme.palette.primary.main,
+                                                        0.1
+                                                    )
                                                     : theme.palette.background.paper,
                                             boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
                                             "&:hover": {

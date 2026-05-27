@@ -14,7 +14,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaImage, FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
@@ -126,6 +126,7 @@ const CadastroProfissional = () => {
     const nextValue = type === "checkbox"
       ? checked
       : {
+        nome: value.replace(/\d/g, ""),
         telefone: onlyDigits(value).slice(0, 11),
         cpf: onlyDigits(value).slice(0, 11),
         registroCref: formatCref(value),
@@ -169,19 +170,67 @@ const CadastroProfissional = () => {
 
   const validarEtapaUm = () => {
     const errors = {};
+    const toastMessages = [];
 
-    if (!formData.nome.trim()) errors.nome = "Informe o nome";
-    if (!formData.email.trim()) errors.email = "Informe o email";
-    if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
-    if (!formData.cpf.trim()) errors.cpf = "Informe o CPF";
-    if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
-      errors.registroCref = "Use o formato 123456-G/SP";
+    if (!formData.nome.trim()) {
+      errors.nome = "Informe o nome";
+      toastMessages.push("Informe o nome");
+    } else if (/\d/.test(formData.nome)) {
+      errors.nome = "O nome não pode conter números";
+      toastMessages.push("O nome não pode conter números");
     }
-    if (!formData.regiao.trim()) errors.regiao = "Informe a Região";
-    if (!formData.fotoUrl) errors.fotoUrl = "Selecione uma foto";
-    if (formData.senha !== formData.confirmarSenha) errors.confirmarSenha = "As senhas não coincidem";
-    if (!validarSenha(formData.senha)) {
+
+    if (!formData.email.trim()) {
+      errors.email = "Informe o email";
+      toastMessages.push("Informe o email");
+    }
+
+    if (!formData.telefone.trim()) {
+      errors.telefone = "Informe o telefone";
+      toastMessages.push("Informe o telefone");
+    } else if (onlyDigits(formData.telefone).length !== 11) {
+      errors.telefone = "O telefone deve conter todos os 11 dígitos (com DDD)";
+      toastMessages.push("O telefone deve conter todos os 11 dígitos (com DDD)");
+    }
+
+    if (!formData.cpf.trim()) {
+      errors.cpf = "Informe o CPF";
+      toastMessages.push("Informe o CPF");
+    } else if (onlyDigits(formData.cpf).length !== 11) {
+      errors.cpf = "O CPF deve conter 11 dígitos";
+      toastMessages.push("O CPF deve conter 11 dígitos");
+    }
+
+    if (!formData.regiao.trim()) {
+      errors.regiao = "Informe a Região";
+      toastMessages.push("Informe a Região");
+    }
+
+    if (formData.registroCref && !/^\d{6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
+      errors.registroCref = "CREF deve ser completo (ex: 123456-G/SP)";
+      toastMessages.push("CREF deve ser completo (ex: 123456-G/SP)");
+    }
+
+    if (!formData.senha) {
+      errors.senha = "Informe a senha";
+      toastMessages.push("Informe a senha");
+    } else if (!validarSenha(formData.senha)) {
       errors.senha = "Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial";
+      toastMessages.push("Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial");
+    }
+
+    if (formData.senha !== formData.confirmarSenha) {
+      errors.confirmarSenha = "As senhas não coincidem";
+      toastMessages.push("As senhas não coincidem");
+    }
+
+    if (!formData.fotoUrl) {
+      errors.fotoUrl = "Selecione uma foto";
+      toastMessages.push("Selecione uma foto");
+    }
+
+    if (toastMessages.length > 0) {
+      toast.error(toastMessages[0]);
     }
 
     setFieldErrors(errors);
@@ -190,9 +239,18 @@ const CadastroProfissional = () => {
 
   const validarGrade = () => {
     const errors = {};
+    const toastMessages = [];
 
-    if (!formData.genero) errors.genero = "Selecione o gênero";
-    if (!privacyAccepted) errors.privacyAccepted = "Voce precisa aceitar a Politica de Privacidade para continuar.";
+    if (!formData.genero) {
+      errors.genero = "Selecione o gênero";
+      toastMessages.push("Selecione o gênero");
+    }
+
+    if (!privacyAccepted) {
+      errors.privacyAccepted = "Você precisa aceitar a Política de Privacidade para continuar.";
+      toastMessages.push("Você precisa aceitar a Política de Privacidade para continuar.");
+    }
+
     const invalida = gradeAtividades.some((item) => (
       !item.atividade ||
       !item.diasSemana.length ||
@@ -201,6 +259,11 @@ const CadastroProfissional = () => {
 
     if (invalida) {
       errors.gradeAtividades = "Informe uma categoria válida, dias da semana e período em todas as atividades.";
+      toastMessages.push("Informe uma categoria válida, dias da semana e período em todas as atividades.");
+    }
+
+    if (toastMessages.length > 0) {
+      toast.error(toastMessages[0]);
     }
 
     setFieldErrors((prev) => ({ ...prev, ...errors }));
@@ -251,6 +314,29 @@ const CadastroProfissional = () => {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);
       setGeneralError(apiGeneralError);
+
+      if (apiGeneralError) {
+        toast.error(apiGeneralError);
+      } else {
+        const apiErrorsOrder = [
+          "nome",
+          "email",
+          "telefone",
+          "cpf",
+          "regiao",
+          "registroCref",
+          "senha",
+          "confirmarSenha",
+          "fotoUrl",
+          "genero",
+          "gradeAtividades",
+        ];
+
+        const firstFieldWithError = apiErrorsOrder.find((field) => apiFieldErrors[field]);
+        if (firstFieldWithError) {
+          toast.error(apiFieldErrors[firstFieldWithError]);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -387,34 +473,70 @@ const CadastroProfissional = () => {
       {passwordFields()}
 
       <Box sx={{ mb: 2 }}>
-        {label("Foto")}
-        <Button
-          component="label"
-          variant="outlined"
-          fullWidth
-          sx={{
-            py: 1.5,
-            borderRadius: 2,
-            borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(16, 185, 129, 0.2)",
-            color: "text.secondary",
-            justifyContent: "space-between",
-          }}
-        >
-          <span>{formData.fotoUrl ? "Trocar imagem" : "Selecionar imagem"}</span>
-          <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
-          {formData.fotoUrl && (
-            <IconButton type="button" size="small" onClick={(event) => { event.preventDefault(); removerFoto(); }}>
-              x
-            </IconButton>
+        {label("Foto de perfil")}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          Selecione uma foto para seu perfil no IlhaFit.
+        </Typography>
+
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2 }}>
+          {formData.fotoUrl ? (
+            <Box
+              sx={{
+                position: "relative",
+                aspectRatio: "16 / 10",
+                borderRadius: 2,
+                overflow: "hidden",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Box component="img" src={formData.fotoUrl} alt="Preview do profissional" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <Button
+                type="button"
+                color="error"
+                onClick={removerFoto}
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  minWidth: 0,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: "background.paper",
+                }}
+              >
+                <FaTrash size={14} />
+              </Button>
+            </Box>
+          ) : (
+            <Button
+              component="label"
+              variant="outlined"
+              sx={{
+                aspectRatio: "16 / 10",
+                borderRadius: 2,
+                borderStyle: "dashed",
+                borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "rgba(16, 185, 129, 0.25)",
+                color: "text.secondary",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                fontWeight: 700,
+                textTransform: "none",
+              }}
+            >
+              <FaImage size={22} />
+              Adicionar foto
+              <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
+            </Button>
           )}
-        </Button>
+        </Box>
+
         {fieldErrors.fotoUrl && (
-          <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5 }}>
+          <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.75 }}>
             {fieldErrors.fotoUrl}
           </Typography>
-        )}
-        {formData.fotoUrl && (
-          <Box component="img" src={formData.fotoUrl} alt="Preview do profissional" sx={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 2, mt: 1.5, border: "1px solid", borderColor: "divider" }} />
         )}
       </Box>
     </>
