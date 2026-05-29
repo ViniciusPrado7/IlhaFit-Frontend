@@ -42,15 +42,15 @@ import {
     FaEye,
     FaEnvelope,
     FaIdCard,
+    FaDownload,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { adminService, estabelecimentoService, profissionalService } from "../../../services";
-import { useNavigate } from "react-router-dom";
 import ModalProfissional from "../../../components/ModalProfissional";
 import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento";
+import ModalNovoUsuario from "../ModalNovoUsuario";
 
 const UsuariosTab = () => {
-    const navigate = useNavigate();
     const theme = useTheme();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -60,6 +60,7 @@ const UsuariosTab = () => {
     const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
+    const [novoUsuarioModal, setNovoUsuarioModal] = useState(false);
 
     const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
     const [estabelecimentoModal, setEstabelecimentoModal] = useState({ open: false, estabelecimento: null });
@@ -114,6 +115,27 @@ const UsuariosTab = () => {
         const startIndex = page * rowsPerPage;
         return filteredUsers.slice(startIndex, startIndex + rowsPerPage);
     }, [filteredUsers, page, rowsPerPage]);
+
+    const exportToCsv = () => {
+        const BOM = "﻿";
+        const headers = ["Tipo", "Nome", "Email", "ID"];
+        const rows = filteredUsers.map((u) => [
+            u.tipo || "",
+            `"${(u.nome || u.nomeFantasia || "").replace(/"/g, '""')}"`,
+            `"${(u.email || "").replace(/"/g, '""')}"`,
+            u.id || "",
+        ]);
+        const csvContent = BOM + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `usuarios_${new Date().toISOString().split("T")[0]}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const handleChangePage = (event, newPage) => setPage(newPage);
 
@@ -184,7 +206,7 @@ const UsuariosTab = () => {
     };
 
     const USER_ROLE_CONFIG = {
-        aluno: { icon: FaUser, color: "primary", label: "Aluno" },
+        aluno: { icon: FaUser, color: "primary", label: "Usuário" },
         profissional: { icon: FaUserTie, color: "secondary", label: "Profissional" },
         estabelecimento: { icon: FaBuilding, color: "warning", label: "Estabelecimento" },
         admin: { icon: FaUserShield, color: "error", label: "Admin" },
@@ -210,7 +232,7 @@ const UsuariosTab = () => {
                     <Typography variant="h4" fontWeight={700}>{stats.total}</Typography>
                 </Paper>
                 <Paper elevation={0} sx={{ flex: 1, p: 2, minWidth: 150, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-                    <Typography variant="body2" color="text.secondary">Alunos</Typography>
+                    <Typography variant="body2" color="text.secondary">Usuários</Typography>
                     <Typography variant="h4" fontWeight={700} color="primary.main">{stats.alunos}</Typography>
                 </Paper>
                 <Paper elevation={0} sx={{ flex: 1, p: 2, minWidth: 150, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
@@ -231,7 +253,7 @@ const UsuariosTab = () => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         size="small"
-                        sx={{ flex: 1, minWidth: 250 }}
+                        sx={{ flex: 1, minWidth: 200 }}
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
@@ -240,7 +262,7 @@ const UsuariosTab = () => {
                             ),
                         }}
                     />
-                    <FormControl sx={{ minWidth: 200 }}>
+                    <FormControl size="small" sx={{ minWidth: 180 }}>
                         <InputLabel>Tipo de Usuário</InputLabel>
                         <Select
                             value={filterType}
@@ -251,20 +273,48 @@ const UsuariosTab = () => {
                             label="Tipo de Usuário"
                         >
                             <MenuItem value="todos">Todos</MenuItem>
-                            <MenuItem value="aluno">Alunos</MenuItem>
+                            <MenuItem value="aluno">Usuário</MenuItem>
                             <MenuItem value="profissional">Profissionais</MenuItem>
                             <MenuItem value="estabelecimento">Estabelecimentos</MenuItem>
                             <MenuItem value="admin">Administradores</MenuItem>
                         </Select>
                     </FormControl>
-                    <Button
-                        variant="contained"
-                        startIcon={<FaPlus />}
-                        onClick={() => navigate("/cadastro")}
-                        sx={{ textTransform: "none" }}
-                    >
-                        Novo Usuário
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1, ml: "auto" }}>
+                        <Tooltip title={`Exportar ${filteredUsers.length} registro(s) filtrado(s)`}>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<FaDownload size={13} />}
+                                onClick={exportToCsv}
+                                sx={{
+                                    textTransform: "none",
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                    height: 36,
+                                    px: 2,
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                Exportar CSV
+                            </Button>
+                        </Tooltip>
+                        <Button
+                            variant="contained"
+                            size="small"
+                            startIcon={<FaPlus size={13} />}
+                            onClick={() => setNovoUsuarioModal(true)}
+                            sx={{
+                                textTransform: "none",
+                                fontWeight: 600,
+                                borderRadius: 2,
+                                height: 36,
+                                px: 2,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            Novo Usuário
+                        </Button>
+                    </Box>
                 </Box>
             </Paper>
 
@@ -468,6 +518,13 @@ const UsuariosTab = () => {
                 open={estabelecimentoModal.open}
                 onClose={() => setEstabelecimentoModal({ open: false, estabelecimento: null })}
                 estabelecimento={estabelecimentoModal.estabelecimento}
+            />
+
+            {/* Modal de Novo Usuário */}
+            <ModalNovoUsuario
+                open={novoUsuarioModal}
+                onClose={() => setNovoUsuarioModal(false)}
+                onSuccess={loadUsers}
             />
         </Box>
     );
