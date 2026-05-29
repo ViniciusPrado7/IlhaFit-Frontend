@@ -84,7 +84,7 @@ const getApiError = (error) => {
   };
 };
 
-const CadastroProfissional = () => {
+const CadastroProfissional = ({ onSuccess }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const isDark = theme.palette.mode === "dark";
@@ -309,7 +309,11 @@ const CadastroProfissional = () => {
     try {
       await profissionalService.cadastrarProfissional(payload());
       toast.success("Profissional cadastrado com sucesso!");
-      navigate("/login", { state: { accountType: "profissional", email: formData.email } });
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/login", { state: { accountType: "profissional", email: formData.email } });
+      }
     } catch (error) {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);
