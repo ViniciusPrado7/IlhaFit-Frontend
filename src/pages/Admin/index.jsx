@@ -12,14 +12,12 @@ import {
 import {
     FaChartPie,
     FaUsers,
-    FaBuilding,
     FaFlag,
     FaTags,
     FaBell,
 } from "react-icons/fa";
 import DashboardTab from "./Tabs/DashboardTab";
 import UsuariosTab from "./Tabs/UsuariosTab";
-import EstabelecimentosTab from "./Tabs/EstabelecimentosTab";
 import AvaliacoesTab from "./Tabs/AvaliacoesTab";
 import CategoriasTab from "./Tabs/CategoriasTab";
 import SolicitacoesCategoriasTab from "./Tabs/SolicitacoesCategoriasTab";
@@ -32,12 +30,11 @@ const TabPanel = ({ children, value, index }) => (
 );
 
 const TABS = [
-    { label: "Dashboard",        icon: FaChartPie  },
-    { label: "Usuários",         icon: FaUsers     },
-    { label: "Estabelecimentos", icon: FaBuilding  },
-    { label: "Denúncias",        icon: FaFlag      },
-    { label: "Categorias",       icon: FaTags      },
-    { label: "Solicitações",     icon: FaBell      },
+    { label: "Dashboard",    icon: FaChartPie },
+    { label: "Usuários",     icon: FaUsers    },
+    { label: "Denúncias",    icon: FaFlag     },
+    { label: "Categorias",   icon: FaTags     },
+    { label: "Solicitações", icon: FaBell     },
 ];
 
 const AdminPanel = () => {
@@ -86,7 +83,7 @@ const AdminPanel = () => {
                             <Tab
                                 key={tabConfig.label}
                                 label={
-                                    i === 5 ? (
+                                    i === 4 ? (
                                         <Badge badgeContent={pendingCount} color="error" max={99}>
                                             <Box sx={{ display: "flex", alignItems: "center", gap: 1, pr: pendingCount > 0 ? 1.5 : 0 }}>
                                                 <TabIcon size={16} />
@@ -118,10 +115,9 @@ const AdminPanel = () => {
             >
                 <TabPanel value={tab} index={0}><DashboardTab onTabChange={setTab} /></TabPanel>
                 <TabPanel value={tab} index={1}><UsuariosTab /></TabPanel>
-                <TabPanel value={tab} index={2}><EstabelecimentosTab /></TabPanel>
-                <TabPanel value={tab} index={3}><AvaliacoesTab /></TabPanel>
-                <TabPanel value={tab} index={4}><CategoriasTab /></TabPanel>
-                <TabPanel value={tab} index={5}>
+                <TabPanel value={tab} index={2}><AvaliacoesTab /></TabPanel>
+                <TabPanel value={tab} index={3}><CategoriasTab /></TabPanel>
+                <TabPanel value={tab} index={4}>
                     <SolicitacoesCategoriasTab onCountChange={setPendingCount} />
                 </TabPanel>
             </Box>
