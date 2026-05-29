@@ -105,7 +105,7 @@ const getApiError = (error) => {
   };
 };
 
-const CadastroEstabelecimento = () => {
+const CadastroEstabelecimento = ({ onSuccess }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const isDark = theme.palette.mode === "dark";
@@ -413,7 +413,11 @@ const CadastroEstabelecimento = () => {
       }
       await estabelecimentoService.cadastrarEstabelecimento(payload());
       toast.success("Estabelecimento cadastrado com sucesso!");
-      navigate("/login", { state: { accountType: "estabelecimento", email: formData.email } });
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate("/login", { state: { accountType: "estabelecimento", email: formData.email } });
+      }
     } catch (error) {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);
