@@ -157,11 +157,12 @@ const CategoriaSelectField = ({
       return;
     }
 
-    onChange(nextValue);
+    const item = selectOptions.find((opt) => opt.nome === nextValue);
+    onChange({ id: item?.id ?? null, nome: nextValue });
   };
 
   const handleSelectFromModal = (categoria) => {
-    onChange(categoria);
+    onChange({ id: categoria.id ?? null, nome: categoria.nome });
     setModalOpen(false);
   };
 
@@ -243,7 +244,7 @@ const CategoriaSelectField = ({
                     key={item.id || item.nome}
                     type="button"
                     variant={item.nome === value ? "contained" : "outlined"}
-                    onClick={() => handleSelectFromModal(item.nome)}
+                    onClick={() => handleSelectFromModal(item)}
                     sx={{ justifyContent: "flex-start", textTransform: "none", borderRadius: 2, py: 1.25 }}
                   >
                     {item.nome}

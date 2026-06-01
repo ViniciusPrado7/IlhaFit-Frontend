@@ -26,7 +26,7 @@ const getProfissionalCategorias = (profissional) => {
   }
 
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => item?.categoriaNome).filter(Boolean))];
   }
 
   if (profissional?.especializacao) return [profissional.especializacao];
@@ -159,7 +159,7 @@ const Profissional = () => {
             <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={setSelectedCategoria}
+              onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
               allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {
