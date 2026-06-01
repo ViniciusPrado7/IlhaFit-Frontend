@@ -39,7 +39,7 @@ const formInicial = {
   cep: "",
 };
 
-const gradeInicial = { id: null, atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
+const gradeInicial = { id: null, categoriaId: null, categoriaNome: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
 const normalizeActivityKey = (value = "") => String(value).trim().toLowerCase();
@@ -104,21 +104,13 @@ const normalizeForm = (estabelecimento) => ({
   cep: onlyDigits(estabelecimento?.endereco?.cep || ""),
 });
 
-const resolveAtividadeNome = (atividade) => {
-  if (!atividade) return "";
-  if (typeof atividade === "string") return atividade;
-  if (typeof atividade === "object") {
-    return atividade.nome || atividade.atividade || atividade.categoria?.nome || "";
-  }
-  return "";
-};
-
 const normalizeGrade = (gradeAtividades) => {
   if (!Array.isArray(gradeAtividades) || gradeAtividades.length === 0) return [];
 
   return gradeAtividades.map((item) => ({
     id: typeof item === "object" && item !== null ? item.id || null : null,
-    atividade: resolveAtividadeNome(typeof item === "string" ? item : item?.atividade || item?.categoria || item),
+    categoriaId: item?.categoriaId ?? null,
+    categoriaNome: item?.categoriaNome || "",
     exclusivoMulheres: Boolean(item?.exclusivoMulheres),
     diasSemana: Array.isArray(item?.diasSemana) ? item.diasSemana : [],
     periodos: Array.isArray(item?.periodos) ? item.periodos : [],
@@ -298,9 +290,9 @@ const ConfiguracaoEstabelecimento = () => {
       cep: formData.cep,
     },
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade)
+      .filter((item) => item.categoriaId)
       .map((item) => ({
-        atividade: item.atividade,
+        categoriaId: item.categoriaId,
         exclusivoMulheres: Boolean(item.exclusivoMulheres),
         diasSemana: item.diasSemana,
         periodos: item.periodos,
@@ -311,10 +303,10 @@ const ConfiguracaoEstabelecimento = () => {
 
   const buildGradePayload = () => ({
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade)
+      .filter((item) => item.categoriaId)
       .map((item) => ({
         id: item.id,
-        atividade: item.atividade,
+        categoriaId: item.categoriaId,
         exclusivoMulheres: Boolean(item.exclusivoMulheres),
         diasSemana: item.diasSemana,
         periodos: item.periodos,
@@ -322,25 +314,19 @@ const ConfiguracaoEstabelecimento = () => {
   });
 
   const toGradeRequest = (item) => ({
-    atividade: item.atividade,
+    categoriaId: item.categoriaId,
     exclusivoMulheres: Boolean(item.exclusivoMulheres),
     diasSemana: item.diasSemana,
     periodos: item.periodos,
   });
 
   const extractGradeResponse = (data, fallback) => {
-    if (typeof data === "string") {
+    if (data?.categoriaId) {
       return {
         ...fallback,
-        atividade: data,
-      };
-    }
-
-    if (data?.atividade || data?.categoria?.nome || data?.nome) {
-      return {
-        ...fallback,
-        ...data,
-        atividade: resolveAtividadeNome(data.atividade || data.categoria || data.nome || fallback?.atividade || ""),
+        id: data.id ?? fallback?.id ?? null,
+        categoriaId: data.categoriaId,
+        categoriaNome: data.categoriaNome || "",
       };
     }
 
@@ -373,13 +359,13 @@ const ConfiguracaoEstabelecimento = () => {
 
   const validarAtividades = () => {
     const gradeInvalida = gradeAtividades.some((item) => (
-      !item.atividade ||
+      !item.categoriaId ||
       !item.diasSemana.length ||
       !item.periodos.length
     ));
 
     const categoriasPreenchidas = gradeAtividades
-      .map((item) => normalizeActivityKey(item.atividade))
+      .map((item) => item.categoriaId)
       .filter(Boolean);
     const hasDuplicateCategorias = new Set(categoriasPreenchidas).size !== categoriasPreenchidas.length;
 
@@ -730,10 +716,14 @@ const ConfiguracaoEstabelecimento = () => {
 
           <CategoriaSelectField
             label="Categoria"
-            value={grade.atividade}
-            onChange={(nextValue) => handleGradeChange(index, "atividade", nextValue)}
+            value={grade.categoriaNome}
+            onChange={({ id, nome }) =>
+              setGradeAtividades((prev) =>
+                prev.map((item, i) => i === index ? { ...item, categoriaId: id, categoriaNome: nome } : item)
+              )
+            }
             disabled={!isEditingAtividades}
-            error={Boolean(fieldErrors.gradeAtividades) && !grade.atividade}
+            error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />
 
