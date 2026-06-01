@@ -32,7 +32,7 @@ const getLocalizacao = (estabelecimento) => {
 
 const getCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
   }
 
   return ["Estabelecimento"];

@@ -46,7 +46,7 @@ const getEndereco = (estabelecimento) => {
 
 const getCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
   }
 
   return ["Estabelecimento"];
@@ -363,7 +363,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
           {atividades.slice(0, visibleActivitiesCount).map((grade, index) => (
             <Box
-              key={`${grade.atividade}-${index}`}
+              key={`${grade.categoriaNome}-${index}`}
               sx={{
                 border: "1px solid",
                 borderColor: "divider",
@@ -374,7 +374,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               }}
             >
               <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                {grade.atividade}
+                {grade.categoriaNome}
               </Typography>
 
               <Box

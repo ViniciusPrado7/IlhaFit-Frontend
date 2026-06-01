@@ -18,8 +18,8 @@ export const adminService = {
 const mapEstabelecimento = (estabelecimento) => ({
   ...estabelecimento,
   categorias: (estabelecimento.gradeAtividades || []).map((item) => ({
-    id: item.id,
-    nome: item.atividade,
+    id: item.categoriaId,
+    nome: item.categoriaNome,
   })),
   exclusivoMulheres: (estabelecimento.gradeAtividades || []).some((item) => item.exclusivoMulheres),
 });

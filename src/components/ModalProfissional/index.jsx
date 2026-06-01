@@ -18,7 +18,7 @@ const getNome = (profissional) => profissional?.nome || "Profissional";
 
 const getCategorias = (profissional) => {
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
   }
 
   if (Array.isArray(profissional?.especialidades) && profissional.especialidades.length > 0) {
@@ -210,7 +210,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
               {atividades.slice(0, visibleActivitiesCount).map((grade, index) => (
                 <Box
-                  key={`${grade.atividade}-${index}`}
+                  key={`${grade.categoriaNome}-${index}`}
                   sx={{
                     border: "1px solid",
                     borderColor: "divider",
@@ -222,7 +222,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 >
                   <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
                     <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                      {grade.atividade}
+                      {grade.categoriaNome}
                     </Typography>
                     {grade.exclusivoMulheres && (
                       <Chip label="Exclusiva para mulheres" size="small" sx={tagSx} />

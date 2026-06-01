@@ -28,7 +28,7 @@ const getEspecialidades = (profissional) => {
     }
 
     if (Array.isArray(profissional.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-        return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+        return [...new Set(profissional.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
     }
 
     if (profissional.especializacao) {

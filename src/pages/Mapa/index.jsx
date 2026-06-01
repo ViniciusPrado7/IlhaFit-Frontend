@@ -302,7 +302,7 @@ const Mapa = () => {
                     const lng = est.endereco?.longitude ?? null;
                     const gradeAtividades = est.gradeAtividades || [];
                     const atividades = (est.gradeAtividades || [])
-                        .map((g) => g.atividade)
+                        .map((g) => g.categoriaNome)
                         .filter(Boolean);
 
                     return {
