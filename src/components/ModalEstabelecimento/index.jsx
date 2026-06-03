@@ -18,6 +18,7 @@ import AvaliacoesPanel from "../AvaliacoesPanel";
 import LimitedChipList from "../LimitedChipList";
 import MapComponent from "../MapComponent";
 import { calcularResumoAvaliacoes, formatarAvaliacao } from "../../utils/avaliacao";
+import { estabelecimentoService } from "../../service/EstabelecimentoService";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -81,20 +82,37 @@ const periodoTagSx = {
 const ACTIVITIES_PAGE_SIZE = 5;
 
 export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLabel = "Voltar", onEstabelecimentoChange }) => {
-  const categorias = getCategorias(estabelecimento);
-  const fotos = getFotos(estabelecimento);
-  const atividades = estabelecimento.gradeAtividades || [];
   const [fotoAtual, setFotoAtual] = useState(0);
   const [visibleActivitiesCount, setVisibleActivitiesCount] = useState(ACTIVITIES_PAGE_SIZE);
   const [resumoAvaliacoes, setResumoAvaliacoes] = useState(() => ({
     avaliacao: Number(estabelecimento?.avaliacao) || 0,
     totalAvaliacoes: Number(estabelecimento?.totalAvaliacoes) || 0,
   }));
-  const [coords, setCoords] = useState({ 
-    lat: estabelecimento.endereco?.latitude || null, 
-    lng: estabelecimento.endereco?.longitude || null 
+  const [coords, setCoords] = useState({
+    lat: estabelecimento.endereco?.latitude || null,
+    lng: estabelecimento.endereco?.longitude || null
   });
-  const temMultiplasFotos = fotos.length > 1;
+  const [estabelecimentoAtual, setEstabelecimentoAtual] = useState(null);
+
+  useEffect(() => {
+    if (!estabelecimento?.id) {
+      setEstabelecimentoAtual(null);
+      return;
+    }
+    let active = true;
+    estabelecimentoService.buscarEstabelecimentoPorId(estabelecimento.id)
+      .then(res => {
+        if (!active) return;
+        const fresh = res.data;
+        setEstabelecimentoAtual(fresh);
+        setResumoAvaliacoes({
+          avaliacao: Number(fresh?.avaliacao) || 0,
+          totalAvaliacoes: Number(fresh?.totalAvaliacoes) || 0,
+        });
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [estabelecimento?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,11 +153,17 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
     };
   }, [estabelecimento?.id, estabelecimento?.endereco]);
 
+  const displayData = estabelecimentoAtual ?? estabelecimento;
+  const categorias = getCategorias(displayData);
+  const fotos = getFotos(displayData);
+  const atividades = displayData.gradeAtividades || [];
+  const temMultiplasFotos = fotos.length > 1;
+
   const handleAvaliacoesChange = (avaliacoes) => {
-    const resumo = calcularResumoAvaliacoes(avaliacoes, estabelecimento);
+    const resumo = calcularResumoAvaliacoes(avaliacoes, displayData);
     setResumoAvaliacoes(resumo);
     onEstabelecimentoChange?.({
-      ...estabelecimento,
+      ...displayData,
       ...resumo,
     });
   };
@@ -171,7 +195,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         <Box
           component="img"
           src={fotos[fotoAtual]}
-          alt={`${getNome(estabelecimento)} - imagem ${fotoAtual + 1}`}
+          alt={`${getNome(displayData)} - imagem ${fotoAtual + 1}`}
           sx={{ width: "100%", height: "100%", objectFit: "cover" }}
           onError={(e) => { e.currentTarget.src = fallbackImage; }}
         />
@@ -268,7 +292,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
           <Box>
             <Typography variant="h4" fontWeight={900} sx={{ color: "text.primary", mb: 0.75 }}>
-              {getNome(estabelecimento)}
+              {getNome(displayData)}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
               <FaStar color="#FBBF24" />
@@ -277,11 +301,11 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               </Typography>
             </Box>
           </Box>
-          {estabelecimento.telefone && (
+          {displayData.telefone && (
             <Button
               variant="contained"
               startIcon={<FaWhatsapp />}
-              href={`https://wa.me/55${estabelecimento.telefone}`}
+              href={`https://wa.me/55${displayData.telefone}`}
               target="_blank"
               rel="noreferrer"
               sx={{ borderRadius: 2, alignSelf: "flex-start", fontWeight: 800 }}
@@ -297,7 +321,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
             limit={5}
             chipSx={tagSx}
             title="Categorias do estabelecimento"
-            dialogLabel={`Categorias oferecidas por ${getNome(estabelecimento)}`}
+            dialogLabel={`Categorias oferecidas por ${getNome(displayData)}`}
             buttonLabel="Ver mais"
           />
         </Box>
@@ -306,7 +330,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           Sobre
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
-          {getNome(estabelecimento)} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
+          {getNome(displayData)} oferece atividades de {categorias.join(", ")} para a comunidade IlhaFit.
         </Typography>
 
         <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
@@ -314,7 +338,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         </Typography>
         <Box sx={{ display: "flex", gap: 1, color: "text.secondary", mb: 2 }}>
           <FaMapMarkerAlt color="#EF4444" />
-          <Typography variant="body2">{getEndereco(estabelecimento)}</Typography>
+          <Typography variant="body2">{getEndereco(displayData)}</Typography>
         </Box>
         <Box
           sx={{
@@ -332,10 +356,10 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               lng={coords.lng}
               zoom={15}
               markers={[{
-                id: estabelecimento.id,
+                id: displayData.id,
                 lat: coords.lat,
                 lng: coords.lng,
-                title: getNome(estabelecimento)
+                title: getNome(displayData)
               }]}
               autoFit={false}
             />
@@ -425,7 +449,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
         </Typography>
         <AvaliacoesPanel
           targetType="estabelecimento"
-          targetId={estabelecimento.id}
+          targetId={displayData.id}
           onAvaliacoesChange={handleAvaliacoesChange}
         />
       </Box>
