@@ -39,6 +39,12 @@ const normalizeList = (data) => {
   return [];
 };
 
+const byRating = (a, b) => {
+  const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
+  if (diff !== 0) return diff;
+  return (b.item.totalAvaliacoes ?? 0) - (a.item.totalAvaliacoes ?? 0);
+};
+
 const getEstabelecimentoCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
     return [...new Set(estabelecimento.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
@@ -121,10 +127,14 @@ const Estabelecimento = () => {
 
   const filteredEstabelecimentos = useMemo(
     () =>
-      estabelecimentos.filter((item) => {
-        const categoriasItem = getEstabelecimentoCategorias(item);
-        return matchesCategoria(categoriasItem, selectedCategoria) && estabelecimentoMatchesSearch(item, searchTerm);
-      }),
+      estabelecimentos
+        .filter((item) => {
+          const categoriasItem = getEstabelecimentoCategorias(item);
+          return matchesCategoria(categoriasItem, selectedCategoria) && estabelecimentoMatchesSearch(item, searchTerm);
+        })
+        .map((item) => ({ item }))
+        .sort(byRating)
+        .map(({ item }) => item),
     [estabelecimentos, searchTerm, selectedCategoria]
   );
 
