@@ -1,6 +1,6 @@
 import { Alert, Box, CircularProgress, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import CardProfissional from "../../components/Card/CardProfissional";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
@@ -67,6 +67,10 @@ const Profissional = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleProfissionalUpdate = useCallback((updated) => {
+    setProfissionais(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -222,7 +226,7 @@ const Profissional = () => {
           }}
         >
           {filteredProfissionais.map((item) => (
-            <CardProfissional key={item.id} profissional={item} />
+            <CardProfissional key={item.id} profissional={item} onProfissionalUpdate={handleProfissionalUpdate} />
           ))}
         </Box>
       )}
