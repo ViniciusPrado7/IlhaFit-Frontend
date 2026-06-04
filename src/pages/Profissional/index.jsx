@@ -20,6 +20,12 @@ const normalizeList = (data) => {
   return [];
 };
 
+const byRating = (a, b) => {
+  const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
+  if (diff !== 0) return diff;
+  return (b.item.totalAvaliacoes ?? 0) - (a.item.totalAvaliacoes ?? 0);
+};
+
 const getProfissionalCategorias = (profissional) => {
   if (Array.isArray(profissional?.especialidades) && profissional.especialidades.length > 0) {
     return profissional.especialidades.filter(Boolean);
@@ -98,10 +104,14 @@ const Profissional = () => {
 
   const filteredProfissionais = useMemo(
     () =>
-      profissionais.filter((item) => {
-        const categoriasItem = getProfissionalCategorias(item);
-        return matchesCategoria(categoriasItem, selectedCategoria) && profissionalMatchesSearch(item, searchTerm);
-      }),
+      profissionais
+        .filter((item) => {
+          const categoriasItem = getProfissionalCategorias(item);
+          return matchesCategoria(categoriasItem, selectedCategoria) && profissionalMatchesSearch(item, searchTerm);
+        })
+        .map((item) => ({ item }))
+        .sort(byRating)
+        .map(({ item }) => item),
     [profissionais, searchTerm, selectedCategoria]
   );
 
