@@ -31,7 +31,6 @@ const PrivacyPolicyConsent = ({ checked, onChange, error }) => {
             <Checkbox
               checked={checked}
               onChange={(event) => onChange(event.target.checked)}
-              sx={{ mt: -0.75 }}
             />
           }
           label={
@@ -43,7 +42,7 @@ const PrivacyPolicyConsent = ({ checked, onChange, error }) => {
               .
             </Typography>
           }
-          sx={{ alignItems: "flex-start" }}
+          sx={{ alignItems: "center", ml: 0 }}
         />
         {error && <FormHelperText>{error}</FormHelperText>}
       </FormControl>
