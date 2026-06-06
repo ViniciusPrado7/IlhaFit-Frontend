@@ -22,6 +22,7 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    Collapse,
     useTheme,
     alpha,
 } from "@mui/material";
@@ -30,10 +31,10 @@ import {
     FaStar,
     FaTrash,
     FaCheck,
-    FaTimes,
     FaExclamationTriangle,
     FaEye,
     FaSearch,
+    FaChevronDown,
 } from "react-icons/fa";
 import { denunciaService } from "../../../services";
 import { profissionalService } from "../../../service/ProfissionalService";
@@ -64,8 +65,10 @@ const AvaliacoesTab = () => {
     const [filterStatus, setFilterStatus] = useState("PENDENTE");
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+    const [expandedGroups, setExpandedGroups] = useState(new Set());
+    const [actionLoading, setActionLoading] = useState(null);
     const [detailDialog, setDetailDialog] = useState({ open: false, denuncia: null });
-    const [deleteDialog, setDeleteDialog] = useState({ open: false, denuncia: null });
+    const [deleteDialog, setDeleteDialog] = useState({ open: false, group: null });
     const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
     const [estabelecimentoModal, setEstabelecimentoModal] = useState({ open: false, estabelecimento: null });
     const [page, setPage] = useState(0);
@@ -89,6 +92,7 @@ const AvaliacoesTab = () => {
             setLoading(true);
             const data = await denunciaService.getAll(filterStatus);
             setDenuncias(data);
+            setExpandedGroups(new Set());
         } catch (error) {
             console.error("Erro ao carregar denúncias:", error);
             toast.error("Erro ao carregar denúncias");
@@ -97,34 +101,53 @@ const AvaliacoesTab = () => {
         }
     };
 
-    const handleUpdateStatus = async (id, status) => {
+    const toggleGroup = (avaliacaoId) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(avaliacaoId)) next.delete(avaliacaoId);
+            else next.add(avaliacaoId);
+            return next;
+        });
+    };
+
+    const handleAceitarGrupo = async (e, group) => {
+        e.stopPropagation();
+        const pendentes = group.denuncias.filter(d => d.status === 'PENDENTE');
+        if (pendentes.length === 0) return;
+        setActionLoading(group.avaliacaoId);
         try {
-            await denunciaService.atualizarStatus(id, status);
-            toast.success(`Denúncia marcada como ${STATUS_CONFIG[status].label.toLowerCase()}.`);
-            loadDenuncias();
-            setDetailDialog({ open: false, denuncia: null });
-        } catch (error) {
-            if (error.response?.status === 409) {
-                toast.warning(error.response.data?.erro || "Esta denúncia já foi julgada ou o comentário foi removido.");
-                loadDenuncias();
-                setDetailDialog({ open: false, denuncia: null });
+            const results = await Promise.allSettled(
+                pendentes.map(d => denunciaService.atualizarStatus(d.id, 'REVISADO'))
+            );
+            const failed = results.filter(r => r.status === 'rejected');
+            if (failed.length === 0) {
+                toast.success(`${pendentes.length} denúncia${pendentes.length !== 1 ? 's' : ''} marcada${pendentes.length !== 1 ? 's' : ''} como revisada${pendentes.length !== 1 ? 's' : ''}.`);
+            } else if (failed.length < pendentes.length) {
+                toast.warning(`${pendentes.length - failed.length} de ${pendentes.length} denúncias marcadas. ${failed.length} falharam — recarregue para verificar.`);
             } else {
-                toast.error("Erro ao atualizar status");
+                toast.error('Não foi possível marcar as denúncias como revisadas.');
             }
+            loadDenuncias();
+        } finally {
+            setActionLoading(null);
         }
     };
 
+    const handleExcluirGrupo = (e, group) => {
+        e.stopPropagation();
+        setDeleteDialog({ open: true, group });
+    };
+
     const handleDeleteAvaliacao = async () => {
-        if (!deleteDialog.denuncia) return;
+        if (!deleteDialog.group) return;
+        const anyDenuncia = deleteDialog.group.denuncias[0];
         try {
-            await denunciaService.excluirAvaliacao(deleteDialog.denuncia.id);
+            await denunciaService.excluirAvaliacao(anyDenuncia.id);
             toast.success("Avaliação e denúncias associadas excluídas!");
-            setDeleteDialog({ open: false, denuncia: null });
-            setDetailDialog({ open: false, denuncia: null });
+            setDeleteDialog({ open: false, group: null });
             loadDenuncias();
         } catch (error) {
-            setDeleteDialog({ open: false, denuncia: null });
-            setDetailDialog({ open: false, denuncia: null });
+            setDeleteDialog({ open: false, group: null });
             if (error.response?.status === 409) {
                 toast.warning("Comentário já foi removido. A lista será atualizada.");
                 loadDenuncias();
@@ -134,54 +157,74 @@ const AvaliacoesTab = () => {
         }
     };
 
-    const pendentes = denuncias.filter(d => d.status === "PENDENTE").length;
-
-    const denunciaCountMap = useMemo(() => {
-        const map = {};
+    // Agrupa denúncias por avaliacaoId
+    const groupedDenuncias = useMemo(() => {
+        const map = new Map();
         denuncias.forEach(d => {
-            map[d.avaliacaoId] = (map[d.avaliacaoId] || 0) + 1;
+            if (!map.has(d.avaliacaoId)) {
+                map.set(d.avaliacaoId, {
+                    avaliacaoId: d.avaliacaoId,
+                    comentarioAvaliacao: d.comentarioAvaliacao,
+                    notaAvaliacao: d.notaAvaliacao,
+                    nomeAutorAvaliacao: d.nomeAutorAvaliacao,
+                    estabelecimentoId: d.estabelecimentoId,
+                    estabelecimentoNome: d.estabelecimentoNome,
+                    profissionalId: d.profissionalId,
+                    profissionalNome: d.profissionalNome,
+                    denuncias: [],
+                });
+            }
+            map.get(d.avaliacaoId).denuncias.push(d);
         });
-        return map;
+        return Array.from(map.values()).map(g => ({
+            ...g,
+            count: g.denuncias.length,
+            isAlert: g.denuncias.length >= 10,
+            status: g.denuncias.some(d => d.status === 'PENDENTE')
+                ? 'PENDENTE'
+                : g.denuncias.every(d => d.status === 'REVISADO')
+                    ? 'REVISADO'
+                    : 'EXCLUIDO',
+        }));
     }, [denuncias]);
 
-    const alertCount = useMemo(() => {
-        const avaliacoesAlerta = new Set(
-            Object.entries(denunciaCountMap)
-                .filter(([, count]) => count >= 10)
-                .map(([id]) => id)
-        );
-        return avaliacoesAlerta.size;
-    }, [denunciaCountMap]);
+    const alertCount = useMemo(
+        () => groupedDenuncias.filter(g => g.isAlert).length,
+        [groupedDenuncias]
+    );
 
-    const filteredDenuncias = useMemo(() => {
-        let list = denuncias;
+    const pendentesGrupos = useMemo(
+        () => groupedDenuncias.filter(g => g.status === 'PENDENTE').length,
+        [groupedDenuncias]
+    );
+
+    const filteredGroups = useMemo(() => {
+        let list = groupedDenuncias;
         if (debouncedSearchTerm) {
             const term = debouncedSearchTerm.toLowerCase();
-            list = list.filter(d =>
-                d.comentarioAvaliacao?.toLowerCase().includes(term) ||
-                d.nomeAutorAvaliacao?.toLowerCase().includes(term) ||
-                d.denuncianteEmail?.toLowerCase().includes(term) ||
-                d.estabelecimentoNome?.toLowerCase().includes(term) ||
-                d.profissionalNome?.toLowerCase().includes(term) ||
-                MOTIVO_LABELS[d.motivo]?.toLowerCase().includes(term)
+            list = list.filter(g =>
+                g.comentarioAvaliacao?.toLowerCase().includes(term) ||
+                g.nomeAutorAvaliacao?.toLowerCase().includes(term) ||
+                g.estabelecimentoNome?.toLowerCase().includes(term) ||
+                g.profissionalNome?.toLowerCase().includes(term) ||
+                g.denuncias.some(d =>
+                    d.denuncianteEmail?.toLowerCase().includes(term) ||
+                    MOTIVO_LABELS[d.motivo]?.toLowerCase().includes(term)
+                )
             );
         }
         return [...list].sort((a, b) => {
-            const countA = denunciaCountMap[a.avaliacaoId] || 1;
-            const countB = denunciaCountMap[b.avaliacaoId] || 1;
-            const aAlert = countA >= 10;
-            const bAlert = countB >= 10;
-            if (aAlert && !bAlert) return -1;
-            if (!aAlert && bAlert) return 1;
-            if (aAlert && bAlert) return countB - countA;
+            if (a.isAlert && !b.isAlert) return -1;
+            if (!a.isAlert && b.isAlert) return 1;
+            if (a.isAlert && b.isAlert) return b.count - a.count;
             return 0;
         });
-    }, [denuncias, debouncedSearchTerm, denunciaCountMap]);
+    }, [groupedDenuncias, debouncedSearchTerm]);
 
-    const paginatedDenuncias = useMemo(() => {
+    const paginatedGroups = useMemo(() => {
         const start = page * rowsPerPage;
-        return filteredDenuncias.slice(start, start + rowsPerPage);
-    }, [filteredDenuncias, page, rowsPerPage]);
+        return filteredGroups.slice(start, start + rowsPerPage);
+    }, [filteredGroups, page, rowsPerPage]);
 
     const formatDate = (dateStr) => {
         if (!dateStr) return "—";
@@ -189,11 +232,7 @@ const AvaliacoesTab = () => {
         return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     };
 
-    const getContextLabel = (d) => {
-        if (d.estabelecimentoNome) return d.estabelecimentoNome;
-        if (d.profissionalNome) return d.profissionalNome;
-        return null;
-    };
+    const contextLabel = (g) => g.estabelecimentoNome || g.profissionalNome || null;
 
     const handleOpenContexto = async (d) => {
         if (d.profissionalId) {
@@ -233,7 +272,8 @@ const AvaliacoesTab = () => {
                         <FaFlag /> Moderação de Denúncias
                     </Typography>
                     <Typography color="text.secondary" variant="body2" sx={{ mt: 0.5 }}>
-                        {denuncias.length} denúncia{denuncias.length !== 1 ? "s" : ""}{pendentes > 0 ? ` · ${pendentes} pendente${pendentes !== 1 ? "s" : ""}` : ""}
+                        {denuncias.length} denúncia{denuncias.length !== 1 ? "s" : ""} em {groupedDenuncias.length} avaliação{groupedDenuncias.length !== 1 ? "ões" : ""}
+                        {pendentesGrupos > 0 ? ` · ${pendentesGrupos} grupo${pendentesGrupos !== 1 ? "s" : ""} pendente${pendentesGrupos !== 1 ? "s" : ""}` : ""}
                     </Typography>
                 </Box>
             </Box>
@@ -257,7 +297,7 @@ const AvaliacoesTab = () => {
                     />
                     {debouncedSearchTerm && (
                         <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                            {filteredDenuncias.length} resultado{filteredDenuncias.length !== 1 ? "s" : ""}
+                            {filteredGroups.length} grupo{filteredGroups.length !== 1 ? "s" : ""} encontrado{filteredGroups.length !== 1 ? "s" : ""}
                         </Typography>
                     )}
                 </Box>
@@ -276,12 +316,7 @@ const AvaliacoesTab = () => {
                         variant={filterStatus === f.value ? "contained" : "outlined"}
                         size="small"
                         onClick={() => setFilterStatus(f.value)}
-                        sx={{
-                            textTransform: "none",
-                            fontWeight: 600,
-                            borderRadius: 10,
-                            px: 2.5,
-                        }}
+                        sx={{ textTransform: "none", fontWeight: 600, borderRadius: 10, px: 2.5 }}
                     >
                         {f.label}
                     </Button>
@@ -298,17 +333,14 @@ const AvaliacoesTab = () => {
                 </Paper>
             )}
 
-            {/* Tabela */}
+            {/* Tabela agrupada por avaliação */}
             <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                 <Table>
                     <TableHead>
                         <TableRow>
+                            <TableCell sx={{ width: 48 }} />
                             <TableCell><strong>Avaliação</strong></TableCell>
-                            <TableCell><strong>Autor</strong></TableCell>
-                            <TableCell><strong>Motivo</strong></TableCell>
-                            <TableCell><strong>Denunciante</strong></TableCell>
-                            <TableCell><strong>Contexto</strong></TableCell>
-                            <TableCell><strong>Data</strong></TableCell>
+                            <TableCell><strong>Denúncias</strong></TableCell>
                             <TableCell><strong>Status</strong></TableCell>
                             <TableCell align="right"><strong>Ações</strong></TableCell>
                         </TableRow>
@@ -316,13 +348,13 @@ const AvaliacoesTab = () => {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
                                     <CircularProgress size={32} />
                                 </TableCell>
                             </TableRow>
-                        ) : denuncias.length === 0 ? (
+                        ) : groupedDenuncias.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                                <TableCell colSpan={5} align="center" sx={{ py: 5 }}>
                                     <Box sx={{ textAlign: "center" }}>
                                         <FaFlag size={32} color={theme.palette.text.disabled} style={{ marginBottom: 8 }} />
                                         <Typography color="text.secondary">
@@ -332,120 +364,213 @@ const AvaliacoesTab = () => {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            paginatedDenuncias.map((d) => {
-                                const count = denunciaCountMap[d.avaliacaoId] || 1;
-                                const isAlert = count >= 10;
+                            paginatedGroups.map((group) => {
+                                const isExpanded = expandedGroups.has(group.avaliacaoId);
+                                const isLoadingAction = actionLoading === group.avaliacaoId;
                                 return (
-                                <TableRow
-                                    key={d.id}
-                                    hover
-                                    sx={isAlert ? {
-                                        bgcolor: alpha(theme.palette.warning.main, isDark ? 0.12 : 0.07),
-                                        '&:hover': { bgcolor: alpha(theme.palette.warning.main, isDark ? 0.2 : 0.13) },
-                                        borderLeft: `4px solid ${theme.palette.warning.main}`,
-                                    } : {}}
-                                >
-                                    <TableCell sx={{ maxWidth: 250 }}>
-                                        <Typography variant="body2" noWrap title={d.comentarioAvaliacao}>
-                                            "{d.comentarioAvaliacao}"
-                                        </Typography>
-                                        <Box sx={{ display: "flex", gap: 0.3, mt: 0.5 }}>
-                                            {[...Array(5)].map((_, i) => (
-                                                <FaStar key={i} size={10} color={i < d.notaAvaliacao ? "#FFD700" : "#E2E8F0"} />
-                                            ))}
-                                        </Box>
-                                        {isAlert && (
-                                            <Chip
-                                                icon={<FaExclamationTriangle size={9} />}
-                                                label={`${count} denúncias`}
-                                                size="small"
-                                                color="warning"
-                                                sx={{ mt: 0.5, fontWeight: 700, fontSize: '0.65rem', height: 20 }}
-                                            />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" fontWeight={600}>{d.nomeAutorAvaliacao}</Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={MOTIVO_LABELS[d.motivo] || d.motivo}
-                                            size="small"
+                                    <React.Fragment key={group.avaliacaoId}>
+                                        {/* Linha do grupo (recolhida) */}
+                                        <TableRow
+                                            hover
+                                            onClick={() => toggleGroup(group.avaliacaoId)}
+                                            tabIndex={0}
+                                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGroup(group.avaliacaoId); } }}
+                                            aria-expanded={isExpanded}
                                             sx={{
-                                                bgcolor: alpha(theme.palette.error.main, isDark ? 0.15 : 0.08),
-                                                color: "error.main",
-                                                fontWeight: 600,
-                                                fontSize: "0.7rem",
+                                                cursor: 'pointer',
+                                                ...(group.isAlert ? {
+                                                    bgcolor: alpha(theme.palette.warning.main, isDark ? 0.12 : 0.07),
+                                                    '&:hover': { bgcolor: alpha(theme.palette.warning.main, isDark ? 0.2 : 0.13) },
+                                                    borderLeft: `4px solid ${theme.palette.warning.main}`,
+                                                } : {}),
                                             }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="body2" color="text.secondary">{d.denuncianteEmail}</Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        {getContextLabel(d) ? (
-                                            <Chip
-                                                label={getContextLabel(d)}
-                                                size="small"
-                                                icon={<FaEye size={10} />}
-                                                onClick={() => handleOpenContexto(d)}
-                                                clickable
-                                                sx={{ fontWeight: 600, fontSize: "0.7rem" }}
-                                            />
-                                        ) : (
-                                            <Typography variant="caption" color="text.secondary">—</Typography>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Typography variant="caption" color="text.secondary">
-                                            {formatDate(d.dataDenuncia)}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={STATUS_CONFIG[d.status]?.label || d.status}
-                                            color={STATUS_CONFIG[d.status]?.color || "default"}
-                                            size="small"
-                                            sx={{ fontWeight: 600 }}
-                                        />
-                                    </TableCell>
-                                    <TableCell align="right">
-                                        <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
-                                            <Tooltip title="Ver detalhes">
-                                                <IconButton
+                                        >
+                                            {/* Ícone de expansão */}
+                                            <TableCell sx={{ width: 48, pr: 0 }}>
+                                                <Box sx={{
+                                                    transition: 'transform 0.2s',
+                                                    transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                }}>
+                                                    <FaChevronDown size={12} color={theme.palette.text.secondary} />
+                                                </Box>
+                                            </TableCell>
+
+                                            {/* Avaliação */}
+                                            <TableCell sx={{ maxWidth: 320 }}>
+                                                <Typography variant="body2" noWrap title={group.comentarioAvaliacao} sx={{ fontStyle: 'italic' }}>
+                                                    "{group.comentarioAvaliacao}"
+                                                </Typography>
+                                                <Box sx={{ display: "flex", gap: 0.3, mt: 0.5 }}>
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <FaStar key={i} size={10} color={i < group.notaAvaliacao ? "#FFD700" : "#E2E8F0"} />
+                                                    ))}
+                                                </Box>
+                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.3 }}>
+                                                    {group.nomeAutorAvaliacao}
+                                                    {contextLabel(group) && ` · ${contextLabel(group)}`}
+                                                </Typography>
+                                                {group.isAlert && (
+                                                    <Chip
+                                                        icon={<FaExclamationTriangle size={9} />}
+                                                        label={`${group.count} denúncias`}
+                                                        size="small"
+                                                        color="warning"
+                                                        sx={{ mt: 0.5, fontWeight: 700, fontSize: '0.65rem', height: 20 }}
+                                                    />
+                                                )}
+                                            </TableCell>
+
+                                            {/* Contagem de denúncias */}
+                                            <TableCell>
+                                                <Chip
+                                                    label={`${group.count} denúncia${group.count !== 1 ? 's' : ''}`}
                                                     size="small"
-                                                    onClick={() => setDetailDialog({ open: true, denuncia: d })}
-                                                    sx={{ color: "primary.main", bgcolor: alpha(theme.palette.primary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}
-                                                >
-                                                    <FaEye size={12} />
-                                                </IconButton>
-                                            </Tooltip>
-                                            {d.status === "PENDENTE" && (
-                                                <>
-                                                    <Tooltip title="Marcar como revisado">
+                                                    color={group.isAlert ? "warning" : "default"}
+                                                    variant={group.isAlert ? "filled" : "outlined"}
+                                                    sx={{ fontWeight: group.isAlert ? 700 : 400 }}
+                                                />
+                                            </TableCell>
+
+                                            {/* Status do grupo */}
+                                            <TableCell>
+                                                <Chip
+                                                    label={STATUS_CONFIG[group.status]?.label || group.status}
+                                                    color={STATUS_CONFIG[group.status]?.color || "default"}
+                                                    size="small"
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            </TableCell>
+
+                                            {/* Ações do grupo */}
+                                            <TableCell align="right">
+                                                <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
+                                                    {group.status === 'PENDENTE' && (
+                                                        <Tooltip title="Marcar todas as denúncias como revisadas">
+                                                            <span>
+                                                                <IconButton
+                                                                    size="small"
+                                                                    disabled={isLoadingAction}
+                                                                    onClick={(e) => handleAceitarGrupo(e, group)}
+                                                                    sx={{ color: "success.main", bgcolor: alpha(theme.palette.success.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.2) } }}
+                                                                >
+                                                                    {isLoadingAction
+                                                                        ? <CircularProgress size={12} color="inherit" />
+                                                                        : <FaCheck size={12} />}
+                                                                </IconButton>
+                                                            </span>
+                                                        </Tooltip>
+                                                    )}
+                                                    <Tooltip title="Excluir avaliação e todas as denúncias">
                                                         <IconButton
                                                             size="small"
-                                                            onClick={() => handleUpdateStatus(d.id, "REVISADO")}
-                                                            sx={{ color: "success.main", bgcolor: alpha(theme.palette.success.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.success.main, 0.2) } }}
+                                                            color="error"
+                                                            onClick={(e) => handleExcluirGrupo(e, group)}
+                                                            sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
                                                         >
-                                                            <FaCheck size={12} />
+                                                            <FaTrash size={12} />
                                                         </IconButton>
                                                     </Tooltip>
-                                                </>
-                                            )}
-                                            <Tooltip title="Excluir avaliação denunciada">
-                                                <IconButton
-                                                    size="small"
-                                                    color="error"
-                                                    onClick={(e) => { e.currentTarget.blur(); setDeleteDialog({ open: true, denuncia: d }); }}
-                                                    sx={{ bgcolor: alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.2), color: 'white' } }}
-                                                >
-                                                    <FaTrash size={12} />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Box>
-                                    </TableCell>
-                                </TableRow>
+                                                </Box>
+                                            </TableCell>
+                                        </TableRow>
+
+                                        {/* Linha expandida — detalhes das denúncias individuais */}
+                                        <TableRow>
+                                            <TableCell colSpan={5} sx={{ p: 0, border: 0 }}>
+                                                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                                                    <Box sx={{
+                                                        p: 2,
+                                                        bgcolor: isDark
+                                                            ? alpha(theme.palette.common.white, 0.03)
+                                                            : alpha(theme.palette.primary.main, 0.02),
+                                                        borderBottom: '1px solid',
+                                                        borderColor: 'divider',
+                                                    }}>
+                                                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                            {group.count} denúncia{group.count !== 1 ? 's' : ''} recebida{group.count !== 1 ? 's' : ''}
+                                                        </Typography>
+                                                        <Table size="small">
+                                                            <TableHead>
+                                                                <TableRow>
+                                                                    <TableCell><strong>Autor</strong></TableCell>
+                                                                    <TableCell><strong>Motivo</strong></TableCell>
+                                                                    <TableCell><strong>Denunciante</strong></TableCell>
+                                                                    <TableCell><strong>Contexto</strong></TableCell>
+                                                                    <TableCell><strong>Data</strong></TableCell>
+                                                                    <TableCell><strong>Status</strong></TableCell>
+                                                                    <TableCell />
+                                                                </TableRow>
+                                                            </TableHead>
+                                                            <TableBody>
+                                                                {group.denuncias.map(d => (
+                                                                    <TableRow key={d.id} hover>
+                                                                        <TableCell>
+                                                                            <Typography variant="body2" fontWeight={600}>{d.nomeAutorAvaliacao}</Typography>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Chip
+                                                                                label={MOTIVO_LABELS[d.motivo] || d.motivo}
+                                                                                size="small"
+                                                                                sx={{
+                                                                                    bgcolor: alpha(theme.palette.error.main, isDark ? 0.15 : 0.08),
+                                                                                    color: "error.main",
+                                                                                    fontWeight: 600,
+                                                                                    fontSize: "0.7rem",
+                                                                                }}
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Typography variant="body2" color="text.secondary">{d.denuncianteEmail}</Typography>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {(d.estabelecimentoNome || d.profissionalNome) ? (
+                                                                                <Chip
+                                                                                    label={d.estabelecimentoNome || d.profissionalNome}
+                                                                                    size="small"
+                                                                                    icon={<FaEye size={10} />}
+                                                                                    onClick={() => handleOpenContexto(d)}
+                                                                                    clickable
+                                                                                    sx={{ fontWeight: 600, fontSize: "0.7rem" }}
+                                                                                />
+                                                                            ) : (
+                                                                                <Typography variant="caption" color="text.secondary">—</Typography>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Typography variant="caption" color="text.secondary">
+                                                                                {formatDate(d.dataDenuncia)}
+                                                                            </Typography>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            <Chip
+                                                                                label={STATUS_CONFIG[d.status]?.label || d.status}
+                                                                                color={STATUS_CONFIG[d.status]?.color || "default"}
+                                                                                size="small"
+                                                                                sx={{ fontWeight: 600 }}
+                                                                            />
+                                                                        </TableCell>
+                                                                        <TableCell align="right">
+                                                                            <Tooltip title="Ver detalhes">
+                                                                                <IconButton
+                                                                                    size="small"
+                                                                                    onClick={() => setDetailDialog({ open: true, denuncia: d })}
+                                                                                    sx={{ color: "primary.main", bgcolor: alpha(theme.palette.primary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}
+                                                                                >
+                                                                                    <FaEye size={12} />
+                                                                                </IconButton>
+                                                                            </Tooltip>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </Box>
+                                                </Collapse>
+                                            </TableCell>
+                                        </TableRow>
+                                    </React.Fragment>
                                 );
                             })
                         )}
@@ -456,7 +581,7 @@ const AvaliacoesTab = () => {
             <TablePagination
                 rowsPerPageOptions={[5, 10, 25, 50]}
                 component="div"
-                count={filteredDenuncias.length}
+                count={filteredGroups.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={(_, newPage) => setPage(newPage)}
@@ -465,7 +590,7 @@ const AvaliacoesTab = () => {
                 labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count !== -1 ? count : `mais de ${to}`}`}
             />
 
-            {/* Dialog de Detalhes */}
+            {/* Dialog de Detalhes da denúncia individual (acessado pelo accordion expandido) */}
             <Dialog
                 open={detailDialog.open}
                 onClose={() => setDetailDialog({ open: false, denuncia: null })}
@@ -523,7 +648,9 @@ const AvaliacoesTab = () => {
                                     <Typography variant="caption" color="text.secondary" fontWeight={700}>CONTEXTO</Typography>
                                     <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <Typography variant="body2" fontWeight={600}>
-                                            {detailDialog.denuncia.estabelecimentoNome ? `Estabelecimento: ${detailDialog.denuncia.estabelecimentoNome}` : `Profissional: ${detailDialog.denuncia.profissionalNome}`}
+                                            {detailDialog.denuncia.estabelecimentoNome
+                                                ? `Estabelecimento: ${detailDialog.denuncia.estabelecimentoNome}`
+                                                : `Profissional: ${detailDialog.denuncia.profissionalNome}`}
                                         </Typography>
                                         <Tooltip title="Ver perfil">
                                             <IconButton
@@ -559,30 +686,9 @@ const AvaliacoesTab = () => {
                         </Box>
                     )}
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
                     <Button onClick={() => setDetailDialog({ open: false, denuncia: null })} sx={{ textTransform: "none" }}>
                         Fechar
-                    </Button>
-                    {detailDialog.denuncia?.status === "PENDENTE" && (
-                        <>
-                            <Button
-                                variant="contained"
-                                color="success"
-                                onClick={() => handleUpdateStatus(detailDialog.denuncia.id, "REVISADO")}
-                                sx={{ textTransform: "none", fontWeight: 600 }}
-                            >
-                                Marcar Revisado
-                            </Button>
-                        </>
-                    )}
-                    <Button
-                        variant="contained"
-                        color="error"
-                        startIcon={<FaTrash size={12} />}
-                        onClick={(e) => { e.currentTarget.blur(); setDeleteDialog({ open: true, denuncia: detailDialog.denuncia }); }}
-                        sx={{ textTransform: "none", fontWeight: 600 }}
-                    >
-                        Excluir Avaliação
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -600,21 +706,21 @@ const AvaliacoesTab = () => {
             />
 
             {/* Dialog de Confirmação de Exclusão */}
-            <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, denuncia: null })}>
+            <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, group: null })}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <FaExclamationTriangle color={theme.palette.error.main} />
                     Excluir Avaliação Denunciada
                 </DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Tem certeza que deseja excluir a avaliação de <strong>{deleteDialog.denuncia?.nomeAutorAvaliacao}</strong>?
+                        Tem certeza que deseja excluir a avaliação de <strong>{deleteDialog.group?.nomeAutorAvaliacao}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        A avaliação e todas as denúncias associadas serão marcadas como excluídas e não aparecerão mais nas listagens.
+                        A avaliação e {deleteDialog.group?.count} denúncia{deleteDialog.group?.count !== 1 ? 's' : ''} associada{deleteDialog.group?.count !== 1 ? 's' : ''} serão marcadas como excluídas e não aparecerão mais nas listagens.
                     </Typography>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDeleteDialog({ open: false, denuncia: null })} sx={{ textTransform: "none" }}>Cancelar</Button>
+                    <Button onClick={() => setDeleteDialog({ open: false, group: null })} sx={{ textTransform: "none" }}>Cancelar</Button>
                     <Button onClick={handleDeleteAvaliacao} color="error" variant="contained" sx={{ textTransform: "none" }}>Excluir</Button>
                 </DialogActions>
             </Dialog>
