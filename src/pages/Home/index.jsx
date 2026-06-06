@@ -32,6 +32,7 @@ import { avaliacaoService } from "../../service/AvaliacaoService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 import { profissionalService } from "../../service/ProfissionalService";
 import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/avaliacao";
+import { toTitleCase } from "../../utils/titleCase";
 
 const normalizeList = (data) => {
   if (Array.isArray(data)) return data;
@@ -627,9 +628,9 @@ const Home = () => {
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
                     {searchTerm
-                      ? `Exibindo resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` em ${selectedCategoria}` : ""}.`
+                      ? `Exibindo resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` em ${toTitleCase(selectedCategoria)}` : ""}.`
                       : selectedCategoria !== "Todas"
-                        ? `Filtrando resultados da categoria ${selectedCategoria}.`
+                        ? `Filtrando resultados da categoria ${toTitleCase(selectedCategoria)}.`
                         : "Use a busca para encontrar estabelecimentos e profissionais com mais rapidez."}
                   </Typography>
                 </Box>
@@ -672,7 +673,7 @@ const Home = () => {
               <Typography color="text.secondary">
                 {selectedCategoria === "Todas"
                   ? "Selecionamos estabelecimentos com forte potencial para a sua próxima escolha."
-                  : `Selecionamos os resultados mais aderentes para a categoria ${selectedCategoria}.`}
+                  : `Selecionamos os resultados mais aderentes para a categoria ${toTitleCase(selectedCategoria)}.`}
               </Typography>
             </Box>
 

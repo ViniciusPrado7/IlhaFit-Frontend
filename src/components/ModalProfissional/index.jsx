@@ -5,6 +5,7 @@ import AvaliacoesPanel from "../AvaliacoesPanel";
 import LimitedChipList from "../LimitedChipList";
 import { calcularResumoAvaliacoes } from "../../utils/avaliacao";
 import { profissionalService } from "../../service/ProfissionalService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const formatTelefone = (value) => {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -16,19 +17,19 @@ const formatTelefone = (value) => {
 const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
 const getFoto = (profissional) => profissional?.fotoUrl || profissional?.Imagem || fallbackImage;
-const getNome = (profissional) => profissional?.nome || "Profissional";
+const getNome = (profissional) => toTitleCase(profissional?.nome) || "Profissional";
 
 const getCategorias = (profissional) => {
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
   }
 
   if (Array.isArray(profissional?.especialidades) && profissional.especialidades.length > 0) {
-    return profissional.especialidades;
+    return profissional.especialidades.map(toTitleCase);
   }
 
   if (profissional?.especializacao) {
-    return [profissional.especializacao];
+    return [toTitleCase(profissional.especializacao)];
   }
 
   return ["Profissional"];
@@ -261,7 +262,7 @@ const ModalProfissional = ({ open, onClose, profissional, onProfissionalChange }
                 >
                   <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
                     <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                      {grade.categoriaNome}
+                      {toTitleCase(grade.categoriaNome)}
                     </Typography>
                     {grade.exclusivoMulheres && (
                       <Chip label="Exclusiva para mulheres" size="small" sx={tagSx} />

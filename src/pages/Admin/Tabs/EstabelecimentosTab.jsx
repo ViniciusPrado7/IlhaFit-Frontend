@@ -40,6 +40,7 @@ import {
 import { toast } from "react-toastify";
 import { estabelecimentoService } from "../../../services";
 import ModalDetalhesEstabelecimento from "../../../components/ModalDetalhesEstabelecimento";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const EstabelecimentosTab = () => {
     const theme = useTheme();
@@ -332,7 +333,7 @@ const EstabelecimentosTab = () => {
                                     onClick={() => handleOpenModal(estab)}
                                     sx={{ cursor: 'pointer' }}
                                 >
-                                    <TableCell>{estab.nomeFantasia || estab.nome || "N/A"}</TableCell>
+                                    <TableCell>{toTitleCase(estab.nomeFantasia || estab.nome) || "N/A"}</TableCell>
                                     <TableCell>{estab.email || "N/A"}</TableCell>
                                     <TableCell>
                                         <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
@@ -340,7 +341,7 @@ const EstabelecimentosTab = () => {
                                                 return (
                                                     <Chip
                                                         key={c.id}
-                                                        label={c.nome}
+                                                        label={toTitleCase(c.nome)}
                                                         size="small"
                                                         sx={{
                                                             bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.1),
@@ -418,7 +419,7 @@ const EstabelecimentosTab = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Tem certeza que deseja excluir <strong>{deleteDialog.estabelecimento?.nomeFantasia || deleteDialog.estabelecimento?.nome}</strong>?
+                        Tem certeza que deseja excluir <strong>{toTitleCase(deleteDialog.estabelecimento?.nomeFantasia || deleteDialog.estabelecimento?.nome)}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         Esta ação não pode ser desfeita.

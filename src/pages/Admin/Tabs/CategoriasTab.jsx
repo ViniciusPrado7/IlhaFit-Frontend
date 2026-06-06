@@ -25,6 +25,7 @@ import {
 import { FaEdit, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { categoriaService } from "../../../services";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const CategoriasTab = () => {
   const [categorias, setCategorias] = useState([]);
@@ -191,7 +192,7 @@ const CategoriasTab = () => {
               ) : (
                 paginatedCategorias.map((categoria) => (
                   <TableRow key={categoria.id} hover>
-                    <TableCell sx={{ fontWeight: 500 }}>{categoria.nome}</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>{toTitleCase(categoria.nome)}</TableCell>
                     <TableCell align="center">
                       <Tooltip title="Editar">
                         <IconButton size="small" color="primary" onClick={() => handleOpenEdit(categoria)}>

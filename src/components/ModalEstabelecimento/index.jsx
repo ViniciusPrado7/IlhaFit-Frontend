@@ -19,6 +19,7 @@ import LimitedChipList from "../LimitedChipList";
 import MapComponent from "../MapComponent";
 import { calcularResumoAvaliacoes, formatarAvaliacao } from "../../utils/avaliacao";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1400&q=80";
 
@@ -30,7 +31,7 @@ const getFotos = (estabelecimento) => {
   return [fallbackImage];
 };
 
-const getNome = (estabelecimento) => estabelecimento?.nomeFantasia || "Estabelecimento";
+const getNome = (estabelecimento) => toTitleCase(estabelecimento?.nomeFantasia) || "Estabelecimento";
 
 const getEndereco = (estabelecimento) => {
   const endereco = estabelecimento?.endereco;
@@ -47,7 +48,7 @@ const getEndereco = (estabelecimento) => {
 
 const getCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
   }
 
   return ["Estabelecimento"];
@@ -398,7 +399,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
               }}
             >
               <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                {grade.categoriaNome}
+                {toTitleCase(grade.categoriaNome)}
               </Typography>
 
               <Box

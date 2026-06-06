@@ -10,6 +10,7 @@ import {
 import { FaArrowRight, FaMapMarkerAlt, FaStar } from "react-icons/fa";
 import { useState } from "react";
 import { formatarAvaliacao } from "../../utils/avaliacao";
+import { toTitleCase } from "../../utils/titleCase";
 
 const fallbackImage = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80";
 
@@ -21,7 +22,7 @@ const getFoto = (estabelecimento) => {
   return estabelecimento.Imagem || fallbackImage;
 };
 
-const getNome = (estabelecimento) => estabelecimento.nomeFantasia || "Estabelecimento";
+const getNome = (estabelecimento) => toTitleCase(estabelecimento.nomeFantasia) || "Estabelecimento";
 
 const getLocalizacao = (estabelecimento) => {
   const endereco = estabelecimento.endereco;
@@ -32,7 +33,7 @@ const getLocalizacao = (estabelecimento) => {
 
 const getCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
   }
 
   return ["Estabelecimento"];

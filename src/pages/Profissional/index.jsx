@@ -5,6 +5,7 @@ import { FaSearch } from "react-icons/fa";
 import CardProfissional from "../../components/Card/CardProfissional";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { profissionalService } from "../../service/ProfissionalService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -186,9 +187,9 @@ const Profissional = () => {
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
             {searchTerm
-              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${selectedCategoria}` : ""}.`
+              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${toTitleCase(selectedCategoria)}` : ""}.`
               : selectedCategoria !== "Todas"
-                ? `Exibindo profissionais da categoria ${selectedCategoria}.`
+                ? `Exibindo profissionais da categoria ${toTitleCase(selectedCategoria)}.`
                 : "Encontre especialistas por nome, categoria, especialidade ou região em uma listagem mais clara e organizada."}
           </Typography>
         </Box>

@@ -8,6 +8,7 @@ import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimen
 import { avaliacaoService } from "../../service/AvaliacaoService";
 import { estabelecimentoService } from "../../service/EstabelecimentoService";
 import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/avaliacao";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -220,9 +221,9 @@ const Estabelecimento = () => {
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
             {searchTerm
-              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${selectedCategoria}` : ""}.`
+              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${toTitleCase(selectedCategoria)}` : ""}.`
               : selectedCategoria !== "Todas"
-                ? `Exibindo estabelecimentos da categoria ${selectedCategoria}.`
+                ? `Exibindo estabelecimentos da categoria ${toTitleCase(selectedCategoria)}.`
                 : "Encontre espaços por nome, categoria ou localização em uma listagem mais clara e organizada."}
           </Typography>
         </Box>

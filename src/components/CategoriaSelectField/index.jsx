@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { FaSearch, FaTimes } from "react-icons/fa";
 import { categoriaService } from "../../service/CategoriaService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const PAGE_SIZE = 10;
 const VIEW_MORE_VALUE = "__view_more_categories__";
@@ -185,11 +186,11 @@ const CategoriaSelectField = ({
         <Select value={value} label={label} onChange={handleSelectChange}>
           {allOptionLabel ? <MenuItem value={allOptionLabel}>{allOptionLabel}</MenuItem> : null}
 
-          {shouldShowSelectedOutsideFirstPage ? <MenuItem value={value}>{value}</MenuItem> : null}
+          {shouldShowSelectedOutsideFirstPage ? <MenuItem value={value}>{toTitleCase(value)}</MenuItem> : null}
 
           {selectOptions.map((item) => (
             <MenuItem key={item.id || item.nome} value={item.nome}>
-              {item.nome}
+              {toTitleCase(item.nome)}
             </MenuItem>
           ))}
 
@@ -247,7 +248,7 @@ const CategoriaSelectField = ({
                     onClick={() => handleSelectFromModal(item)}
                     sx={{ justifyContent: "flex-start", textTransform: "none", borderRadius: 2, py: 1.25 }}
                   >
-                    {item.nome}
+                    {toTitleCase(item.nome)}
                   </Button>
                 ))}
               </Box>

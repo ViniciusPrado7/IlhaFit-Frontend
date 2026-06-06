@@ -11,6 +11,7 @@ import {
 import { FaStar, FaPhone, FaEnvelope, FaArrowRight, FaFemale, FaMapMarkerAlt } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import ModalProfissional from "../ModalProfissional";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getFoto = (profissional) => profissional.fotoUrl || profissional.Imagem;
 
@@ -24,15 +25,15 @@ const formatTelefone = (value) => {
 
 const getEspecialidades = (profissional) => {
     if (Array.isArray(profissional.especialidades) && profissional.especialidades.length > 0) {
-        return profissional.especialidades;
+        return profissional.especialidades.map(toTitleCase);
     }
 
     if (Array.isArray(profissional.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-        return [...new Set(profissional.gradeAtividades.map((item) => item.categoriaNome).filter(Boolean))];
+        return [...new Set(profissional.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
     }
 
     if (profissional.especializacao) {
-        return [profissional.especializacao];
+        return [toTitleCase(profissional.especializacao)];
     }
 
     return [];
@@ -161,7 +162,7 @@ const CardProfissional = ({ profissional, onVisualizar, onProfissionalUpdate }) 
                     textAlign="center"
                     sx={{ mb: 0.5, color: "text.primary", fontSize: "1.6rem" }}
                 >
-                    {profissionalAtual.nome}
+                    {toTitleCase(profissionalAtual.nome)}
                 </Typography>
 
                 <Box
