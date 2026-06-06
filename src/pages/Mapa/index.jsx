@@ -36,6 +36,7 @@ import { toast } from "react-toastify";
 import { estabelecimentoService } from "../../services";
 import MapComponent from "../../components/MapComponent";
 import ModalDetalhesEstabelecimento from "../../components/ModalDetalhesEstabelecimento";
+import { toTitleCase } from "../../utils/titleCase";
 
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
@@ -293,11 +294,17 @@ const Mapa = () => {
     }, [locationStatus, locationError, requestUserLocation, theme, userLocation]);
 
     useEffect(() => {
-        const fetchAll = async () => {
-            try {
-                const data = await estabelecimentoService.getAll();
+        let cancelled = false;
 
-                const mapped = data.map((est) => {
+        const fetchAll = async () => {
+            let rawData = [];
+            let mapped = [];
+
+            try {
+                rawData = await estabelecimentoService.getAll();
+                if (cancelled) return;
+
+                mapped = rawData.map((est) => {
                     const lat = est.endereco?.latitude ?? null;
                     const lng = est.endereco?.longitude ?? null;
                     const gradeAtividades = est.gradeAtividades || [];
@@ -305,10 +312,12 @@ const Mapa = () => {
                         .map((g) => g.categoriaNome)
                         .filter(Boolean);
 
+                    const atividadesTC = atividades.map(toTitleCase);
+
                     return {
                         id: est.id,
-                        nome: est.nomeFantasia || est.nome,
-                        categoria: atividades[0] || "Outros",
+                        nome: toTitleCase(est.nomeFantasia || est.nome),
+                        categoria: atividadesTC[0] || "Outros",
                         lat,
                         lng,
                         avaliacao: est.avaliacao || 0,
@@ -317,60 +326,58 @@ const Mapa = () => {
                             "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=60",
                         telefone: est.telefone,
                         aberto: true,
-                        atividades,
+                        atividades: atividadesTC,
                         periodosLabel: formatPeriods(gradeAtividades),
                         bairro: est.endereco?.bairro || "",
                     };
                 });
 
                 setDbEstablishments(mapped);
-
-                const withoutCoords = mapped.filter(
-                    (e) => !Number.isFinite(e.lat) || !Number.isFinite(e.lng)
-                );
-
-                if (withoutCoords.length > 0) {
-                    for (const est of withoutCoords) {
-                        const original = data.find((d) => d.id === est.id);
-                        if (!original?.endereco) continue;
-
-                        const addr = original.endereco;
-                        const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
-
-                        try {
-                            const geoRes = await fetch(
-                                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
-                            );
-                            const geoData = await geoRes.json();
-
-                            if (geoData && geoData.length > 0) {
-                                const lat = parseFloat(geoData[0].lat);
-                                const lng = parseFloat(geoData[0].lon);
-
-                                setDbEstablishments((prev) =>
-                                    prev.map((p) =>
-                                        p.id === est.id ? { ...p, lat, lng } : p
-                                    )
-                                );
-                            }
-
-                            await new Promise((resolve) => setTimeout(resolve, 1000));
-                        } catch {
-                            console.warn(
-                                "Falha ao geocodificar estabelecimento:",
-                                est.nome
-                            );
-                        }
-                    }
-                }
             } catch (err) {
                 console.error("Erro ao buscar dados do mapa:", err);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false); // map visible before geocoding
+            }
+
+            // Geocoding runs after the map is already interactive
+            const withoutCoords = mapped.filter(
+                (e) => !Number.isFinite(e.lat) || !Number.isFinite(e.lng)
+            );
+
+            for (const est of withoutCoords) {
+                if (cancelled) break;
+                const original = rawData.find((d) => d.id === est.id);
+                if (!original?.endereco) continue;
+
+                const addr = original.endereco;
+                const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
+
+                try {
+                    const geoRes = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+                    );
+                    const geoData = await geoRes.json();
+
+                    if (!cancelled && geoData && geoData.length > 0) {
+                        const lat = parseFloat(geoData[0].lat);
+                        const lng = parseFloat(geoData[0].lon);
+
+                        setDbEstablishments((prev) =>
+                            prev.map((p) =>
+                                p.id === est.id ? { ...p, lat, lng } : p
+                            )
+                        );
+                    }
+
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                } catch {
+                    console.warn("Falha ao geocodificar estabelecimento:", est.nome);
+                }
             }
         };
 
         fetchAll();
+        return () => { cancelled = true; };
     }, []);
 
     const referenceLocation = userLocation || FALLBACK_COORDS;
@@ -726,19 +733,7 @@ const Mapa = () => {
 
             </Box>
 
-            {loading ? (
-                <Box
-                    sx={{
-                        display: "flex",
-                        flex: 1,
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    <CircularProgress color="primary" />
-                </Box>
-            ) : (
-                <Box
+            <Box
                     sx={{
                         display: "flex",
                         gap: 3,
@@ -778,6 +773,33 @@ const Mapa = () => {
                             selectedId={selectedId}
                             userLocation={userLocation}
                         />
+                        {loading && (
+                            <Box
+                                sx={{
+                                    position: "absolute",
+                                    top: 10,
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    zIndex: 1000,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                    bgcolor: "background.paper",
+                                    borderRadius: 99,
+                                    px: 2,
+                                    py: 0.75,
+                                    boxShadow: 3,
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    pointerEvents: "none",
+                                }}
+                            >
+                                <CircularProgress size={14} color="primary" />
+                                <Typography variant="caption" fontWeight={600}>
+                                    Carregando estabelecimentos…
+                                </Typography>
+                            </Box>
+                        )}
                     </Box>
 
                     <Box
@@ -1107,7 +1129,13 @@ const Mapa = () => {
                                     </Box>
                                 ))}
 
-                                {filteredEstablishments.length === 0 && (
+                                {loading && (
+                                    <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
+                                        <CircularProgress size={24} color="primary" />
+                                    </Box>
+                                )}
+
+                                {!loading && filteredEstablishments.length === 0 && (
                                     <Box sx={{ p: 4, textAlign: "center" }}>
                                         <Typography
                                             variant="body2"
@@ -1122,7 +1150,6 @@ const Mapa = () => {
                         </Box>
                     </Box>
                 </Box>
-            )}
 
             <ModalDetalhesEstabelecimento
                 open={modalOpen}
