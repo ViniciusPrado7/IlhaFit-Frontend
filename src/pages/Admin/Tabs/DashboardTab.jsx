@@ -39,7 +39,7 @@ import {
     categoriaService,
     estabelecimentoService,
     profissionalService,
-} from "../../../services";
+} from "../../../service";
 import { toast } from "react-toastify";
 
 const MOTIVO_LABELS = {

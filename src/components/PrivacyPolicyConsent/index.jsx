@@ -13,7 +13,7 @@ import {
   Link,
   Typography,
 } from "@mui/material";
-import { politicaPrivacidadeSections } from "../../pages/Privacidade/politicaSections";
+import { politicaPrivacidadeSections } from "../../pages/Privacy/privacyPolicySections";
 
 const PrivacyPolicyConsent = ({ checked, onChange, error }) => {
   const [open, setOpen] = useState(false);

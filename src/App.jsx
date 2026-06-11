@@ -3,20 +3,20 @@ import { Route, Routes } from "react-router-dom";
 import "./styles/App.css";
 import AppLayout from "./components/Layout";
 import Home from "./pages/Home/index.jsx";
-import Estabelecimento from "./pages/Estabelecimento/index.jsx";
-import ConfiguracaoEstabelecimento from "./pages/Estabelecimento/Configuracao/index.jsx";
-import PerfilEstabelecimento from "./pages/Estabelecimento/Perfil.jsx";
+import Estabelecimento from "./pages/Establishment/index.jsx";
+import ConfiguracaoEstabelecimento from "./pages/Establishment/Settings/index.jsx";
+import PerfilEstabelecimento from "./pages/Establishment/Profile.jsx";
 import Login from "./pages/Login/index.jsx";
-import EsqueciSenha from "./pages/Login/EsqueciSenha/index.jsx";
+import EsqueciSenha from "./pages/Login/ForgotPassword/index.jsx";
 import Admin from "./pages/Admin/index.jsx";
-import Cadastro from "./pages/Cadastro/index.jsx";
-import Profissional from "./pages/Profissional/index.jsx";
-import Mapa from "./pages/Mapa/index.jsx";
-import ConfiguracaoProfissional from "./pages/Profissional/Configuracao/index.jsx";
-import ConfiguracaoUsuario from "./pages/Usuario/Configuracao/index.jsx";
-import Privacidade from "./pages/Privacidade/index.jsx";
-import Sobre from "./pages/Sobre/index.jsx";
-import EstabelecimentoRoute from "./components/PrivateRoute/EstabelecimentoRoute.jsx";
+import Cadastro from "./pages/Registration/index.jsx";
+import Profissional from "./pages/Professional/index.jsx";
+import Mapa from "./pages/Map/index.jsx";
+import ConfiguracaoProfissional from "./pages/Professional/Settings/index.jsx";
+import ConfiguracaoUsuario from "./pages/User/Settings/index.jsx";
+import Privacidade from "./pages/Privacy/index.jsx";
+import Sobre from "./pages/About/index.jsx";
+import EstabelecimentoRoute from "./components/PrivateRoute/EstablishmentRoute.jsx";
 import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
 import AdminPanel from "./pages/Admin/index.jsx";
 import { api } from "./service/Api.js";
@@ -70,5 +70,3 @@ function App() {
 }
 
 export default App;
-
-

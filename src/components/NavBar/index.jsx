@@ -16,7 +16,7 @@ import { FaCog, FaSignOutAlt, FaUser, FaUserShield } from "react-icons/fa";
 import Menu from "./Menu";
 import ToggleThemeButton from "../ToggleThemeButton";
 import LoginButton from "./Login/Login";
-import CadastroButton from "./Cadastro/Cadastro";
+import CadastroButton from "./Registration/Registration";
 import NotificationBell from "./NotificationBell";
 import { authSession } from "../../service/AuthSession";
 import logo from "../../assets/logo.svg";
