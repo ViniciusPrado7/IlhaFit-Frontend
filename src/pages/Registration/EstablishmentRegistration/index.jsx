@@ -41,10 +41,16 @@ const formInicial = {
   longitude: null,
 };
 
-const gradeInicial = { atividade: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
+const createEmptyActivitySchedule = () => ({
+  atividade: "",
+  exclusivoMulheres: false,
+  diasSemana: [],
+  periodos: [],
+});
 
 const onlyDigits = (value) => value.replace(/\D/g, "");
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
+const normalizeActivityName = (value) => value?.trim().replace(/\s+/g, " ").toLowerCase() || "";
 
 const formatTelefone = (value) => {
   const digits = onlyDigits(value).slice(0, 11);
@@ -112,7 +118,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
 
   const [formData, setFormData] = useState(formInicial);
   const [step, setStep] = useState(0);
-  const [gradeAtividades, setGradeAtividades] = useState([gradeInicial]);
+  const [gradeAtividades, setGradeAtividades] = useState([createEmptyActivitySchedule()]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -336,6 +342,19 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
       setFieldErrors((prev) => ({
         ...prev,
         privacyAccepted: "Voce precisa aceitar a Politica de Privacidade para continuar.",
+      }));
+      return false;
+    }
+
+    const categoriasPreenchidas = gradeAtividades
+      .map((item) => normalizeActivityName(item.atividade))
+      .filter(Boolean);
+    const possuiDuplicadas = new Set(categoriasPreenchidas).size !== categoriasPreenchidas.length;
+
+    if (possuiDuplicadas) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        gradeAtividades: "Voce nao pode cadastrar a mesma categoria mais de uma vez na grade de atividades.",
       }));
       return false;
     }
@@ -718,7 +737,12 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
         </Box>
       ))}
 
-      <Button type="button" variant="outlined" onClick={() => setGradeAtividades((prev) => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 700 }}>
+      <Button
+        type="button"
+        variant="outlined"
+        onClick={() => setGradeAtividades((prev) => [...prev, createEmptyActivitySchedule()])}
+        sx={{ borderRadius: 2, fontWeight: 700 }}
+      >
         Adicionar atividade
       </Button>
 
