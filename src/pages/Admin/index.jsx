@@ -18,11 +18,11 @@ import {
     FaBell,
 } from "react-icons/fa";
 import DashboardTab from "./Tabs/DashboardTab";
-import UsuariosTab from "./Tabs/UsuariosTab";
-import AvaliacoesTab from "./Tabs/AvaliacoesTab";
-import CategoriasTab from "./Tabs/CategoriasTab";
-import SolicitacoesCategoriasTab from "./Tabs/SolicitacoesCategoriasTab";
-import { solicitacaoCategoriaService } from "../../services";
+import UsuariosTab from "./Tabs/UsersTab";
+import AvaliacoesTab from "./Tabs/ReviewsTab";
+import CategoriasTab from "./Tabs/CategoriesTab";
+import SolicitacoesCategoriasTab from "./Tabs/CategoryRequestsTab";
+import { solicitacaoCategoriaService } from "../../service";
 
 const TabPanel = ({ children, value, index }) => (
     <Box role="tabpanel" hidden={value !== index} sx={{ pt: 3 }}>
