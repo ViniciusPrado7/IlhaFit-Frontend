@@ -4,41 +4,16 @@ import {
   Box,
   Button,
   IconButton,
-  InputAdornment,
   Paper,
   TextField,
   Typography,
   useTheme,
 } from "@mui/material";
-import { FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../../service/AuthService";
 
 const RECOVERY_MESSAGE = "Enviamos um codigo de 6 digitos para seu email.";
-const RESET_SUCCESS_MESSAGE = "Senha alterada com sucesso. Você já pode efetuar o login.";
-
-const passwordRules = [
-  {
-    test: (value) => value.length >= 8,
-    message: "A senha deve ter no mínimo 8 caracteres.",
-  },
-  {
-    test: (value) => /[A-Z]/.test(value),
-    message: "A senha deve ter pelo menos 1 letra maiúscula.",
-  },
-  {
-    test: (value) => /[a-z]/.test(value),
-    message: "A senha deve ter pelo menos 1 letra minúscula.",
-  },
-  {
-    test: (value) => /\d/.test(value),
-    message: "A senha deve ter pelo menos 1 número.",
-  },
-  {
-    test: (value) => /[^A-Za-z0-9]/.test(value),
-    message: "A senha deve ter pelo menos 1 caractere especial.",
-  },
-];
 
 const onlyDigits = (value) => value.replace(/\D/g, "").slice(0, 6);
 
@@ -53,15 +28,6 @@ const getApiError = (error) => {
   return "Erro ao processar solicitação.";
 };
 
-const validatePassword = (senha, confirmacaoSenha) => {
-  if (!senha) return "Senha obrigatória.";
-  if (!confirmacaoSenha) return "Confirmação obrigatória.";
-  if (senha !== confirmacaoSenha) return "As senhas precisam ser iguais.";
-
-  const failedRule = passwordRules.find((rule) => !rule.test(senha));
-  return failedRule?.message || "";
-};
-
 const EsqueciSenha = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -70,10 +36,6 @@ const EsqueciSenha = () => {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
-  const [novaSenha, setNovaSenha] = useState("");
-  const [confirmacaoSenha, setConfirmacaoSenha] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -131,60 +93,21 @@ const EsqueciSenha = () => {
       return;
     }
 
-    setStep("password");
-  };
-
-  const handleResetPassword = async (event) => {
-    event.preventDefault();
-    clearMessages();
-
-    if (!/^\d{6}$/.test(codigo)) {
-      setErrorMessage("O código deve conter exatamente 6 dígitos numéricos.");
-      return;
-    }
-
-    const validationError = validatePassword(novaSenha, confirmacaoSenha);
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await authService.redefinirSenha(email.trim(), codigo, novaSenha, confirmacaoSenha);
-      setSuccessMessage(RESET_SUCCESS_MESSAGE);
-      setTimeout(() => navigate("/login", { state: { email: email.trim() } }), 1800);
-    } catch (error) {
-      console.error("Erro ao redefinir senha:", error);
-      setErrorMessage(getApiError(error));
-    } finally {
-      setLoading(false);
-    }
+    navigate("/redefinir-senha", {
+      state: {
+        email: email.trim(),
+        codigo,
+      },
+    });
   };
 
   const voltarParaEmail = () => {
     setStep("email");
     setCodigo("");
-    setNovaSenha("");
-    setConfirmacaoSenha("");
-    clearMessages();
-  };
-
-  const voltarParaCodigo = () => {
-    setStep("code");
-    setNovaSenha("");
-    setConfirmacaoSenha("");
     clearMessages();
   };
 
   const codeMode = step === "code";
-  const passwordMode = step === "password";
-  const recoveryMode = codeMode || passwordMode;
-  const formSubmitHandler = step === "email"
-    ? handleForgotPassword
-    : codeMode
-      ? handleCodeSubmit
-      : handleResetPassword;
 
   return (
     <Box
@@ -213,8 +136,8 @@ const EsqueciSenha = () => {
         }}
       >
         <IconButton
-          onClick={() => (passwordMode ? voltarParaCodigo() : recoveryMode ? voltarParaEmail() : navigate("/login"))}
-          aria-label={recoveryMode ? "Voltar" : "Voltar para login"}
+          onClick={() => (codeMode ? voltarParaEmail() : navigate("/login"))}
+          aria-label={codeMode ? "Voltar para email" : "Voltar para login"}
           sx={{ position: "absolute", top: 16, left: 16, color: "text.secondary" }}
         >
           <FaArrowLeft size={20} />
@@ -231,18 +154,16 @@ const EsqueciSenha = () => {
             mt: 1,
           }}
         >
-          {passwordMode ? "Nova senha" : recoveryMode ? "Confirmar código" : "Recuperar senha"}
+          {codeMode ? "Confirmar código" : "Recuperar senha"}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4, textAlign: "center" }}>
-          {passwordMode
-            ? "Agora escolha e confirme sua nova senha."
-            : recoveryMode
-              ? "Digite o código de 6 dígitos enviado para seu e-mail."
-              : "Digite seu email para receber um código de recuperação."}
+          {codeMode
+            ? "Digite o código de 6 dígitos enviado para seu e-mail."
+            : "Digite seu email para receber um código de recuperação."}
         </Typography>
 
-        <form onSubmit={formSubmitHandler}>
+        <form onSubmit={codeMode ? handleCodeSubmit : handleForgotPassword}>
           {successMessage && (
             <Alert severity="success" sx={{ mb: 2 }}>
               {successMessage}
@@ -255,7 +176,7 @@ const EsqueciSenha = () => {
             </Alert>
           )}
 
-          {recoveryMode ? (
+          {codeMode ? (
             <>
               <Box
                 sx={{
@@ -306,62 +227,6 @@ const EsqueciSenha = () => {
                   },
                 }}
               />
-
-              {passwordMode && (
-                <>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
-                    Nova senha
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    name="novaSenha"
-                    type={showPassword ? "text" : "password"}
-                    value={novaSenha}
-                    onChange={(event) => {
-                      setNovaSenha(event.target.value);
-                      clearMessages();
-                    }}
-                    placeholder="NovaSenha@123"
-                    error={Boolean(errorMessage)}
-                    sx={inputStyles}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowPassword((current) => !current)} edge="end" size="small">
-                            {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5, color: "text.secondary" }}>
-                    Confirmar nova senha
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    name="confirmacaoSenha"
-                    type={showConfirmation ? "text" : "password"}
-                    value={confirmacaoSenha}
-                    onChange={(event) => {
-                      setConfirmacaoSenha(event.target.value);
-                      clearMessages();
-                    }}
-                    placeholder="NovaSenha@123"
-                    error={Boolean(errorMessage)}
-                    sx={inputStyles}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => setShowConfirmation((current) => !current)} edge="end" size="small">
-                            {showConfirmation ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </>
-              )}
             </>
           ) : (
             <>
@@ -388,7 +253,7 @@ const EsqueciSenha = () => {
             type="submit"
             variant="contained"
             fullWidth
-            disabled={loading || (codeMode && codigo.length !== 6) || (passwordMode && (!novaSenha || !confirmacaoSenha))}
+            disabled={loading || (codeMode && codigo.length !== 6)}
             sx={{
               py: 1.75,
               borderRadius: 3,
@@ -403,13 +268,7 @@ const EsqueciSenha = () => {
               },
             }}
           >
-            {loading
-              ? "Enviando..."
-              : passwordMode
-                ? "Alterar senha"
-                : codeMode
-                  ? "Continuar"
-                : "Enviar código"}
+            {loading ? "Enviando..." : codeMode ? "Continuar" : "Enviar código"}
           </Button>
         </form>
       </Paper>

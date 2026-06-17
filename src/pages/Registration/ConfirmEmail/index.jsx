@@ -103,7 +103,7 @@ const ConfirmEmail = () => {
       }
 
       setSuccess(successMessage);
-      toast.success(`Bem-vindo, ${loginData?.nomeFantasia || loginData?.nome || emailLimpo}!`);
+      toast.success(`Bem-vindo, ${data?.nomeFantasia || data?.nome || emailLimpo}!`);
       window.setTimeout(() => {
         navigate(getRedirectPath(location.state?.from));
       }, 900);

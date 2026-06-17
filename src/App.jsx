@@ -11,6 +11,7 @@ import EsqueciSenha from "./pages/Login/ForgotPassword/index.jsx";
 import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Registration/index.jsx";
 import ConfirmEmail from "./pages/Registration/ConfirmEmail/index.jsx";
+import ResetPassword from "./pages/Registration/ResetPassword/index.jsx";
 import Profissional from "./pages/Professional/index.jsx";
 import Mapa from "./pages/Map/index.jsx";
 import ConfiguracaoProfissional from "./pages/Professional/Settings/index.jsx";
@@ -74,6 +75,7 @@ function App() {
         <Route path="/confirmar-email" element={<ConfirmEmail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha" element={<ResetPassword />} />
         <Route
           path="/admin"
           element={(
