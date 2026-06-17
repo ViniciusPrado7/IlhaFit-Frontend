@@ -3,8 +3,8 @@ import { Box, Button, Chip, Dialog, DialogContent, Paper, Typography } from "@mu
 import { FaStar, FaWhatsapp } from "react-icons/fa";
 import AvaliacoesPanel from "../ReviewsPanel";
 import LimitedChipList from "../LimitedChipList";
-import { calcularResumoAvaliacoes } from "../../utils/avaliacao";
-import { profissionalService } from "../../service/ProfissionalService";
+import { calcularResumoAvaliacoes } from "../../utils/review";
+import { profissionalService } from "../../service/ProfessionalService";
 import { toTitleCase } from "../../utils/titleCase";
 
 const formatTelefone = (value) => {
