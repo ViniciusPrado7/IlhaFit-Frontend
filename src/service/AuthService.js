@@ -29,10 +29,10 @@ export const authService = {
     return response.data;
   },
 
-  async redefinirSenha(token, novaSenha, confirmacaoSenha) {
+  async redefinirSenha(email, codigo, novaSenha, confirmacaoSenha) {
     const response = await api.post(
       "/auth/reset-password",
-      { token, novaSenha, confirmacaoSenha },
+      { email, codigo, novaSenha, confirmacaoSenha },
       { skipAuth: true }
     );
     return response.data;

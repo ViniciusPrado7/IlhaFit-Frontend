@@ -51,7 +51,6 @@ const ConfirmEmail = () => {
   const isDark = theme.palette.mode === "dark";
 
   const initialEmail = location.state?.email || "";
-  const loginPassword = location.state?.senha || "";
   const [email, setEmail] = useState(initialEmail);
   const [codigo, setCodigo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -95,21 +94,12 @@ const ConfirmEmail = () => {
       const successMessage = data?.mensagem || "Email confirmado com sucesso.";
       emailConfirmationSession.clear(emailLimpo);
 
-      if (!loginPassword) {
-        setSuccess(successMessage);
-        window.setTimeout(() => {
-          navigate("/login", { state: { email: emailLimpo } });
-        }, 1800);
-        return;
-      }
+      const tipo = normalizeTipo(data?.tipo);
 
-      const loginData = await authService.login(emailLimpo, loginPassword);
-      const tipo = normalizeTipo(loginData?.tipo);
-
-      if (loginData?.token) {
-        authSession.setSession(requireTokenLogin(loginData));
+      if (data?.token) {
+        authSession.setSession(requireTokenLogin({ ...data, tipo }));
       } else {
-        authSession.setSession({ ...loginData, tipo });
+        authSession.setSession({ ...data, tipo });
       }
 
       setSuccess(successMessage);
