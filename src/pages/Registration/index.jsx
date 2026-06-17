@@ -16,6 +16,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import PrivacyPolicyConsent from "../../components/PrivacyPolicyConsent";
 import { authService } from "../../service/AuthService";
+import { emailConfirmationSession } from "../../service/EmailConfirmationSession";
 import CadastroEstabelecimento from "./EstablishmentRegistration";
 import CadastroProfissional from "./ProfessionalRegistration";
 
@@ -83,6 +84,7 @@ const Cadastro = () => {
         setLoading(true);
         try {
             await authService.register(formData);
+            emailConfirmationSession.markPending(formData.email);
             toast.success("Usuário cadastrado com sucesso!");
             navigate("/login", { state: { accountType: "aluno", email: formData.email } });
         } catch (error) {

@@ -10,6 +10,7 @@ import Login from "./pages/Login/index.jsx";
 import EsqueciSenha from "./pages/Login/ForgotPassword/index.jsx";
 import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Registration/index.jsx";
+import ConfirmEmail from "./pages/Registration/ConfirmEmail/index.jsx";
 import Profissional from "./pages/Professional/index.jsx";
 import Mapa from "./pages/Map/index.jsx";
 import ConfiguracaoProfissional from "./pages/Professional/Settings/index.jsx";
@@ -54,6 +55,7 @@ function App() {
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/politica-de-privacidade" element={<Privacidade />} />
         <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/confirmar-email" element={<ConfirmEmail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
         <Route

@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { authService } from "../../service/AuthService";
 import { authSession } from "../../service/AuthSession";
+import { emailConfirmationSession } from "../../service/EmailConfirmationSession";
 
 const isFieldErrorObject = (data) => {
   return data && typeof data === "object" && !Array.isArray(data);
@@ -53,6 +54,26 @@ const getApiError = (error) => {
   };
 };
 
+const getErrorMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (typeof data === "string") return data;
+  if (data && typeof data === "object") {
+    return data.erro || data.mensagem || data.message || "";
+  }
+
+  return error?.message || "";
+};
+
+const isEmailNotConfirmedError = (error) => {
+  const message = getErrorMessage(error)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+  return message.includes("email") && message.includes("nao") && message.includes("confirmado");
+};
+
 const requireTokenLogin = (data) => {
   if (!data?.token) {
     throw new Error("Não foi possível iniciar a sessão. Tente novamente.");
@@ -67,6 +88,15 @@ const normalizeTipo = (tipo) => {
 };
 
 const getRedirectPath = (from) => from || "/";
+
+const isEmailConfirmed = (data) => data?.emailConfirmado === true || data?.emailConfirmado === "true";
+
+const isEmailUnconfirmed = (data) => data?.emailConfirmado === false || data?.emailConfirmado === "false";
+
+const shouldOpenEmailConfirmation = (data, email) => {
+  if (isEmailUnconfirmed(data)) return true;
+  return emailConfirmationSession.isPending(data?.email || email) && !isEmailConfirmed(data);
+};
 
 const Login = () => {
   const theme = useTheme();
@@ -95,6 +125,23 @@ const Login = () => {
     try {
       const data = await authService.login(email, senha);
       const tipo = normalizeTipo(data?.tipo);
+      const loginEmail = data?.email || email;
+
+      if (shouldOpenEmailConfirmation(data, loginEmail)) {
+        authSession.clear();
+        navigate("/confirmar-email", {
+          state: {
+            email: loginEmail,
+            senha,
+            from: location.state?.from,
+          },
+        });
+        return;
+      }
+
+      if (isEmailConfirmed(data)) {
+        emailConfirmationSession.clear(loginEmail);
+      }
 
       if (data?.token) {
         authSession.setSession(requireTokenLogin(data));
@@ -106,6 +153,19 @@ const Login = () => {
       navigate(getRedirectPath(location.state?.from));
     } catch (error) {
       console.error("Erro no login:", error);
+      if (isEmailNotConfirmedError(error)) {
+        emailConfirmationSession.markPending(email);
+        navigate("/confirmar-email", {
+          state: {
+            email,
+            senha,
+            from: location.state?.from,
+            loginError: getErrorMessage(error),
+          },
+        });
+        return;
+      }
+
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = error?.response
         ? getApiError(error)
         : { fieldErrors: {}, generalError: error?.message || "Erro ao fazer login" };
