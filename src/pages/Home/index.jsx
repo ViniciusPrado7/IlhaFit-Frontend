@@ -32,6 +32,7 @@ import { avaliacaoService } from "../../service/ReviewService";
 import { estabelecimentoService } from "../../service/EstablishmentService";
 import { profissionalService } from "../../service/ProfessionalService";
 import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/review";
+import { toTitleCase } from "../../utils/titleCase";
 
 const normalizeList = (data) => {
   if (Array.isArray(data)) return data;
@@ -59,7 +60,7 @@ const byRating = (a, b) => {
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => item?.categoriaNome).filter(Boolean))];
   }
 
   return [];
@@ -71,7 +72,7 @@ const getProfissionalCategorias = (profissional) => {
   }
 
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => item?.categoriaNome).filter(Boolean))];
   }
 
   if (profissional?.especializacao) return [profissional.especializacao];
@@ -592,7 +593,7 @@ const Home = () => {
                   <CategoriaSelectField
                     label="Categoria"
                     value={selectedCategoria}
-                    onChange={setSelectedCategoria}
+                    onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
                     allOptionLabel="Todas"
                     sx={{
                       "& .MuiOutlinedInput-root": {
@@ -627,9 +628,9 @@ const Home = () => {
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
                     {searchTerm
-                      ? `Exibindo resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` em ${selectedCategoria}` : ""}.`
+                      ? `Exibindo resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` em ${toTitleCase(selectedCategoria)}` : ""}.`
                       : selectedCategoria !== "Todas"
-                        ? `Filtrando resultados da categoria ${selectedCategoria}.`
+                        ? `Filtrando resultados da categoria ${toTitleCase(selectedCategoria)}.`
                         : "Use a busca para encontrar estabelecimentos e profissionais com mais rapidez."}
                   </Typography>
                 </Box>
@@ -672,7 +673,7 @@ const Home = () => {
               <Typography color="text.secondary">
                 {selectedCategoria === "Todas"
                   ? "Selecionamos estabelecimentos com forte potencial para a sua próxima escolha."
-                  : `Selecionamos os resultados mais aderentes para a categoria ${selectedCategoria}.`}
+                  : `Selecionamos os resultados mais aderentes para a categoria ${toTitleCase(selectedCategoria)}.`}
               </Typography>
             </Box>
 

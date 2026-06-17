@@ -1,10 +1,11 @@
 import { Alert, Box, CircularProgress, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import CardProfissional from "../../components/Card/ProfessionalCard";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { profissionalService } from "../../service/ProfessionalService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -32,7 +33,7 @@ const getProfissionalCategorias = (profissional) => {
   }
 
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => item?.categoriaNome).filter(Boolean))];
   }
 
   if (profissional?.especializacao) return [profissional.especializacao];
@@ -73,6 +74,10 @@ const Profissional = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleProfissionalUpdate = useCallback((updated) => {
+    setProfissionais(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -169,7 +174,7 @@ const Profissional = () => {
             <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={setSelectedCategoria}
+              onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
               allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -192,9 +197,9 @@ const Profissional = () => {
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
             {searchTerm
-              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${selectedCategoria}` : ""}.`
+              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${toTitleCase(selectedCategoria)}` : ""}.`
               : selectedCategoria !== "Todas"
-                ? `Exibindo profissionais da categoria ${selectedCategoria}.`
+                ? `Exibindo profissionais da categoria ${toTitleCase(selectedCategoria)}.`
                 : "Encontre especialistas por nome, categoria, especialidade ou região em uma listagem mais clara e organizada."}
           </Typography>
         </Box>
@@ -232,7 +237,7 @@ const Profissional = () => {
           }}
         >
           {filteredProfissionais.map((item) => (
-            <CardProfissional key={item.id} profissional={item} />
+            <CardProfissional key={item.id} profissional={item} onProfissionalUpdate={handleProfissionalUpdate} />
           ))}
         </Box>
       )}

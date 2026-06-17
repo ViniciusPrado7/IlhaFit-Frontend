@@ -8,6 +8,7 @@ import { ModalEstabelecimentoContent } from "../../components/EstablishmentModal
 import { avaliacaoService } from "../../service/ReviewService";
 import { estabelecimentoService } from "../../service/EstablishmentService";
 import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/review";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -47,7 +48,7 @@ const byRating = (a, b) => {
 
 const getEstabelecimentoCategorias = (estabelecimento) => {
   if (Array.isArray(estabelecimento?.gradeAtividades) && estabelecimento.gradeAtividades.length > 0) {
-    return [...new Set(estabelecimento.gradeAtividades.map((item) => item?.atividade).filter(Boolean))];
+    return [...new Set(estabelecimento.gradeAtividades.map((item) => item?.categoriaNome).filter(Boolean))];
   }
 
   return [];
@@ -203,7 +204,7 @@ const Estabelecimento = () => {
             <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={setSelectedCategoria}
+              onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
               allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {
@@ -230,9 +231,9 @@ const Estabelecimento = () => {
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.7 }}>
             {searchTerm
-              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${selectedCategoria}` : ""}.`
+              ? `Mostrando resultados para "${searchTerm}"${selectedCategoria !== "Todas" ? ` na categoria ${toTitleCase(selectedCategoria)}` : ""}.`
               : selectedCategoria !== "Todas"
-                ? `Exibindo estabelecimentos da categoria ${selectedCategoria}.`
+                ? `Exibindo estabelecimentos da categoria ${toTitleCase(selectedCategoria)}.`
                 : "Encontre espaços por nome, categoria ou localização em uma listagem mais clara e organizada."}
           </Typography>
         </Box>

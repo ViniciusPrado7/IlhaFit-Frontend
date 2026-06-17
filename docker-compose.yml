@@ -32,6 +32,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ilhafit
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: root
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: "587"
+      SPRING_MAIL_USERNAME: ${MAIL_USER:-ilhaffit@gmail.com}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      APP_MAIL_FROM: ${MAIL_FROM:-ilhaffit@gmail.com}
+      APP_CORS_ALLOWED_ORIGIN_PATTERNS: "http://localhost:*,http://127.0.0.1:*"
+      APP_FRONTEND_RESET_PASSWORD_URL: "http://localhost:3000/esqueci-senha"
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-ilhaFitJwtSecretKeyForDevelopmentOnlyChangeInProduction123456}
     depends_on:
       postgres:
         condition: service_healthy

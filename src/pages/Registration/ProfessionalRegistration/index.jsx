@@ -268,7 +268,7 @@ const CadastroProfissional = ({ onSuccess }) => {
     }
 
     const invalida = gradeAtividades.some((item) => (
-      !item.atividade ||
+      !item.categoriaId ||
       !item.diasSemana.length ||
       !item.periodos.length
     ));
@@ -297,9 +297,9 @@ const CadastroProfissional = ({ onSuccess }) => {
     regiao: formData.regiao.trim(),
     exclusivoMulheres: generoFeminino && gradeAtividades.some((item) => item.exclusivoMulheres),
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade)
+      .filter((item) => item.categoriaId)
       .map((item) => ({
-        atividade: item.atividade,
+        categoriaId: item.categoriaId,
         exclusivoMulheres: generoFeminino ? item.exclusivoMulheres : false,
         diasSemana: item.diasSemana,
         periodos: item.periodos,
@@ -628,9 +628,13 @@ const CadastroProfissional = ({ onSuccess }) => {
 
           <CategoriaSelectField
             label="Atividade"
-            value={grade.atividade}
-            onChange={(nextValue) => handleGradeChange(index, "atividade", nextValue)}
-            error={Boolean(fieldErrors.gradeAtividades) && !grade.atividade}
+            value={grade.categoriaNome}
+            onChange={({ id, nome }) =>
+              setGradeAtividades((prev) =>
+                prev.map((item, i) => i === index ? { ...item, categoriaId: id, categoriaNome: nome } : item)
+              )
+            }
+            error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />
 

@@ -32,8 +32,9 @@ import {
     FaEye,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { profissionalService } from "../../../service";
+import { profissionalService } from "../../../services";
 import ModalProfissional from "../../../components/ProfessionalModal";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const ProfissionaisTab = () => {
     const theme = useTheme();
@@ -174,7 +175,7 @@ const ProfissionaisTab = () => {
                                         onClick={() => handleOpenModal(prof)}
                                         sx={{ cursor: 'pointer' }}
                                     >
-                                        <TableCell>{prof.nome || "N/A"}</TableCell>
+                                        <TableCell>{toTitleCase(prof.nome) || "N/A"}</TableCell>
                                         <TableCell>{prof.email || "N/A"}</TableCell>
                                         <TableCell>
                                             {prof.especialidade ? (
@@ -234,7 +235,7 @@ const ProfissionaisTab = () => {
                 <DialogContent>
                     <Typography>
                         Tem certeza que deseja excluir o profissional{" "}
-                        <strong>{deleteDialog.profissional?.nome}</strong>?
+                        <strong>{toTitleCase(deleteDialog.profissional?.nome)}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         Esta ação não pode ser desfeita.

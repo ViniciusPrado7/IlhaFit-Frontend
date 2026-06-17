@@ -9,8 +9,9 @@ import {
     useTheme,
 } from "@mui/material";
 import { FaStar, FaPhone, FaEnvelope, FaArrowRight, FaFemale, FaMapMarkerAlt } from "react-icons/fa";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ModalProfissional from "../ProfessionalModal";
+import { toTitleCase } from "../../utils/titleCase";
 
 const getFoto = (profissional) => profissional.fotoUrl || profissional.Imagem;
 
@@ -24,15 +25,15 @@ const formatTelefone = (value) => {
 
 const getEspecialidades = (profissional) => {
     if (Array.isArray(profissional.especialidades) && profissional.especialidades.length > 0) {
-        return profissional.especialidades;
+        return profissional.especialidades.map(toTitleCase);
     }
 
     if (Array.isArray(profissional.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-        return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+        return [...new Set(profissional.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
     }
 
     if (profissional.especializacao) {
-        return [profissional.especializacao];
+        return [toTitleCase(profissional.especializacao)];
     }
 
     return [];
@@ -48,17 +49,28 @@ const isExclusivoMulheres = (profissional) => {
 
 const getRegiao = (profissional) => profissional.regiao || profissional.zona || "";
 
-const CardProfissional = ({ profissional, onVisualizar }) => {
+const CardProfissional = ({ profissional, onVisualizar, onProfissionalUpdate }) => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
     const [modalOpen, setModalOpen] = useState(false);
-    const especialidades = getEspecialidades(profissional);
+    const [profissionalAtual, setProfissionalAtual] = useState(profissional);
+
+    useEffect(() => {
+        setProfissionalAtual(profissional);
+    }, [profissional]);
+
+    const handleProfissionalChange = (updated) => {
+        setProfissionalAtual(updated);
+        onProfissionalUpdate?.(updated);
+    };
+
+    const especialidades = getEspecialidades(profissionalAtual);
     const visibleEspecialidades = especialidades.slice(0, 3);
     const hiddenEspecialidadesCount = Math.max(especialidades.length - visibleEspecialidades.length, 0);
-    const exclusivoMulheres = isExclusivoMulheres(profissional);
-    const regiao = getRegiao(profissional);
+    const exclusivoMulheres = isExclusivoMulheres(profissionalAtual);
+    const regiao = getRegiao(profissionalAtual);
     const abrirModal = () => {
-        onVisualizar?.(profissional);
+        onVisualizar?.(profissionalAtual);
         setModalOpen(true);
     };
 
@@ -131,8 +143,8 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                 }}
             >
                 <Avatar
-                    src={getFoto(profissional)}
-                    alt={profissional.nome}
+                    src={getFoto(profissionalAtual)}
+                    alt={profissionalAtual.nome}
                     sx={{
                         width: 115,
                         height: 115,
@@ -150,7 +162,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     textAlign="center"
                     sx={{ mb: 0.5, color: "text.primary", fontSize: "1.6rem" }}
                 >
-                    {profissional.nome}
+                    {toTitleCase(profissionalAtual.nome)}
                 </Typography>
 
                 <Box
@@ -166,7 +178,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                         variant="body2"
                         sx={{ color: "#FBBF24", fontWeight: 600, fontSize: "1rem" }}
                     >
-                        {profissional.avaliacao}
+                        {profissionalAtual.avaliacao}
                     </Typography>
                 </Box>
 
@@ -206,7 +218,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     )}
                 </Box>
 
-                {profissional.telefone && (
+                {profissionalAtual.telefone && (
                     <Box
                         sx={{
                             display: "flex",
@@ -217,12 +229,12 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     >
                         <FaPhone size={14} color={theme.palette.primary.main} />
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
-                            {formatTelefone(profissional.telefone)}
+                            {formatTelefone(profissionalAtual.telefone)}
                         </Typography>
                     </Box>
                 )}
 
-                {profissional.email && (
+                {profissionalAtual.email && (
                     <Box
                         sx={{
                             display: "flex",
@@ -233,7 +245,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     >
                         <FaEnvelope size={14} color={theme.palette.primary.main} />
                         <Typography variant="body2" color="text.secondary" sx={{ fontSize: "1rem" }}>
-                            {profissional.email}
+                            {profissionalAtual.email}
                         </Typography>
                     </Box>
                 )}
@@ -254,6 +266,7 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     </Box>
                 )}
 
+
                 <Divider sx={{ mt: "auto", mb: 1.5, width: "100%" }} />
                 <Box
                     sx={{
@@ -271,7 +284,12 @@ const CardProfissional = ({ profissional, onVisualizar }) => {
                     <FaArrowRight size={13} />
                 </Box>
             </CardContent>
-            <ModalProfissional open={modalOpen} onClose={() => setModalOpen(false)} profissional={profissional} />
+            <ModalProfissional
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                profissional={profissionalAtual}
+                onProfissionalChange={handleProfissionalChange}
+            />
         </Card>
     );
 };

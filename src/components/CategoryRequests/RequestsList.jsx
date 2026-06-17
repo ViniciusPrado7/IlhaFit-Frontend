@@ -133,11 +133,7 @@ const CategoriaSolicitacoesList = ({
                         onApprove={onApprove}
                         onReject={onReject}
                       />
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        Sem ações
-                      </Typography>
-                    )}
+                    ) : null}
                   </TableCell>
                 ) : null}
               </TableRow>

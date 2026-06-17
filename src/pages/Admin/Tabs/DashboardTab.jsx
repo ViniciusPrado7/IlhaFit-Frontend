@@ -181,7 +181,7 @@ const DashboardTab = ({ onTabChange }) => {
                 }
                 if (Array.isArray(e.gradeAtividades)) {
                     e.gradeAtividades.forEach(a => {
-                        const name = getCatName(a?.atividade || a);
+                        const name = getCatName(a?.categoriaNome || a?.atividade || a);
                         if (name) cats.push(name);
                     });
                 }
@@ -201,7 +201,7 @@ const DashboardTab = ({ onTabChange }) => {
                 }
                 if (Array.isArray(p.gradeAtividades)) {
                     p.gradeAtividades.forEach(a => {
-                        const name = getCatName(a?.atividade || a);
+                        const name = getCatName(a?.categoriaNome || a?.atividade || a);
                         if (name) cats.push(name);
                     });
                 }

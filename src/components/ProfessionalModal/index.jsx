@@ -1,8 +1,11 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { Box, Button, Chip, Dialog, DialogContent, Paper, Typography } from "@mui/material";
 import { FaStar, FaWhatsapp } from "react-icons/fa";
 import AvaliacoesPanel from "../ReviewsPanel";
 import LimitedChipList from "../LimitedChipList";
+import { calcularResumoAvaliacoes } from "../../utils/avaliacao";
+import { profissionalService } from "../../service/ProfissionalService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const formatTelefone = (value) => {
   const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
@@ -14,19 +17,19 @@ const formatTelefone = (value) => {
 const fallbackImage = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&auto=format&fit=crop&q=60";
 
 const getFoto = (profissional) => profissional?.fotoUrl || profissional?.Imagem || fallbackImage;
-const getNome = (profissional) => profissional?.nome || "Profissional";
+const getNome = (profissional) => toTitleCase(profissional?.nome) || "Profissional";
 
 const getCategorias = (profissional) => {
   if (Array.isArray(profissional?.gradeAtividades) && profissional.gradeAtividades.length > 0) {
-    return [...new Set(profissional.gradeAtividades.map((item) => item.atividade).filter(Boolean))];
+    return [...new Set(profissional.gradeAtividades.map((item) => toTitleCase(item.categoriaNome)).filter(Boolean))];
   }
 
   if (Array.isArray(profissional?.especialidades) && profissional.especialidades.length > 0) {
-    return profissional.especialidades;
+    return profissional.especialidades.map(toTitleCase);
   }
 
   if (profissional?.especializacao) {
-    return [profissional.especializacao];
+    return [toTitleCase(profissional.especializacao)];
   }
 
   return ["Profissional"];
@@ -60,16 +63,53 @@ const periodoTagSx = {
 
 const ACTIVITIES_PAGE_SIZE = 5;
 
-const ModalProfissional = ({ open, onClose, profissional }) => {
-  if (!profissional) return null;
+const ModalProfissional = ({ open, onClose, profissional, onProfissionalChange }) => {
+  const [visibleActivitiesCount, setVisibleActivitiesCount] = useState(ACTIVITIES_PAGE_SIZE);
+  const [resumoAvaliacoes, setResumoAvaliacoes] = useState({ avaliacao: 0, totalAvaliacoes: 0 });
+  const [profissionalAtual, setProfissionalAtual] = useState(null);
 
-  const categorias = getCategorias(profissional);
-  const atividades = profissional.gradeAtividades || [];
-  const [visibleActivitiesCount, setVisibleActivitiesCount] = React.useState(ACTIVITIES_PAGE_SIZE);
+  useEffect(() => {
+    if (!open || !profissional?.id) {
+      setProfissionalAtual(null);
+      return;
+    }
+    let active = true;
+    profissionalService.buscarProfissionalPorId(profissional.id)
+      .then(res => {
+        if (!active) return;
+        const fresh = res.data;
+        setProfissionalAtual(fresh);
+        setResumoAvaliacoes({
+          avaliacao: fresh?.avaliacao ?? 0,
+          totalAvaliacoes: fresh?.totalAvaliacoes ?? 0,
+        });
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [open, profissional?.id]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setVisibleActivitiesCount(ACTIVITIES_PAGE_SIZE);
   }, [profissional?.id]);
+
+  useEffect(() => {
+    setResumoAvaliacoes({
+      avaliacao: profissional?.avaliacao ?? 0,
+      totalAvaliacoes: profissional?.totalAvaliacoes ?? 0,
+    });
+  }, [profissional?.id]);
+
+  if (!profissional) return null;
+
+  const displayData = profissionalAtual ?? profissional;
+  const categorias = getCategorias(displayData);
+  const atividades = displayData.gradeAtividades || [];
+
+  const handleAvaliacoesChange = (avaliacoes) => {
+    const resumo = calcularResumoAvaliacoes(avaliacoes, displayData);
+    setResumoAvaliacoes(resumo);
+    onProfissionalChange?.({ ...displayData, ...resumo });
+  };
 
   const handleClose = (_, reason) => {
     if (reason === "backdropClick" || reason === "escapeKeyDown" || !reason) {
@@ -116,8 +156,8 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
           <Box sx={{ position: "relative", height: { xs: 230, md: 330 } }}>
             <Box
               component="img"
-              src={getFoto(profissional)}
-              alt={getNome(profissional)}
+              src={getFoto(displayData)}
+              alt={getNome(displayData)}
               sx={{ width: "100%", height: "100%", objectFit: "cover" }}
               onError={(e) => { e.currentTarget.src = fallbackImage; }}
             />
@@ -149,20 +189,20 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, flexWrap: "wrap", mb: 1 }}>
               <Box>
                 <Typography variant="h4" fontWeight={900} sx={{ color: "text.primary", mb: 0.75 }}>
-                  {getNome(profissional)}
+                  {getNome(displayData)}
                 </Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
                   <FaStar color="#FBBF24" />
                   <Typography variant="body2" fontWeight={800}>
-                    {profissional.avaliacao ?? 0} avaliação
+                    {resumoAvaliacoes.avaliacao} avaliação
                   </Typography>
                 </Box>
               </Box>
-              {profissional.telefone && (
+              {displayData.telefone && (
                 <Button
                   variant="contained"
                   startIcon={<FaWhatsapp />}
-                  href={`https://wa.me/55${String(profissional.telefone).replace(/\D/g, "")}`}
+                  href={`https://wa.me/55${String(displayData.telefone).replace(/\D/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
                   sx={{ borderRadius: 2, alignSelf: "flex-start", fontWeight: 800 }}
@@ -178,7 +218,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 limit={5}
                 chipSx={tagSx}
                 title="Categorias do profissional"
-                dialogLabel={`Categorias oferecidas por ${getNome(profissional)}`}
+                dialogLabel={`Categorias oferecidas por ${getNome(displayData)}`}
                 buttonLabel="Ver mais"
               />
             </Box>
@@ -187,7 +227,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
               Sobre
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8, mb: 3 }}>
-              {`${getNome(profissional)} atende a comunidade IlhaFit com foco em ${categorias.join(", ")}.`}
+              {`${getNome(displayData)} atende a comunidade IlhaFit com foco em ${categorias.join(", ")}.`}
             </Typography>
 
             <Box sx={{ mb: 3 }}>
@@ -195,11 +235,11 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 Informações
               </Typography>
               <Box sx={{ display: "grid", gap: 1, color: "text.secondary", mb: 3 }}>
-                <Typography variant="body2"><strong>Email:</strong> {profissional.email || "Não informado"}</Typography>
-                <Typography variant="body2"><strong>Telefone:</strong> {profissional.telefone ? formatTelefone(profissional.telefone) : "Não informado"}</Typography>
-                <Typography variant="body2"><strong>Região:</strong> {profissional.regiao || profissional.zona || "Não informado"}</Typography>
-                <Typography variant="body2"><strong>Gênero:</strong> {formatLabel(profissional.sexo || profissional.genero) || "Não informado"}</Typography>
-                <Typography variant="body2"><strong>CREF:</strong> {profissional.registroCref || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Email:</strong> {displayData.email || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Telefone:</strong> {displayData.telefone ? formatTelefone(displayData.telefone) : "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Região:</strong> {displayData.regiao || displayData.zona || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>Gênero:</strong> {formatLabel(displayData.sexo || displayData.genero) || "Não informado"}</Typography>
+                <Typography variant="body2"><strong>CREF:</strong> {displayData.registroCref || "Não informado"}</Typography>
               </Box>
 
             </Box>
@@ -210,7 +250,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             <Box sx={{ display: "grid", gap: 1.5, mb: 3 }}>
               {atividades.slice(0, visibleActivitiesCount).map((grade, index) => (
                 <Box
-                  key={`${grade.atividade}-${index}`}
+                  key={`${grade.categoriaNome}-${index}`}
                   sx={{
                     border: "1px solid",
                     borderColor: "divider",
@@ -222,7 +262,7 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
                 >
                   <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
                     <Typography variant="subtitle1" fontWeight={900} color="text.primary">
-                      {grade.atividade}
+                      {toTitleCase(grade.categoriaNome)}
                     </Typography>
                     {grade.exclusivoMulheres && (
                       <Chip label="Exclusiva para mulheres" size="small" sx={tagSx} />
@@ -275,7 +315,11 @@ const ModalProfissional = ({ open, onClose, profissional }) => {
             <Typography variant="h6" fontWeight={900} sx={{ mb: 1 }}>
               Avaliações
             </Typography>
-            <AvaliacoesPanel targetType="profissional" targetId={profissional.id} />
+            <AvaliacoesPanel
+              targetType="profissional"
+              targetId={displayData.id}
+              onAvaliacoesChange={handleAvaliacoesChange}
+            />
           </Box>
         </Paper>
       </DialogContent>

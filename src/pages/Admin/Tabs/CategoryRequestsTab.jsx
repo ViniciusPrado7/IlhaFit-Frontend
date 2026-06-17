@@ -183,7 +183,7 @@ const SolicitacoesCategoriasTab = ({ onCountChange }) => {
         solicitacoes={paginatedSolicitacoes}
         loading={loading}
         showRequester
-        showAdminActions
+        showAdminActions={filterStatus === null || filterStatus === "PENDENTE"}
         actionLoadingId={actionLoadingId}
         onApprove={handleAprovar}
         onReject={handleRejeitar}

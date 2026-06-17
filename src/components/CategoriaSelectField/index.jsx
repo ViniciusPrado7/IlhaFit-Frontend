@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { FaSearch, FaTimes } from "react-icons/fa";
 import { categoriaService } from "../../service/CategoryService";
+import { toTitleCase } from "../../utils/titleCase";
 
 const PAGE_SIZE = 10;
 const VIEW_MORE_VALUE = "__view_more_categories__";
@@ -157,11 +158,12 @@ const CategoriaSelectField = ({
       return;
     }
 
-    onChange(nextValue);
+    const item = selectOptions.find((opt) => opt.nome === nextValue);
+    onChange({ id: item?.id ?? null, nome: nextValue });
   };
 
   const handleSelectFromModal = (categoria) => {
-    onChange(categoria);
+    onChange({ id: categoria.id ?? null, nome: categoria.nome });
     setModalOpen(false);
   };
 
@@ -184,11 +186,11 @@ const CategoriaSelectField = ({
         <Select value={value} label={label} onChange={handleSelectChange}>
           {allOptionLabel ? <MenuItem value={allOptionLabel}>{allOptionLabel}</MenuItem> : null}
 
-          {shouldShowSelectedOutsideFirstPage ? <MenuItem value={value}>{value}</MenuItem> : null}
+          {shouldShowSelectedOutsideFirstPage ? <MenuItem value={value}>{toTitleCase(value)}</MenuItem> : null}
 
           {selectOptions.map((item) => (
             <MenuItem key={item.id || item.nome} value={item.nome}>
-              {item.nome}
+              {toTitleCase(item.nome)}
             </MenuItem>
           ))}
 
@@ -243,10 +245,10 @@ const CategoriaSelectField = ({
                     key={item.id || item.nome}
                     type="button"
                     variant={item.nome === value ? "contained" : "outlined"}
-                    onClick={() => handleSelectFromModal(item.nome)}
+                    onClick={() => handleSelectFromModal(item)}
                     sx={{ justifyContent: "flex-start", textTransform: "none", borderRadius: 2, py: 1.25 }}
                   >
-                    {item.nome}
+                    {toTitleCase(item.nome)}
                   </Button>
                 ))}
               </Box>

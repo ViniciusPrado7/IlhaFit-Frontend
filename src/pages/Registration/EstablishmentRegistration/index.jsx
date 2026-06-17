@@ -360,7 +360,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
     }
 
     const invalida = gradeAtividades.some((item) => (
-      !item.atividade ||
+      !item.categoriaId ||
       !item.diasSemana.length ||
       !item.periodos.length
     ));
@@ -392,9 +392,9 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
       longitude: formData.longitude,
     },
     gradeAtividades: gradeAtividades
-      .filter((item) => item.atividade)
+      .filter((item) => item.categoriaId)
       .map((item) => ({
-        atividade: item.atividade,
+        categoriaId: item.categoriaId,
         exclusivoMulheres: Boolean(item.exclusivoMulheres),
         diasSemana: item.diasSemana,
         periodos: item.periodos,
@@ -719,9 +719,13 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
 
           <CategoriaSelectField
             label="Categoria"
-            value={grade.atividade}
-            onChange={(nextValue) => handleGradeChange(index, "atividade", nextValue)}
-            error={Boolean(fieldErrors.gradeAtividades) && !grade.atividade}
+            value={grade.categoriaNome}
+            onChange={({ id, nome }) =>
+              setGradeAtividades((prev) =>
+                prev.map((item, i) => i === index ? { ...item, categoriaId: id, categoriaNome: nome } : item)
+              )
+            }
+            error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />
 
