@@ -18,7 +18,7 @@ services:
       retries: 5
     networks:
       - ilhafit-network
-
+ 
   backend:
     build:
       context: ../IlhaFit-Backend
@@ -47,7 +47,7 @@ services:
         condition: service_healthy
     networks:
       - ilhafit-network
-
+ 
   frontend:
     build:
       context: .
@@ -62,10 +62,10 @@ services:
       - backend
     networks:
       - ilhafit-network
-
+ 
 volumes:
   ilhafit_data:
-
+ 
 networks:
   ilhafit-network:
     driver: bridge

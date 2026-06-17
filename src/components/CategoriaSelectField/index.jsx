@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { FaSearch, FaTimes } from "react-icons/fa";
-import { categoriaService } from "../../service/CategoriaService";
+import { categoriaService } from "../../service/CategoryService";
 import { toTitleCase } from "../../utils/titleCase";
 
 const PAGE_SIZE = 10;

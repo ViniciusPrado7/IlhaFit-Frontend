@@ -2,7 +2,7 @@ import { api } from "../service/Api";
 import {
   categoriaPendenteService as categoriaPendenteApi,
   categoriaService as categoriaApi,
-} from "../service/CategoriaService";
+} from "../service/CategoryService";
 
 export const adminService = {
   async getAllUsers() {

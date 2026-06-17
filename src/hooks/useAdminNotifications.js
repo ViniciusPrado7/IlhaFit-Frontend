@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { solicitacaoCategoriaService, denunciaService } from "../services";
+import { solicitacaoCategoriaService, denunciaService } from "../service";
 
 const STORAGE_KEY = "ilhaFitSeenNotifications";
 const POLL_INTERVAL = 30_000;

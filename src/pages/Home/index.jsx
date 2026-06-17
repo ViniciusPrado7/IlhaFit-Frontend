@@ -24,14 +24,14 @@ import {
   FaSearch,
   FaUserFriends,
 } from "react-icons/fa";
-import CardEstabelecimento from "../../components/Card/CardEstabelecimento";
-import CardProfissional from "../../components/Card/CardProfissional";
+import CardEstabelecimento from "../../components/Card/EstablishmentCard";
+import CardProfissional from "../../components/Card/ProfessionalCard";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
-import { ModalEstabelecimentoContent } from "../../components/ModalEstabelecimento";
-import { avaliacaoService } from "../../service/AvaliacaoService";
-import { estabelecimentoService } from "../../service/EstabelecimentoService";
-import { profissionalService } from "../../service/ProfissionalService";
-import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/avaliacao";
+import { ModalEstabelecimentoContent } from "../../components/EstablishmentModal";
+import { avaliacaoService } from "../../service/ReviewService";
+import { estabelecimentoService } from "../../service/EstablishmentService";
+import { profissionalService } from "../../service/ProfessionalService";
+import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/review";
 import { toTitleCase } from "../../utils/titleCase";
 
 const normalizeList = (data) => {
