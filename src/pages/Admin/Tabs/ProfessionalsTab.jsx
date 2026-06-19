@@ -32,7 +32,7 @@ import {
     FaEye,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { profissionalService } from "../../../services";
+import { profissionalService } from "../../../service";
 import ModalProfissional from "../../../components/ProfessionalModal";
 import { toTitleCase } from "../../../utils/titleCase";
 

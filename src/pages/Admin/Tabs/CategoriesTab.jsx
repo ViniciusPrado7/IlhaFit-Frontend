@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
   Box,
@@ -24,13 +26,14 @@ import {
 } from "@mui/material";
 import { FaEdit, FaPlus, FaSearch, FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { categoriaService } from "../../../services";
+import { categoriaService } from "../../../service";
 import { toTitleCase } from "../../../utils/titleCase";
 
 const CategoriasTab = () => {
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
+  const [openExportModal, setOpenExportModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
@@ -81,6 +84,14 @@ const CategoriasTab = () => {
     setFormData({ id: null, nome: "" });
     setEditMode(false);
     setOpenModal(true);
+  };
+
+  const handleOpenExportModal = () => {
+    setOpenExportModal(true);
+  };
+
+  const handleCloseExportModal = () => {
+    setOpenExportModal(false);
   };
 
   const handleOpenEdit = (categoria) => {
@@ -134,15 +145,75 @@ const CategoriasTab = () => {
     }
   };
 
+  const getCategoriasParaExportar = () => filteredCategorias;
+
+  const handleExportCSV = () => {
+    const categoriasParaExportar = getCategoriasParaExportar();
+
+    if (!categoriasParaExportar.length) {
+      toast.info("Não há categorias para exportar.");
+      return;
+    }
+
+    const escapeCsvValue = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+    const csvContent = [
+      ["Nome"].map(escapeCsvValue).join(";"),
+      ...categoriasParaExportar.map((categoria) => [toTitleCase(categoria.nome)].map(escapeCsvValue).join(";")),
+    ].join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `categorias_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    handleCloseExportModal();
+  };
+
+  const handleExportPDF = () => {
+    const categoriasParaExportar = getCategoriasParaExportar();
+
+    if (!categoriasParaExportar.length) {
+      toast.info("Não há categorias para exportar.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Categorias", 14, 18);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Exportação gerada em ${new Date().toLocaleDateString("pt-BR")}`, 14, 26);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [["#", "Nome"]],
+      body: categoriasParaExportar.map((c, i) => [i + 1, toTitleCase(c.nome) || "-"]),
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    doc.save(`categorias_${new Date().toISOString().split("T")[0]}.pdf`);
+    handleCloseExportModal();
+  };
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h6" fontWeight="bold">
           Gerenciamento de Categorias
         </Typography>
-        <Button variant="contained" startIcon={<FaPlus />} onClick={handleOpenNew} sx={{ borderRadius: 2 }}>
-          Nova Categoria
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button variant="outlined" onClick={handleOpenExportModal} sx={{ borderRadius: 2 }}>
+            Exportar
+          </Button>
+          <Button variant="contained" startIcon={<FaPlus />} onClick={handleOpenNew} sx={{ borderRadius: 2 }}>
+            Nova Categoria
+          </Button>
+        </Box>
       </Box>
 
       <Paper elevation={0} sx={{ p: 3, mb: 3, border: "1px solid", borderColor: "divider", borderRadius: 3 }}>
@@ -248,6 +319,28 @@ const CategoriasTab = () => {
             <Button type="submit" variant="contained">Salvar</Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      <Dialog open={openExportModal} onClose={handleCloseExportModal} maxWidth="xs" fullWidth>
+        <DialogTitle>Exportar categorias</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary">
+            Escolha o formato para exportar a lista de categorias filtradas.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 3 }}>
+          <Button onClick={handleCloseExportModal} color="inherit">
+            Cancelar
+          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button variant="outlined" onClick={handleExportPDF}>
+              PDF
+            </Button>
+            <Button variant="contained" onClick={handleExportCSV}>
+              CSV
+            </Button>
+          </Box>
+        </DialogActions>
       </Dialog>
     </Box>
   );

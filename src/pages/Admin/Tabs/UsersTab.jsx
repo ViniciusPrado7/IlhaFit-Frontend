@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { usePersistedRowsPerPage } from "../../../hooks/usePersistedRowsPerPage";
 import {
     Box,
@@ -61,6 +63,7 @@ const UsuariosTab = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = usePersistedRowsPerPage(10);
     const [novoUsuarioModal, setNovoUsuarioModal] = useState(false);
+    const [openExportModal, setOpenExportModal] = useState(false);
 
     const [profissionalModal, setProfissionalModal] = useState({ open: false, profissional: null });
     const [estabelecimentoModal, setEstabelecimentoModal] = useState({ open: false, estabelecimento: null });
@@ -117,15 +120,24 @@ const UsuariosTab = () => {
     }, [filteredUsers, page, rowsPerPage]);
 
     const exportToCsv = () => {
+        if (!filteredUsers.length) {
+            toast.info("Não há usuários para exportar.");
+            return;
+        }
         const BOM = "﻿";
-        const headers = ["Tipo", "Nome", "Email", "ID"];
-        const rows = filteredUsers.map((u) => [
-            u.tipo || "",
-            `"${(u.nome || u.nomeFantasia || "").replace(/"/g, '""')}"`,
-            `"${(u.email || "").replace(/"/g, '""')}"`,
-            u.id || "",
-        ]);
-        const csvContent = BOM + [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+        const escapeCsv = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+        const headers = ["Tipo", "Nome", "Email", "ID"].map(escapeCsv).join(";");
+        const rows = filteredUsers.map((u) =>
+            [
+                u.tipo || "",
+                u.nome || u.nomeFantasia || "",
+                u.email || "",
+                u.id || "",
+            ]
+                .map(escapeCsv)
+                .join(";")
+        );
+        const csvContent = BOM + [headers, ...rows].join("\n");
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -135,6 +147,45 @@ const UsuariosTab = () => {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        setOpenExportModal(false);
+    };
+
+    const exportToPdf = () => {
+        if (!filteredUsers.length) {
+            toast.info("Não há usuários para exportar.");
+            return;
+        }
+
+        const TIPO_LABEL = {
+            aluno: "Usuário",
+            profissional: "Profissional",
+            estabelecimento: "Estabelecimento",
+            admin: "Admin",
+        };
+
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("Usuários", 14, 18);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Exportação gerada em ${new Date().toLocaleDateString("pt-BR")}`, 14, 26);
+
+        autoTable(doc, {
+            startY: 32,
+            head: [["#", "Tipo", "Nome", "Email"]],
+            body: filteredUsers.map((u, i) => [
+                i + 1,
+                TIPO_LABEL[u.tipo] || u.tipo || "-",
+                u.nome || u.nomeFantasia || "-",
+                u.email || "-",
+            ]),
+            styles: { fontSize: 9 },
+            headStyles: { fillColor: [59, 130, 246] },
+            columnStyles: { 3: { cellWidth: 70 } },
+        });
+
+        doc.save(`usuarios_${new Date().toISOString().split("T")[0]}.pdf`);
+        setOpenExportModal(false);
     };
 
     const handleChangePage = (event, newPage) => setPage(newPage);
@@ -285,7 +336,7 @@ const UsuariosTab = () => {
                                 variant="outlined"
                                 size="small"
                                 startIcon={<FaDownload size={13} />}
-                                onClick={exportToCsv}
+                                onClick={() => setOpenExportModal(true)}
                                 sx={{
                                     textTransform: "none",
                                     fontWeight: 600,
@@ -295,7 +346,7 @@ const UsuariosTab = () => {
                                     whiteSpace: "nowrap",
                                 }}
                             >
-                                Exportar CSV
+                                Exportar
                             </Button>
                         </Tooltip>
                         <Button
@@ -519,6 +570,29 @@ const UsuariosTab = () => {
                 onClose={() => setEstabelecimentoModal({ open: false, estabelecimento: null })}
                 estabelecimento={estabelecimentoModal.estabelecimento}
             />
+
+            {/* Modal de Exportação */}
+            <Dialog open={openExportModal} onClose={() => setOpenExportModal(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>Exportar usuários</DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body2" color="text.secondary">
+                        Escolha o formato para exportar a lista de usuários filtrados.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 3 }}>
+                    <Button onClick={() => setOpenExportModal(false)} color="inherit">
+                        Cancelar
+                    </Button>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button variant="outlined" onClick={exportToPdf}>
+                            PDF
+                        </Button>
+                        <Button variant="contained" onClick={exportToCsv}>
+                            CSV
+                        </Button>
+                    </Box>
+                </DialogActions>
+            </Dialog>
 
             {/* Modal de Novo Usuário */}
             <ModalNovoUsuario
