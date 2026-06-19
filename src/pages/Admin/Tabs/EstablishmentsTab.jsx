@@ -38,7 +38,7 @@ import {
     FaDownload,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { estabelecimentoService } from "../../../services";
+import { estabelecimentoService } from "../../../service";
 import ModalDetalhesEstabelecimento from "../../../components/EstablishmentDetailsModal";
 import { toTitleCase } from "../../../utils/titleCase";
 
