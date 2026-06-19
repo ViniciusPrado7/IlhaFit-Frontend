@@ -131,7 +131,7 @@ const MapComponent = ({
         }).setView([lat, lng], zoom);
 
         L.tileLayer(
-            `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=MFouw8iASb0sVoPbhqsk`,
+            `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_KEY}`,
             {
                 attribution:
                     '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> ' +
