@@ -24,6 +24,7 @@ import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import { authSession } from "../../../service/AuthSession";
 import { profissionalService } from "../../../service/ProfessionalService";
 import { CategoriaSolicitacoesSection } from "../../../components/CategoryRequests";
+import { validarCpf } from "../../../utils/documento";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
@@ -265,6 +266,7 @@ const ConfiguracaoProfissional = () => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cpf.trim()) errors.cpf = "Informe o CPF";
+    else if (!validarCpf(formData.cpf)) errors.cpf = "CPF inválido";
     if (!formData.genero.trim()) errors.genero = "Informe o gênero";
     if (formData.registroCref && !/^\d{1,6}-[A-Z]\/[A-Z]{2}$/.test(formData.registroCref)) {
       errors.registroCref = "Use o formato 123456-G/SP";

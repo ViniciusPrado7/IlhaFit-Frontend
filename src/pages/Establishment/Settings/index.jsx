@@ -19,6 +19,7 @@ import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import { authSession } from "../../../service/AuthSession";
 import { estabelecimentoService } from "../../../service/EstablishmentService";
 import { CategoriaSolicitacoesSection } from "../../../components/CategoryRequests";
+import { validarCnpj } from "../../../utils/documento";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
@@ -263,6 +264,7 @@ const ConfiguracaoEstabelecimento = () => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
+    else if (!validarCnpj(formData.cnpj)) errors.cnpj = "CNPJ inválido";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
     if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";

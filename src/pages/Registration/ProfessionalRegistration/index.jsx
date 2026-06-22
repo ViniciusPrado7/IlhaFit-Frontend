@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import PrivacyPolicyConsent from "../../../components/PrivacyPolicyConsent";
 import { profissionalService } from "../../../service/ProfessionalService";
+import { validarCpf } from "../../../utils/documento";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
@@ -202,9 +203,9 @@ const CadastroProfissional = ({ onSuccess }) => {
     if (!formData.cpf.trim()) {
       errors.cpf = "Informe o CPF";
       toastMessages.push("Informe o CPF");
-    } else if (onlyDigits(formData.cpf).length !== 11) {
-      errors.cpf = "O CPF deve conter 11 dígitos";
-      toastMessages.push("O CPF deve conter 11 dígitos");
+    } else if (!validarCpf(formData.cpf)) {
+      errors.cpf = "CPF inválido";
+      toastMessages.push("CPF inválido");
     }
 
     if (!formData.regiao.trim()) {
