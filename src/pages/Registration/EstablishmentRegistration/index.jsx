@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import PrivacyPolicyConsent from "../../../components/PrivacyPolicyConsent";
+import { emailConfirmationSession } from "../../../service/EmailConfirmationSession";
 import { estabelecimentoService } from "../../../service/EstablishmentService";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
@@ -431,6 +432,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
         }
       }
       await estabelecimentoService.cadastrarEstabelecimento(payload());
+      emailConfirmationSession.markPending(formData.email);
       toast.success("Estabelecimento cadastrado com sucesso!");
       if (onSuccess) {
         onSuccess();

@@ -3,13 +3,16 @@ import { api } from "./Api";
 export const authService = {
   async login(email, senha) {
     const response = await api.post("/auth/login", { email, senha });
-    const data = response.data;
+    return response.data;
+  },
 
-    if (data?.token) {
-      localStorage.setItem("token", data.token);
-    }
-
-    return data;
+  async confirmEmail(email, codigo) {
+    const response = await api.post(
+      "/auth/confirm-email",
+      { email, codigo },
+      { skipAuth: true }
+    );
+    return response.data;
   },
 
   async register(data) {
@@ -26,10 +29,10 @@ export const authService = {
     return response.data;
   },
 
-  async redefinirSenha(token, novaSenha, confirmacaoSenha) {
+  async redefinirSenha(email, codigo, novaSenha, confirmacaoSenha) {
     const response = await api.post(
       "/auth/reset-password",
-      { token, novaSenha, confirmacaoSenha },
+      { email, codigo, novaSenha, confirmacaoSenha },
       { skipAuth: true }
     );
     return response.data;

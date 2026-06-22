@@ -10,6 +10,8 @@ import Login from "./pages/Login/index.jsx";
 import EsqueciSenha from "./pages/Login/ForgotPassword/index.jsx";
 import Admin from "./pages/Admin/index.jsx";
 import Cadastro from "./pages/Registration/index.jsx";
+import ConfirmEmail from "./pages/Registration/ConfirmEmail/index.jsx";
+import ResetPassword from "./pages/Registration/ResetPassword/index.jsx";
 import Profissional from "./pages/Professional/index.jsx";
 import Mapa from "./pages/Map/index.jsx";
 import ConfiguracaoProfissional from "./pages/Professional/Settings/index.jsx";
@@ -18,6 +20,8 @@ import Privacidade from "./pages/Privacy/index.jsx";
 import Sobre from "./pages/About/index.jsx";
 import EstabelecimentoRoute from "./components/PrivateRoute/EstablishmentRoute.jsx";
 import AdminRoute from "./components/PrivateRoute/AdminRoute.jsx";
+import ProfessionalRoute from "./components/PrivateRoute/ProfessionalRoute.jsx";
+import UserRoute from "./components/PrivateRoute/UserRoute.jsx";
 import AdminPanel from "./pages/Admin/index.jsx";
 import { api } from "./service/Api.js";
 import { authSession } from "./service/AuthSession.js";
@@ -49,13 +53,29 @@ function App() {
         <Route path="/estabelecimento/:id" element={<PerfilEstabelecimento />} />
         <Route path="/profissional" element={<Profissional />} />
         <Route path="/mapa" element={<Mapa />} />
-        <Route path="/profissional/configuracoes" element={<ConfiguracaoProfissional />} />
-        <Route path="/usuario/configuracoes" element={<ConfiguracaoUsuario />} />
+        <Route
+          path="/profissional/configuracoes"
+          element={(
+            <ProfessionalRoute>
+              <ConfiguracaoProfissional />
+            </ProfessionalRoute>
+          )}
+        />
+        <Route
+          path="/usuario/configuracoes"
+          element={(
+            <UserRoute>
+              <ConfiguracaoUsuario />
+            </UserRoute>
+          )}
+        />
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/politica-de-privacidade" element={<Privacidade />} />
         <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/confirmar-email" element={<ConfirmEmail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha" element={<ResetPassword />} />
         <Route
           path="/admin"
           element={(

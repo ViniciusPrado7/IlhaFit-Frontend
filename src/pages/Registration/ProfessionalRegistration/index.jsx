@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import CategoriaSelectField from "../../../components/CategoriaSelectField";
 import PrivacyPolicyConsent from "../../../components/PrivacyPolicyConsent";
+import { emailConfirmationSession } from "../../../service/EmailConfirmationSession";
 import { profissionalService } from "../../../service/ProfessionalService";
 
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
@@ -324,6 +325,7 @@ const CadastroProfissional = ({ onSuccess }) => {
     setLoading(true);
     try {
       await profissionalService.cadastrarProfissional(payload());
+      emailConfirmationSession.markPending(formData.email);
       toast.success("Profissional cadastrado com sucesso!");
       if (onSuccess) {
         onSuccess();
