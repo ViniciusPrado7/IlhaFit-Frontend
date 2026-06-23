@@ -48,4 +48,8 @@ export const adminService = {
   deleteAvaliacaoDenuncia(id) {
     return api.delete(`/denuncias/${id}/avaliacao`);
   },
+
+  cadastrarAdmin(data) {
+    return api.post("/administradores/cadastrar", data);
+  },
 };

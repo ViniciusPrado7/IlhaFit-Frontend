@@ -13,9 +13,10 @@ import {
     Typography,
     useTheme,
 } from "@mui/material";
-import { FaBuilding, FaEye, FaEyeSlash, FaTimes, FaUser, FaUserTie } from "react-icons/fa";
+import { FaBuilding, FaEye, FaEyeSlash, FaTimes, FaUser, FaUserShield, FaUserTie } from "react-icons/fa";
 import { toast } from "react-toastify";
 import PrivacyPolicyConsent from "../../../components/PrivacyPolicyConsent";
+import { adminService } from "../../../service/AdminService";
 import { authService } from "../../../service/AuthService";
 import CadastroEstabelecimento from "../../Registration/EstablishmentRegistration";
 import CadastroProfissional from "../../Registration/ProfessionalRegistration";
@@ -56,6 +57,34 @@ const ModalNovoUsuario = ({ open, onClose, onSuccess }) => {
 
     const handleTypeChange = (_, newType) => {
         if (newType !== null) setAccountType(newType);
+    };
+
+    const handleAdminSubmit = async (e) => {
+        e.preventDefault();
+        if (alunoData.senha !== alunoData.confirmarSenha) {
+            toast.error("As senhas não coincidem!");
+            return;
+        }
+        if (!validarSenha(alunoData.senha)) {
+            toast.error("Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 caractere especial e 1 número.");
+            return;
+        }
+        setLoading(true);
+        try {
+            await adminService.cadastrarAdmin({ nome: alunoData.nome, email: alunoData.email, senha: alunoData.senha });
+            toast.success("Administrador cadastrado com sucesso!");
+            onSuccess?.();
+            handleClose();
+        } catch (error) {
+            const data = error?.response?.data;
+            const message =
+                data?.erro || data?.email || data?.senha ||
+                (typeof data === "string" ? data : null) ||
+                "Ocorreu um erro ao realizar o cadastro.";
+            toast.error(message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAlunoSubmit = async (e) => {
@@ -165,6 +194,11 @@ const ModalNovoUsuario = ({ open, onClose, onSuccess }) => {
                                 <FaUserTie size={13} /> Profissional
                             </Box>
                         </ToggleButton>
+                        <ToggleButton value="administrador">
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                <FaUserShield size={13} /> Administrador
+                            </Box>
+                        </ToggleButton>
                     </ToggleButtonGroup>
                 </Box>
 
@@ -245,6 +279,96 @@ const ModalNovoUsuario = ({ open, onClose, onSuccess }) => {
                             }}
                             error={privacyError}
                         />
+
+                        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                            <Button onClick={handleClose} variant="outlined" fullWidth sx={{ borderRadius: 2, textTransform: "none" }}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                fullWidth
+                                disabled={loading}
+                                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+                            >
+                                {loading ? "Cadastrando..." : "Cadastrar"}
+                            </Button>
+                        </Box>
+                    </form>
+                )}
+
+                {/* Formulário de Administrador */}
+                {accountType === "administrador" && (
+                    <form id="admin-admin-form" onSubmit={handleAdminSubmit}>
+                        {label("Nome Completo")}
+                        <TextField
+                            fullWidth
+                            name="nome"
+                            value={alunoData.nome}
+                            onChange={(e) => setAlunoData((p) => ({ ...p, nome: e.target.value }))}
+                            placeholder="Nome completo"
+                            sx={inputStyles}
+                            required
+                        />
+
+                        {label("Email")}
+                        <TextField
+                            fullWidth
+                            name="email"
+                            type="email"
+                            value={alunoData.email}
+                            onChange={(e) => setAlunoData((p) => ({ ...p, email: e.target.value }))}
+                            placeholder="email@exemplo.com"
+                            sx={inputStyles}
+                            required
+                        />
+
+                        <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
+                            <Box sx={{ flex: 1 }}>
+                                {label("Senha")}
+                                <TextField
+                                    fullWidth
+                                    name="senha"
+                                    type={showPassword ? "text" : "password"}
+                                    value={alunoData.senha}
+                                    onChange={(e) => setAlunoData((p) => ({ ...p, senha: e.target.value }))}
+                                    placeholder="********"
+                                    required
+                                    sx={inputStyles}
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                                                    {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                                {label("Confirmar Senha")}
+                                <TextField
+                                    fullWidth
+                                    name="confirmarSenha"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={alunoData.confirmarSenha}
+                                    onChange={(e) => setAlunoData((p) => ({ ...p, confirmarSenha: e.target.value }))}
+                                    placeholder="********"
+                                    required
+                                    sx={inputStyles}
+                                    InputProps={{
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">
+                                                    {showConfirmPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Box>
+                        </Box>
 
                         <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
                             <Button onClick={handleClose} variant="outlined" fullWidth sx={{ borderRadius: 2, textTransform: "none" }}>
