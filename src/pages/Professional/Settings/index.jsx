@@ -133,6 +133,8 @@ const ConfiguracaoProfissional = () => {
   const [deleteText, setDeleteText] = useState("");
   const [isEditingDados, setIsEditingDados] = useState(false);
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
+  const [isEditingFoto, setIsEditingFoto] = useState(false);
+  const [savedFotoUrl, setSavedFotoUrl] = useState("");
   const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [] });
 
   const profissionalId = user?.tipo === "PROFISSIONAL" ? user.id : null;
@@ -160,6 +162,7 @@ const ConfiguracaoProfissional = () => {
         setGradeAtividades(nextGradeAtividades);
         setSavedDados({ formData: nextFormData, gradeAtividades: nextGradeAtividades });
         setFotoUrl(profissional?.fotoUrl || "");
+        setSavedFotoUrl(profissional?.fotoUrl || "");
         setGeneralError("");
       } catch (error) {
         if (mounted) {
@@ -216,6 +219,19 @@ const ConfiguracaoProfissional = () => {
     setFieldErrors({});
     setGeneralError("");
     setIsEditingAtividades(false);
+  };
+
+  const startEditarFoto = () => {
+    setIsEditingFoto(true);
+    setFieldErrors({});
+    setGeneralError("");
+  };
+
+  const cancelEditarFoto = () => {
+    setFotoUrl(savedFotoUrl);
+    setFieldErrors({});
+    setGeneralError("");
+    setIsEditingFoto(false);
   };
 
   const handleInputChange = (event) => {
@@ -341,6 +357,7 @@ const ConfiguracaoProfissional = () => {
       authSession.setUser({ ...user, nome: formData.nome, email: formData.email });
       setSavedDados((prev) => ({ ...prev, formData }));
       setFotoUrl(profissionalAtualizado?.fotoUrl || fotoUrl);
+      setSavedFotoUrl(profissionalAtualizado?.fotoUrl || fotoUrl);
       setIsEditingDados(false);
       toast.success("Dados atualizados com sucesso!");
     } catch (error) {
@@ -390,12 +407,17 @@ const ConfiguracaoProfissional = () => {
   };
 
   const handleSalvarFoto = async () => {
+    if (!isEditingFoto) return;
+
     setSaving(true);
     try {
       const response = await profissionalService.atualizarProfissional(profissionalId, buildPayload({ fotoUrl }));
       const profissionalAtualizado = response.data;
 
-      setFotoUrl(profissionalAtualizado?.fotoUrl || fotoUrl);
+      const novaFotoUrl = profissionalAtualizado?.fotoUrl || fotoUrl;
+      setFotoUrl(novaFotoUrl);
+      setSavedFotoUrl(novaFotoUrl);
+      setIsEditingFoto(false);
       toast.success("Foto de perfil atualizada com sucesso!");
     } catch (error) {
       setGeneralError(getApiError(error).generalError);
@@ -676,36 +698,50 @@ const ConfiguracaoProfissional = () => {
 
   const renderFotoPerfil = () => (
     <Box>
-      <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
-        Foto de perfil
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Selecione uma foto para seu perfil no IlhaFit.
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 3 }}>
+        <Box>
+          <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
+            Foto de perfil
+          </Typography>
+          <Typography color="text.secondary">
+            {isEditingFoto
+              ? "Selecione uma foto para seu perfil no IlhaFit."
+              : "Clique em editar para alterar sua foto de perfil."}
+          </Typography>
+        </Box>
+
+        {!isEditingFoto && (
+          <Button type="button" variant="contained" startIcon={<FaEdit />} onClick={startEditarFoto} sx={{ borderRadius: 2, px: 2.5, py: 1.15, fontWeight: 900, flexShrink: 0 }}>
+            Editar foto
+          </Button>
+        )}
+      </Box>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
         {fotoUrl ? (
           <Box sx={{ position: "relative", aspectRatio: "16 / 10", borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
             <Box component="img" src={fotoUrl} alt="Foto de perfil" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <Button
-              type="button"
-              color="error"
-              onClick={() => setFotoUrl("")}
-              sx={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                minWidth: 0,
-                width: 36,
-                height: 36,
-                borderRadius: 2,
-                bgcolor: "background.paper",
-              }}
-            >
-              <FaTrash size={14} />
-            </Button>
+            {isEditingFoto && (
+              <Button
+                type="button"
+                color="error"
+                onClick={() => setFotoUrl("")}
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  minWidth: 0,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 2,
+                  bgcolor: "background.paper",
+                }}
+              >
+                <FaTrash size={14} />
+              </Button>
+            )}
           </Box>
-        ) : (
+        ) : isEditingFoto ? (
           <Button
             component="label"
             variant="outlined"
@@ -726,12 +762,39 @@ const ConfiguracaoProfissional = () => {
             Adicionar foto
             <input type="file" accept="image/*" hidden onChange={handleFotoChange} />
           </Button>
+        ) : (
+          <Box
+            sx={{
+              aspectRatio: "16 / 10",
+              borderRadius: 2,
+              border: "1px dashed",
+              borderColor: isDark ? "rgba(255, 255, 255, 0.14)" : "rgba(16, 185, 129, 0.25)",
+              color: "text.secondary",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 1,
+            }}
+          >
+            <FaImage size={22} />
+            <Typography variant="body2" fontWeight={700}>
+              Sem foto de perfil
+            </Typography>
+          </Box>
         )}
       </Box>
 
-      <Button variant="contained" startIcon={<FaSave />} disabled={saving || !fotoUrl} onClick={handleSalvarFoto} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
-        {saving ? "Salvando..." : "Salvar foto"}
-      </Button>
+      {isEditingFoto && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, flexWrap: "wrap" }}>
+          <Button type="button" variant="outlined" startIcon={<FaTimes />} disabled={saving} onClick={cancelEditarFoto} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
+            Cancelar
+          </Button>
+          <Button variant="contained" startIcon={<FaSave />} disabled={saving || !fotoUrl} onClick={handleSalvarFoto} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
+            {saving ? "Salvando..." : "Salvar foto"}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 

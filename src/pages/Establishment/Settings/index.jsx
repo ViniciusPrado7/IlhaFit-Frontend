@@ -4,7 +4,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  FormControl,
+  MenuItem,
   Paper,
+  Select,
   Tab,
   Tabs,
   TextField,
@@ -23,6 +26,11 @@ import { CategoriaSolicitacoesSection } from "../../../components/CategoryReques
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
 const MAX_FOTOS = 6;
+const ESTADOS_BRASIL = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
+  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
+  "SP", "SE", "TO"
+];
 
 const formInicial = {
   nomeFantasia: "",
@@ -43,6 +51,10 @@ const gradeInicial = { id: null, categoriaId: null, categoriaNome: "", exclusivo
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
 const normalizeActivityKey = (value = "") => String(value).trim().toLowerCase();
+const apenasTexto = (value = "") => value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+const textoComNumero = (value = "") => value.replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "");
+const contemApenasTexto = (value = "") => /^[A-Za-zÀ-ÿ\s]+$/.test(value.trim());
+const cnpjValido = (value = "") => /^\d{14}$/.test(value);
 
 const formatTelefone = (value = "") => {
   const digits = onlyDigits(value).slice(0, 11);
@@ -140,6 +152,8 @@ const ConfiguracaoEstabelecimento = () => {
   const [deleteText, setDeleteText] = useState("");
   const [isEditingDados, setIsEditingDados] = useState(false);
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
+  const [isEditingGaleria, setIsEditingGaleria] = useState(false);
+  const [savedFotosUrl, setSavedFotosUrl] = useState([]);
   const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [] });
 
   const estabelecimentoId = authSession.isEstabelecimentoAuthenticated() ? user?.id : null;
@@ -165,7 +179,9 @@ const ConfiguracaoEstabelecimento = () => {
         setFormData(nextFormData);
         setGradeAtividades(nextGradeAtividades);
         setSavedDados({ formData: nextFormData, gradeAtividades: nextGradeAtividades });
-        setFotosUrl(Array.isArray(estabelecimento?.fotosUrl) ? estabelecimento.fotosUrl.slice(0, MAX_FOTOS) : []);
+        const fotosIniciais = Array.isArray(estabelecimento?.fotosUrl) ? estabelecimento.fotosUrl.slice(0, MAX_FOTOS) : [];
+        setFotosUrl(fotosIniciais);
+        setSavedFotosUrl(fotosIniciais);
         setGeneralError("");
       } catch (error) {
         if (mounted) {
@@ -224,6 +240,19 @@ const ConfiguracaoEstabelecimento = () => {
     setIsEditingAtividades(false);
   };
 
+  const startEditarGaleria = () => {
+    setIsEditingGaleria(true);
+    setFieldErrors({});
+    setGeneralError("");
+  };
+
+  const cancelEditarGaleria = () => {
+    setFotosUrl(savedFotosUrl);
+    setFieldErrors({});
+    setGeneralError("");
+    setIsEditingGaleria(false);
+  };
+
   const fieldError = (name) => fieldErrors[name] || fieldErrors[`endereco.${name}`] || "";
 
   const handleInputChange = (event) => {
@@ -233,6 +262,10 @@ const ConfiguracaoEstabelecimento = () => {
       cnpj: onlyDigits(value).slice(0, 14),
       cep: onlyDigits(value).slice(0, 8),
       estado: value.toUpperCase().slice(0, 2),
+      numero: onlyDigits(value).slice(0, 10),
+      rua: textoComNumero(value),
+      bairro: textoComNumero(value),
+      cidade: apenasTexto(value),
     }[name] ?? value;
 
     setFormData((prev) => ({ ...prev, [name]: nextValue }));
@@ -263,11 +296,14 @@ const ConfiguracaoEstabelecimento = () => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
+    else if (!cnpjValido(formData.cnpj)) errors.cnpj = "CNPJ deve conter os 14 numeros";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
     if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
+    else if (!contemApenasTexto(formData.cidade)) errors.cidade = "Cidade deve conter apenas letras";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
+    else if (!ESTADOS_BRASIL.includes(formData.estado)) errors.estado = "Selecione um estado valido";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
 
     setFieldErrors(errors);
@@ -407,7 +443,9 @@ const ConfiguracaoEstabelecimento = () => {
       });
       syncGradeFromEstabelecimento(estabelecimentoAtualizado);
       setSavedDados((prev) => ({ ...prev, formData }));
-      setFotosUrl(Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl);
+      const fotosAtualizadas = Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl;
+      setFotosUrl(fotosAtualizadas);
+      setSavedFotosUrl(fotosAtualizadas);
       setIsEditingDados(false);
       toast.success("Dados atualizados com sucesso!");
     } catch (error) {
@@ -484,13 +522,18 @@ const ConfiguracaoEstabelecimento = () => {
   };
 
   const handleSalvarGaleria = async () => {
+    if (!isEditingGaleria) return;
+
     setSaving(true);
     try {
       const response = await estabelecimentoService.atualizarEstabelecimento(estabelecimentoId, buildPayload({ fotosUrl }));
       const estabelecimentoAtualizado = response.data;
 
       syncGradeFromEstabelecimento(estabelecimentoAtualizado);
-      setFotosUrl(Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl);
+      const fotosAtualizadas = Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl;
+      setFotosUrl(fotosAtualizadas);
+      setSavedFotosUrl(fotosAtualizadas);
+      setIsEditingGaleria(false);
       toast.success("Galeria atualizada com sucesso!");
     } catch (error) {
       handleProtectedError(error, false);
@@ -647,7 +690,30 @@ const ConfiguracaoEstabelecimento = () => {
         </Box>
         <Box>
           {label("Estado")}
-          <TextField fullWidth disabled={!isEditingDados} name="estado" value={formData.estado} onChange={handleInputChange} error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} />
+          <FormControl fullWidth error={Boolean(fieldError("estado"))} sx={inputStyles}>
+            <Select
+              displayEmpty
+              disabled={!isEditingDados}
+              name="estado"
+              value={formData.estado}
+              onChange={handleInputChange}
+              renderValue={(selected) => selected || "Selecione o estado"}
+            >
+              <MenuItem value="" disabled>
+                Selecione o estado
+              </MenuItem>
+              {ESTADOS_BRASIL.map((estado) => (
+                <MenuItem key={estado} value={estado}>
+                  {estado}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {fieldError("estado") && (
+            <Typography variant="caption" color="error" sx={{ display: "block", mt: -1, mb: 2 }}>
+              {fieldError("estado")}
+            </Typography>
+          )}
         </Box>
         <Box>
           {label("CEP")}
@@ -756,24 +822,44 @@ const ConfiguracaoEstabelecimento = () => {
 
   const renderGaleria = () => (
     <Box>
-      <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
-        Galeria
-      </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Selecione até {MAX_FOTOS} fotos para mostrar seu espaço.
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 3 }}>
+        <Box>
+          <Typography variant="h5" fontWeight={900} sx={{ mb: 1 }}>
+            Galeria
+          </Typography>
+          <Typography color="text.secondary">
+            {isEditingGaleria
+              ? `Selecione até ${MAX_FOTOS} fotos para mostrar seu espaço.`
+              : "Clique em editar para alterar as fotos da galeria."}
+          </Typography>
+        </Box>
+
+        {!isEditingGaleria && (
+          <Button type="button" variant="contained" startIcon={<FaEdit />} onClick={startEditarGaleria} sx={{ borderRadius: 2, px: 2.5, py: 1.15, fontWeight: 900, flexShrink: 0 }}>
+            Editar galeria
+          </Button>
+        )}
+      </Box>
+
+      {fotosUrl.length === 0 && !isEditingGaleria && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Você ainda não adicionou fotos à galeria.
+        </Alert>
+      )}
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
         {fotosUrl.map((foto, index) => (
           <Box key={`${foto}-${index}`} sx={{ position: "relative", aspectRatio: "16 / 10", borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
             <Box component="img" src={foto} alt={`Foto ${index + 1}`} sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            <Button type="button" color="error" onClick={() => setFotosUrl((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, width: 36, height: 36, borderRadius: 2, bgcolor: "background.paper" }}>
-              <FaTrash size={14} />
-            </Button>
+            {isEditingGaleria && (
+              <Button type="button" color="error" onClick={() => setFotosUrl((prev) => prev.filter((_, itemIndex) => itemIndex !== index))} sx={{ position: "absolute", top: 8, right: 8, minWidth: 0, width: 36, height: 36, borderRadius: 2, bgcolor: "background.paper" }}>
+                <FaTrash size={14} />
+              </Button>
+            )}
           </Box>
         ))}
 
-        {fotosUrl.length < MAX_FOTOS && (
+        {isEditingGaleria && fotosUrl.length < MAX_FOTOS && (
           <Button component="label" variant="outlined" sx={{ aspectRatio: "16 / 10", borderRadius: 2, borderStyle: "dashed", display: "flex", flexDirection: "column", gap: 1, fontWeight: 900 }}>
             <FaImage size={24} />
             Adicionar fotos
@@ -782,14 +868,21 @@ const ConfiguracaoEstabelecimento = () => {
         )}
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-        <Typography variant="body2" color="text.secondary" fontWeight={700}>
-          {fotosUrl.length}/{MAX_FOTOS} fotos selecionadas
-        </Typography>
-        <Button variant="contained" startIcon={<FaSave />} disabled={saving} onClick={handleSalvarGaleria} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
-          {saving ? "Salvando..." : "Salvar galeria"}
-        </Button>
-      </Box>
+      {isEditingGaleria && (
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+          <Typography variant="body2" color="text.secondary" fontWeight={700}>
+            {fotosUrl.length}/{MAX_FOTOS} fotos selecionadas
+          </Typography>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Button type="button" variant="outlined" startIcon={<FaTimes />} disabled={saving} onClick={cancelEditarGaleria} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
+              Cancelar
+            </Button>
+            <Button variant="contained" startIcon={<FaSave />} disabled={saving} onClick={handleSalvarGaleria} sx={{ borderRadius: 2, px: 3, py: 1.25, fontWeight: 900 }}>
+              {saving ? "Salvando..." : "Salvar galeria"}
+            </Button>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 
