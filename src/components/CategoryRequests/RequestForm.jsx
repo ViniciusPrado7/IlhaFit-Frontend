@@ -1,6 +1,8 @@
 import { Alert, Box, Button, TextField, Typography } from "@mui/material";
 import { MAX_SOLICITACOES_PENDENTES } from "./utils";
 
+const apenasTexto = (value = "") => value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+
 const CategoriaSolicitacaoForm = ({
   value,
   onChange,
@@ -47,7 +49,7 @@ const CategoriaSolicitacaoForm = ({
           label="Nome da categoria"
           placeholder="Ex.: Pilates Aéreo"
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(apenasTexto(event.target.value))}
           disabled={disabled || limitReached}
         />
         <Button

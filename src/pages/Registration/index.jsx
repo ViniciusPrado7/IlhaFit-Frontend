@@ -22,6 +22,7 @@ import CadastroProfissional from "./ProfessionalRegistration";
 
 const alunoInicial = { nome: "", email: "", senha: "", confirmarSenha: "" };
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
+const validarNomeCompleto = (nome) => /^[A-Za-zÀ-ÿ\s]+$/.test(nome.trim());
 
 const Cadastro = () => {
     const theme = useTheme();
@@ -60,6 +61,11 @@ const Cadastro = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        if (name === "nome") {
+            const nomeLimpo = value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+            setFormData(prev => ({ ...prev, [name]: nomeLimpo }));
+            return;
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -71,8 +77,18 @@ const Cadastro = () => {
             return;
         }
 
+        if (!formData.nome.trim()) {
+            toast.error("Informe o nome completo.");
+            return;
+        }
+
+        if (!validarNomeCompleto(formData.nome)) {
+            toast.error("O nome completo deve conter apenas letras.");
+            return;
+        }
+
         if (!validarSenha(formData.senha)) {
-            toast.error("Senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 caractere especial e 1 número.");
+            toast.error("A senha deve ter no mínimo 8 caracteres, incluindo letra maiúscula, letra minúscula, número e caractere especial.");
             return;
         }
 
