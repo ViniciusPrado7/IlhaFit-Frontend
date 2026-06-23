@@ -15,6 +15,15 @@ export const authService = {
     return response.data;
   },
 
+  async resendEmailConfirmation(email) {
+    const response = await api.post(
+      "/auth/resend-email-confirmation",
+      { email },
+      { skipAuth: true }
+    );
+    return response.data;
+  },
+
   async register(data) {
     const { confirmarSenha, ...rest } = data;
     const response = await api.post("/usuarios/cadastrar", {
@@ -26,6 +35,15 @@ export const authService = {
 
   async esqueciSenha(email) {
     const response = await api.post("/auth/forgot-password", { email }, { skipAuth: true });
+    return response.data;
+  },
+
+  async reenviarCodigoRecuperacao(email) {
+    const response = await api.post(
+      "/auth/resend-password-code",
+      { email },
+      { skipAuth: true }
+    );
     return response.data;
   },
 

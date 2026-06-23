@@ -4,8 +4,11 @@ import {
   Box,
   Button,
   Chip,
+  FormControl,
   IconButton,
   InputAdornment,
+  MenuItem,
+  Select,
   TextField,
   Typography,
   useTheme,
@@ -21,6 +24,11 @@ import { estabelecimentoService } from "../../../service/EstablishmentService";
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
 const MAX_FOTOS = 6;
+const ESTADOS_BRASIL = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
+  "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
+  "SP", "SE", "TO"
+];
 
 const formInicial = {
   nomeFantasia: "",
@@ -52,6 +60,10 @@ const createEmptyActivitySchedule = () => ({
 const onlyDigits = (value) => value.replace(/\D/g, "");
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
 const normalizeActivityName = (value) => value?.trim().replace(/\s+/g, " ").toLowerCase() || "";
+const apenasTexto = (value) => value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+const textoComNumero = (value) => value.replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "");
+const contemApenasTexto = (value) => /^[A-Za-zÀ-ÿ\s]+$/.test(value.trim());
+const cnpjValido = (value) => /^\d{14}$/.test(value);
 
 const formatTelefone = (value) => {
   const digits = onlyDigits(value).slice(0, 11);
@@ -253,6 +265,10 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
       cnpj: onlyDigits(value).slice(0, 14),
       cep: onlyDigits(value).slice(0, 8),
       estado: value.toUpperCase().slice(0, 2),
+      numero: onlyDigits(value).slice(0, 10),
+      rua: textoComNumero(value),
+      bairro: textoComNumero(value),
+      cidade: apenasTexto(value),
     }[name] ?? value;
 
     setFormData((prev) => ({
@@ -321,11 +337,14 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
+    else if (!cnpjValido(formData.cnpj)) errors.cnpj = "CNPJ deve conter os 14 numeros";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
     if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
+    else if (!contemApenasTexto(formData.cidade)) errors.cidade = "Cidade deve conter apenas letras";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
+    else if (!ESTADOS_BRASIL.includes(formData.estado)) errors.estado = "Selecione um estado valido";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
     if (!formData.fotosUrl.length) errors.fotosUrl = "Selecione pelo menos uma imagem";
     if (formData.fotosUrl.length > MAX_FOTOS) errors.fotosUrl = `Selecione no máximo ${MAX_FOTOS} imagens`;
@@ -443,6 +462,13 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);
       setGeneralError(apiGeneralError);
+
+      // Conflitos de razao social, email e CNPJ pertencem a etapa 0: volta para
+      // que o usuario veja o campo destacado com a mensagem.
+      const camposEtapaUm = ["razaoSocial", "email", "cnpj", "telefone"];
+      if (camposEtapaUm.some((campo) => apiFieldErrors[campo])) {
+        setStep(0);
+      }
     } finally {
       setLoading(false);
     }
@@ -565,7 +591,38 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
         </Box>
         <Box sx={{ flex: 1 }}>
           {label("Estado")}
-          <TextField fullWidth name="estado" value={formData.estado} onChange={handleInputChange} placeholder="SC" error={Boolean(fieldError("estado"))} helperText={fieldError("estado")} sx={inputStyles} required />
+          <FormControl fullWidth error={Boolean(fieldError("estado"))} sx={inputStyles} required>
+            <Select
+              name="estado"
+              value={formData.estado}
+              onChange={handleInputChange}
+              displayEmpty
+              sx={{
+                bgcolor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(16, 185, 129, 0.05)",
+                borderRadius: 2,
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(16, 185, 129, 0.2)",
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: theme.palette.primary.main,
+                },
+              }}
+            >
+              <MenuItem value="" disabled>
+                Selecione o estado
+              </MenuItem>
+              {ESTADOS_BRASIL.map((estado) => (
+                <MenuItem key={estado} value={estado}>
+                  {estado}
+                </MenuItem>
+              ))}
+            </Select>
+            {fieldError("estado") && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.75 }}>
+                {fieldError("estado")}
+              </Typography>
+            )}
+          </FormControl>
         </Box>
       </Box>
 

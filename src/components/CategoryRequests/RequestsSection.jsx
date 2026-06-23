@@ -10,6 +10,8 @@ import {
   getCategoriaSolicitacaoErrorMessage,
 } from "./utils";
 
+const contemApenasTexto = (value = "") => /^[A-Za-zÀ-ÿ\s]+$/.test(value.trim());
+
 const CategoriaSolicitacoesSection = ({ onRefreshCategoriasOficiais }) => {
   const user = authSession.getUser();
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,12 @@ const CategoriaSolicitacoesSection = ({ onRefreshCategoriasOficiais }) => {
     event.preventDefault();
     const nome = novaCategoria.trim();
     if (!nome) return;
+    if (!contemApenasTexto(nome)) {
+      const message = "O nome da categoria deve conter apenas letras.";
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
 
     setSubmitting(true);
     setFormError("");

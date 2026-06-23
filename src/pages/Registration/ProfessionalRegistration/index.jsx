@@ -48,6 +48,18 @@ const createEmptyActivitySchedule = () => ({
 const onlyDigits = (value) => value.replace(/\D/g, "");
 const validarSenha = (senha) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(senha);
 const normalizeActivityName = (value) => value?.trim().replace(/\s+/g, " ").toLowerCase() || "";
+const CAMPOS_ETAPA_UM = new Set([
+  "nome",
+  "email",
+  "telefone",
+  "cpf",
+  "regiao",
+  "registroCref",
+  "senha",
+  "confirmarSenha",
+  "fotoUrl",
+]);
+const CAMPOS_ETAPA_DOIS = new Set(["genero", "gradeAtividades", "privacyAccepted"]);
 
 const formatTelefone = (value) => {
   const digits = onlyDigits(value).slice(0, 11);
@@ -336,6 +348,15 @@ const CadastroProfissional = ({ onSuccess }) => {
       const { fieldErrors: apiFieldErrors, generalError: apiGeneralError } = getApiError(error);
       setFieldErrors(apiFieldErrors);
       setGeneralError(apiGeneralError);
+
+      const possuiErroEtapaUm = Object.keys(apiFieldErrors).some((field) => CAMPOS_ETAPA_UM.has(field));
+      const possuiErroEtapaDois = Object.keys(apiFieldErrors).some((field) => CAMPOS_ETAPA_DOIS.has(field));
+
+      if (possuiErroEtapaUm) {
+        setStep(0);
+      } else if (possuiErroEtapaDois) {
+        setStep(1);
+      }
 
       if (apiGeneralError) {
         toast.error(apiGeneralError);

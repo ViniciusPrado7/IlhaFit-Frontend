@@ -16,6 +16,9 @@ import { toast } from "react-toastify";
 import { authSession } from "../../../service/AuthSession";
 import { usuarioService } from "../../../service/UserService";
 
+const apenasTexto = (value = "") => value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
+const contemApenasTexto = (value = "") => /^[A-Za-zÀ-ÿ\s]+$/.test(value.trim());
+
 const getApiError = (error) => {
   const data = error?.response?.data;
 
@@ -101,6 +104,11 @@ const ConfiguracaoUsuario = () => {
       return;
     }
 
+    if (!contemApenasTexto(nome)) {
+      setFieldErrors({ nome: "O nome deve conter apenas letras." });
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await usuarioService.atualizarUsuario(usuarioId, { nome: nome.trim() });
@@ -171,7 +179,7 @@ const ConfiguracaoUsuario = () => {
         name="nome"
         value={nome}
         onChange={(event) => {
-          setNome(event.target.value);
+          setNome(apenasTexto(event.target.value));
           limparErro("nome");
         }}
         error={Boolean(fieldErrors.nome)}

@@ -101,6 +101,27 @@ const EsqueciSenha = () => {
     });
   };
 
+  const handleResendCode = async () => {
+    clearMessages();
+
+    const emailLimpo = email.trim();
+    if (!emailLimpo) {
+      setErrorMessage("Email obrigatorio.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.reenviarCodigoRecuperacao(emailLimpo);
+      setSuccessMessage("Enviamos um novo codigo de 6 digitos para seu email.");
+    } catch (error) {
+      console.error("Erro ao reenviar codigo de recuperacao:", error);
+      setErrorMessage(getApiError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const voltarParaEmail = () => {
     setStep("email");
     setCodigo("");
@@ -227,6 +248,23 @@ const EsqueciSenha = () => {
                   },
                 }}
               />
+
+              <Button
+                type="button"
+                variant="text"
+                onClick={handleResendCode}
+                disabled={loading}
+                sx={{
+                  mb: 2.5,
+                  px: 0,
+                  minWidth: "auto",
+                  alignSelf: "flex-start",
+                  fontWeight: 700,
+                  textTransform: "none",
+                }}
+              >
+                {loading ? "Reenviando..." : "Reenviar codigo"}
+              </Button>
             </>
           ) : (
             <>

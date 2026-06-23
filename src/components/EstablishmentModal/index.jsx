@@ -279,7 +279,7 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
           sx={{
             position: "absolute",
             top: 16,
-            right: temMultiplasFotos ? 64 : 16,
+            right: 16,
             bgcolor: "background.paper",
             color: "text.primary",
             "&:hover": { bgcolor: "background.paper" },
