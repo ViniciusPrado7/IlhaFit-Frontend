@@ -7,6 +7,13 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+# Variaveis VITE_* sao lidas em build time pelo Vite. O Render injeta as
+# environment variables do servico como build args, entao declaramos o ARG
+# e o promovemos a ENV antes do build para que a chave entre no bundle.
+ARG VITE_MAPTILER_KEY
+ENV VITE_MAPTILER_KEY=$VITE_MAPTILER_KEY
+
 RUN npm run build
 
 # Stage 2: Serve

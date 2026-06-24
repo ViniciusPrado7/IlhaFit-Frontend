@@ -205,6 +205,12 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
       return;
     }
 
+    // RN12: apenas aluno e profissional podem denunciar.
+    if (!canCreateReview) {
+      toast.warning("Apenas alunos e profissionais podem denunciar avaliações.");
+      return;
+    }
+
     if (isOwnReview(avaliacao, user)) {
       toast.warning("Você não pode denunciar sua própria avaliação.");
       return;
@@ -323,7 +329,7 @@ const AvaliacoesPanel = ({ targetType, targetId, onAvaliacoesChange }) => {
                   </Typography>
                 )}
 
-                {isAutenticado && (
+                {(ownReview || canCreateReview) && (
                   <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap" }}>
                     {ownReview ? (
                       <Button size="small" color="error" onClick={() => handleDeletar(avaliacao)}>
