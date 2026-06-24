@@ -43,6 +43,8 @@ const CategoriasTab = () => {
     id: null,
     nome: "",
   });
+  const [categoriaParaExcluir, setCategoriaParaExcluir] = useState(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -133,15 +135,18 @@ const CategoriasTab = () => {
     }
   };
 
-  const handleDelete = async (id, nome) => {
-    if (window.confirm(`Tem certeza que deseja excluir a categoria "${nome}"?`)) {
-      try {
-        await categoriaService.excluir(id);
-        toast.success("Categoria excluída com sucesso!");
-        carregarCategorias();
-      } catch {
-        toast.error("Erro ao excluir categoria. Ela pode estar em uso.");
-      }
+  const handleConfirmarExclusao = async () => {
+    if (!categoriaParaExcluir) return;
+    try {
+      setExcluindo(true);
+      await categoriaService.excluir(categoriaParaExcluir.id);
+      toast.success("Categoria excluída com sucesso!");
+      setCategoriaParaExcluir(null);
+      carregarCategorias();
+    } catch {
+      toast.error("Erro ao excluir categoria. Ela pode estar em uso.");
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -271,7 +276,7 @@ const CategoriasTab = () => {
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Excluir">
-                        <IconButton size="small" color="error" onClick={() => handleDelete(categoria.id, categoria.nome)}>
+                        <IconButton size="small" color="error" onClick={() => setCategoriaParaExcluir(categoria)}>
                           <FaTrash size={16} />
                         </IconButton>
                       </Tooltip>
@@ -340,6 +345,31 @@ const CategoriasTab = () => {
               CSV
             </Button>
           </Box>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(categoriaParaExcluir)}
+        onClose={() => {
+          if (!excluindo) setCategoriaParaExcluir(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Excluir categoria</DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" color="text.secondary">
+            Tem certeza que deseja excluir a categoria{" "}
+            <strong>{toTitleCase(categoriaParaExcluir?.nome)}</strong>? Essa ação não pode ser desfeita.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setCategoriaParaExcluir(null)} color="inherit" disabled={excluindo}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmarExclusao} variant="contained" color="error" disabled={excluindo}>
+            {excluindo ? "Excluindo..." : "Excluir"}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
