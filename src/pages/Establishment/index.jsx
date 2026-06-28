@@ -1,4 +1,4 @@
-import { Alert, Box, CircularProgress, Dialog, InputAdornment, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, CircularProgress, Dialog, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
@@ -39,6 +39,8 @@ const normalizeList = (data) => {
 
   return [];
 };
+
+const PAGE_SIZE = 15;
 
 const byRating = (a, b) => {
   const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
@@ -91,6 +93,12 @@ const Estabelecimento = () => {
   const [selectedEstabelecimento, setSelectedEstabelecimento] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reinicia a paginação ao mudar busca/categoria.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, selectedCategoria]);
 
   useEffect(() => {
     let isMounted = true;
@@ -258,25 +266,42 @@ const Estabelecimento = () => {
       )}
 
       {!loading && !error && filteredEstabelecimentos.length > 0 && (
-        <Box
-          sx={{
-            display: "grid",
-            gap: 4,
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              lg: "repeat(3, minmax(0, 1fr))",
-            },
-          }}
-        >
-          {filteredEstabelecimentos.map((item) => (
-            <CardEstabelecimento
-              key={item.id || item.cnpj || item.email}
-              estabelecimento={item}
-              onClick={() => setSelectedEstabelecimento(item)}
-            />
-          ))}
-        </Box>
+        <>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 4,
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                lg: "repeat(3, minmax(0, 1fr))",
+              },
+            }}
+          >
+            {filteredEstabelecimentos.slice(0, visibleCount).map((item) => (
+              <CardEstabelecimento
+                key={item.id || item.cnpj || item.email}
+                estabelecimento={item}
+                onClick={() => setSelectedEstabelecimento(item)}
+              />
+            ))}
+          </Box>
+
+          {filteredEstabelecimentos.length > visibleCount && (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, mt: 4 }}>
+              <Typography variant="body2" color="text.secondary">
+                Mostrando {Math.min(visibleCount, filteredEstabelecimentos.length)} de {filteredEstabelecimentos.length} estabelecimentos
+              </Typography>
+              <Button
+                variant="outlined"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                sx={{ borderRadius: 3, px: 4, py: 1.1, fontWeight: 800 }}
+              >
+                Ver mais
+              </Button>
+            </Box>
+          )}
+        </>
       )}
 
       <Dialog
