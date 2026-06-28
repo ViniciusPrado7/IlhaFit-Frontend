@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import "./styles/App.css";
 import AppLayout from "./components/Layout";
+import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home/index.jsx";
 import Estabelecimento from "./pages/Establishment/index.jsx";
 import ConfiguracaoEstabelecimento from "./pages/Establishment/Settings/index.jsx";
@@ -39,6 +40,7 @@ function App() {
 
   return (
     <AppLayout>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/estabelecimento" element={<Estabelecimento />} />

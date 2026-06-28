@@ -1,4 +1,4 @@
-import { Alert, Box, CircularProgress, InputAdornment, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, CircularProgress, InputAdornment, Paper, TextField, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaSearch } from "react-icons/fa";
@@ -20,6 +20,8 @@ const normalizeList = (data) => {
   if (Array.isArray(data?.data)) return data.data;
   return [];
 };
+
+const PAGE_SIZE = 20;
 
 const byRating = (a, b) => {
   const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
@@ -74,6 +76,12 @@ const Profissional = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reinicia a paginação ao mudar busca/categoria.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchTerm, selectedCategoria]);
 
   const handleProfissionalUpdate = useCallback((updated) => {
     setProfissionais(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
@@ -224,22 +232,39 @@ const Profissional = () => {
       )}
 
       {!loading && !error && filteredProfissionais.length > 0 && (
-        <Box
-          sx={{
-            display: "grid",
-            gap: 4,
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              md: "repeat(3, 1fr)",
-              lg: "repeat(4, 1fr)",
-            },
-          }}
-        >
-          {filteredProfissionais.map((item) => (
-            <CardProfissional key={item.id} profissional={item} onProfissionalUpdate={handleProfissionalUpdate} />
-          ))}
-        </Box>
+        <>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 4,
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)",
+                lg: "repeat(4, 1fr)",
+              },
+            }}
+          >
+            {filteredProfissionais.slice(0, visibleCount).map((item) => (
+              <CardProfissional key={item.id} profissional={item} onProfissionalUpdate={handleProfissionalUpdate} />
+            ))}
+          </Box>
+
+          {filteredProfissionais.length > visibleCount && (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, mt: 4 }}>
+              <Typography variant="body2" color="text.secondary">
+                Mostrando {Math.min(visibleCount, filteredProfissionais.length)} de {filteredProfissionais.length} profissionais
+              </Typography>
+              <Button
+                variant="outlined"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                sx={{ borderRadius: 3, px: 4, py: 1.1, fontWeight: 800 }}
+              >
+                Ver mais
+              </Button>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );

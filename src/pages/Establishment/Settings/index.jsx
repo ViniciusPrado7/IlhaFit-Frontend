@@ -26,6 +26,7 @@ import { CategoriaSolicitacoesSection } from "../../../components/CategoryReques
 const DIAS_SEMANA = ["SEGUNDA", "TERCA", "QUARTA", "QUINTA", "SEXTA", "SABADO", "DOMINGO"];
 const PERIODOS = ["MANHA", "TARDE", "NOITE"];
 const MAX_FOTOS = 6;
+const ATIVIDADES_POR_PAGINA = 5;
 const ESTADOS_BRASIL = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
   "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC",
@@ -50,7 +51,6 @@ const formInicial = {
 const gradeInicial = { id: null, categoriaId: null, categoriaNome: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
 
 const onlyDigits = (value = "") => value.replace(/\D/g, "");
-const normalizeActivityKey = (value = "") => String(value).trim().toLowerCase();
 const apenasTexto = (value = "") => value.replace(/[^A-Za-zÀ-ÿ\s]/g, "");
 const textoComNumero = (value = "") => value.replace(/[^A-Za-zÀ-ÿ0-9\s]/g, "");
 const contemApenasTexto = (value = "") => /^[A-Za-zÀ-ÿ\s]+$/.test(value.trim());
@@ -152,6 +152,7 @@ const ConfiguracaoEstabelecimento = () => {
   const [deleteText, setDeleteText] = useState("");
   const [isEditingDados, setIsEditingDados] = useState(false);
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
+  const [atividadesVisiveis, setAtividadesVisiveis] = useState(ATIVIDADES_POR_PAGINA);
   const [isEditingGaleria, setIsEditingGaleria] = useState(false);
   const [savedFotosUrl, setSavedFotosUrl] = useState([]);
   const [savedDados, setSavedDados] = useState({ formData: formInicial, gradeAtividades: [] });
@@ -698,6 +699,7 @@ const ConfiguracaoEstabelecimento = () => {
               value={formData.estado}
               onChange={handleInputChange}
               renderValue={(selected) => selected || "Selecione o estado"}
+              MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
             >
               <MenuItem value="" disabled>
                 Selecione o estado
@@ -767,7 +769,7 @@ const ConfiguracaoEstabelecimento = () => {
         </Alert>
       )}
 
-      {gradeAtividades.map((grade, index) => (
+      {gradeAtividades.slice(0, atividadesVisiveis).map((grade, index) => (
         <Box key={`grade-${index}`} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, mb: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, mb: 2 }}>
             <Typography variant="subtitle1" fontWeight={900}>
@@ -789,6 +791,7 @@ const ConfiguracaoEstabelecimento = () => {
               )
             }
             disabled={!isEditingAtividades}
+            disabledOptions={gradeAtividades.filter((_, i) => i !== index).map((g) => g.categoriaNome).filter(Boolean)}
             error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />
@@ -801,8 +804,28 @@ const ConfiguracaoEstabelecimento = () => {
         </Box>
       ))}
 
+      {gradeAtividades.length > atividadesVisiveis && (
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, mb: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            Mostrando {Math.min(atividadesVisiveis, gradeAtividades.length)} de {gradeAtividades.length} atividades
+          </Typography>
+          <Button type="button" variant="outlined" onClick={() => setAtividadesVisiveis((c) => c + ATIVIDADES_POR_PAGINA)} sx={{ borderRadius: 2, px: 4, fontWeight: 800 }}>
+            Ver mais
+          </Button>
+        </Box>
+      )}
+
       {isEditingAtividades && (
-        <Button type="button" variant="outlined" startIcon={<FaPlus />} onClick={() => setGradeAtividades((prev) => [...prev, gradeInicial])} sx={{ borderRadius: 2, fontWeight: 800, mb: 3 }}>
+        <Button
+          type="button"
+          variant="outlined"
+          startIcon={<FaPlus />}
+          onClick={() => {
+            setGradeAtividades((prev) => [...prev, gradeInicial]);
+            setAtividadesVisiveis((c) => Math.max(c, gradeAtividades.length + 1));
+          }}
+          sx={{ borderRadius: 2, fontWeight: 800, mb: 3 }}
+        >
           Adicionar atividade
         </Button>
       )}

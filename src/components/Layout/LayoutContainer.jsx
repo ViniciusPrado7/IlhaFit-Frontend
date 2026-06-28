@@ -6,7 +6,7 @@ const LayoutContainer = ({ children }) => {
       maxWidth={false}
       sx={{
         maxWidth: "1680px",
-        px: { xs: 2, sm: 3, md: 4, xl: 5 },
+        px: { xs: 2.5, sm: 4, md: 6, lg: 8, xl: 10 },
       }}
     >
       {children}
