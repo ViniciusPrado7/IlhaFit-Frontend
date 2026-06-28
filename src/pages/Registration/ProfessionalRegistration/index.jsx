@@ -657,6 +657,7 @@ const CadastroProfissional = ({ onSuccess }) => {
                 prev.map((item, i) => i === index ? { ...item, categoriaId: id, categoriaNome: nome } : item)
               )
             }
+            disabledOptions={gradeAtividades.filter((_, i) => i !== index).map((g) => g.categoriaNome).filter(Boolean)}
             error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />

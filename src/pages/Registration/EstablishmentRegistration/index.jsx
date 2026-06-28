@@ -597,6 +597,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
               value={formData.estado}
               onChange={handleInputChange}
               displayEmpty
+              MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
               sx={{
                 bgcolor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(16, 185, 129, 0.05)",
                 borderRadius: 2,
@@ -784,6 +785,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
                 prev.map((item, i) => i === index ? { ...item, categoriaId: id, categoriaNome: nome } : item)
               )
             }
+            disabledOptions={gradeAtividades.filter((_, i) => i !== index).map((g) => g.categoriaNome).filter(Boolean)}
             error={Boolean(fieldErrors.gradeAtividades) && !grade.categoriaId}
             sx={inputStyles}
           />
