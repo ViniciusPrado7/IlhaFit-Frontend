@@ -116,43 +116,44 @@ export const ModalEstabelecimentoContent = ({ estabelecimento, onClose, closeLab
   }, [estabelecimento?.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    const initialLat = estabelecimento.endereco?.latitude || null;
-    const initialLng = estabelecimento.endereco?.longitude || null;
-
-    Promise.resolve().then(() => {
-      if (cancelled) return;
-      setFotoAtual(0);
-      setCoords({ lat: initialLat, lng: initialLng });
-      setVisibleActivitiesCount(ACTIVITIES_PAGE_SIZE);
-      setResumoAvaliacoes({
-        avaliacao: Number(estabelecimento?.avaliacao) || 0,
-        totalAvaliacoes: Number(estabelecimento?.totalAvaliacoes) || 0,
-      });
+    setFotoAtual(0);
+    setVisibleActivitiesCount(ACTIVITIES_PAGE_SIZE);
+    setResumoAvaliacoes({
+      avaliacao: Number(estabelecimento?.avaliacao) || 0,
+      totalAvaliacoes: Number(estabelecimento?.totalAvaliacoes) || 0,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estabelecimento?.id]);
 
-    if (!initialLat || !initialLng) {
-      const addr = estabelecimento.endereco;
-      if (addr && (addr.rua || addr.cep)) {
-        const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
-          .then(res => res.json())
-          .then(data => {
-            if (!cancelled && data && data.length > 0) {
-              setCoords({
-                lat: parseFloat(data[0].lat),
-                lng: parseFloat(data[0].lon)
-              });
-            }
-          })
-          .catch(err => console.warn("Erro ao geocodificar no modal:", err));
-      }
+  useEffect(() => {
+    let cancelled = false;
+    const source = estabelecimentoAtual ?? estabelecimento;
+    const addr = source?.endereco;
+    const lat = addr?.latitude || null;
+    const lng = addr?.longitude || null;
+
+    setCoords({ lat, lng });
+
+    if ((!lat || !lng) && addr && (addr.rua || addr.cep)) {
+      const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+        .then(res => res.json())
+        .then(data => {
+          if (!cancelled && data && data.length > 0) {
+            setCoords({
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon)
+            });
+          }
+        })
+        .catch(err => console.warn("Erro ao geocodificar no modal:", err));
     }
 
     return () => {
       cancelled = true;
     };
-  }, [estabelecimento?.id, estabelecimento?.endereco]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estabelecimentoAtual, estabelecimento?.id, estabelecimento?.endereco]);
 
   const displayData = estabelecimentoAtual ?? estabelecimento;
   const categorias = getCategorias(displayData);

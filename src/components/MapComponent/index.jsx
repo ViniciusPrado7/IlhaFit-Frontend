@@ -184,6 +184,13 @@ const MapComponent = ({
         }
     }, [markers, selectedId, onMarkerClick, autoFit, lat, lng, zoom, userLocation]);
 
+    useEffect(() => {
+        const map = mapInstance.current;
+        if (!map || autoFit) return;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        map.setView([lat, lng], map.getZoom(), { animate: true });
+    }, [lat, lng, autoFit]);
+
     // 3. Recompute clusters on every zoom change
     useEffect(() => {
         const map = mapInstance.current;
