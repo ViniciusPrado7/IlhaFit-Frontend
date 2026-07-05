@@ -46,6 +46,8 @@ const formInicial = {
   cidade: "",
   estado: "",
   cep: "",
+  latitude: null,
+  longitude: null,
 };
 
 const gradeInicial = { id: null, categoriaId: null, categoriaNome: "", exclusivoMulheres: false, diasSemana: [], periodos: [] };
@@ -75,6 +77,30 @@ const formatCnpj = (value = "") => {
 const formatCep = (value = "") => {
   const digits = onlyDigits(value).slice(0, 8);
   return digits.replace(/^(\d{5})(\d)/, "$1-$2");
+};
+
+const hasAddressFields = (address) =>
+  Boolean(
+    address.rua?.trim() &&
+    address.numero?.trim() &&
+    address.bairro?.trim() &&
+    address.cidade?.trim() &&
+    address.estado?.trim()
+  );
+
+const buildGeocodeQuery = (address) => {
+  const street = [address.rua?.trim(), address.numero?.trim()].filter(Boolean).join(", ");
+
+  return [
+    street,
+    address.bairro?.trim(),
+    address.cidade?.trim(),
+    address.estado?.trim(),
+    address.cep ? formatCep(address.cep) : "",
+    "Brasil",
+  ]
+    .filter(Boolean)
+    .join(", ");
 };
 
 const getApiError = (error) => {
@@ -114,6 +140,8 @@ const normalizeForm = (estabelecimento) => ({
   cidade: estabelecimento?.endereco?.cidade || "",
   estado: (estabelecimento?.endereco?.estado || "").toUpperCase().slice(0, 2),
   cep: onlyDigits(estabelecimento?.endereco?.cep || ""),
+  latitude: estabelecimento?.endereco?.latitude ?? null,
+  longitude: estabelecimento?.endereco?.longitude ?? null,
 });
 
 const normalizeGrade = (gradeAtividades) => {
@@ -149,6 +177,7 @@ const ConfiguracaoEstabelecimento = () => {
   const [generalError, setGeneralError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [isEditingDados, setIsEditingDados] = useState(false);
   const [isEditingAtividades, setIsEditingAtividades] = useState(false);
@@ -256,6 +285,77 @@ const ConfiguracaoEstabelecimento = () => {
 
   const fieldError = (name) => fieldErrors[name] || fieldErrors[`endereco.${name}`] || "";
 
+  const preencherEnderecoPorCep = async (cep) => {
+    const cepLimpo = onlyDigits(cep);
+
+    if (cepLimpo.length !== 8) return;
+
+    setCepLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+
+      if (!response.ok) {
+        throw new Error("Falha ao consultar o CEP.");
+      }
+
+      const data = await response.json();
+
+      if (data.erro) {
+        setFormData((prev) => ({ ...prev, rua: "", bairro: "", cidade: "", estado: "", latitude: null, longitude: null }));
+        setFieldErrors((prev) => ({ ...prev, cep: "CEP não encontrado.", "endereco.cep": "CEP não encontrado." }));
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        rua: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.localidade || "",
+        estado: (data.uf || "").toUpperCase(),
+        latitude: null,
+        longitude: null,
+      }));
+
+      setFieldErrors((prev) => ({
+        ...prev,
+        cep: "", "endereco.cep": "",
+        rua: "", "endereco.rua": "",
+        bairro: "", "endereco.bairro": "",
+        cidade: "", "endereco.cidade": "",
+        estado: "", "endereco.estado": "",
+      }));
+    } catch {
+      setFieldErrors((prev) => ({
+        ...prev,
+        cep: "Não foi possível buscar o CEP.",
+        "endereco.cep": "Não foi possível buscar o CEP.",
+      }));
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
+  const atualizarCoordenadas = async (address) => {
+    if (!hasAddressFields(address)) return { latitude: null, longitude: null };
+
+    try {
+      const query = buildGeocodeQuery(address);
+      const geoResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(query)}`
+      );
+
+      if (!geoResponse.ok) throw new Error("Falha ao buscar coordenadas.");
+
+      const geoData = await geoResponse.json();
+      if (!geoData || geoData.length === 0) return { latitude: null, longitude: null };
+
+      return { latitude: parseFloat(geoData[0].lat), longitude: parseFloat(geoData[0].lon) };
+    } catch (geoError) {
+      console.warn("Erro ao buscar coordenadas:", geoError);
+      return { latitude: null, longitude: null };
+    }
+  };
+
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     const nextValue = {
@@ -269,9 +369,21 @@ const ConfiguracaoEstabelecimento = () => {
       cidade: apenasTexto(value),
     }[name] ?? value;
 
-    setFormData((prev) => ({ ...prev, [name]: nextValue }));
+    const invalidaCoordenadas = ["rua", "numero", "bairro", "cidade", "estado", "cep"].includes(name);
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: nextValue,
+      ...(invalidaCoordenadas ? { latitude: null, longitude: null } : {}),
+    }));
     limparErro(name);
+
+    if (name === "cep" && nextValue.length === 8) {
+      preencherEnderecoPorCep(nextValue);
+    }
   };
+
+  const handleCepBlur = () => preencherEnderecoPorCep(formData.cep);
 
   const handleGradeChange = (index, name, value) => {
     setGradeAtividades((prev) =>
@@ -311,7 +423,7 @@ const ConfiguracaoEstabelecimento = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const buildPayload = (overrides = {}) => ({
+  const buildPayload = ({ endereco: enderecoOverride, ...overrides } = {}) => ({
     nomeFantasia: formData.nomeFantasia,
     razaoSocial: formData.razaoSocial,
     email: formData.email,
@@ -325,6 +437,9 @@ const ConfiguracaoEstabelecimento = () => {
       cidade: formData.cidade,
       estado: formData.estado,
       cep: formData.cep,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      ...(enderecoOverride || {}),
     },
     gradeAtividades: gradeAtividades
       .filter((item) => item.categoriaId)
@@ -434,8 +549,18 @@ const ConfiguracaoEstabelecimento = () => {
 
     setSaving(true);
     try {
-      const response = await estabelecimentoService.atualizarEstabelecimento(estabelecimentoId, buildPayload());
+      let coords = { latitude: formData.latitude, longitude: formData.longitude };
+      if (coords.latitude == null || coords.longitude == null) {
+        coords = await atualizarCoordenadas(formData);
+      }
+
+      const formDataComCoords = { ...formData, ...coords };
+      const response = await estabelecimentoService.atualizarEstabelecimento(
+        estabelecimentoId,
+        buildPayload({ endereco: coords })
+      );
       const estabelecimentoAtualizado = response.data;
+      setFormData(formDataComCoords);
       authSession.setUser({
         ...user,
         nomeFantasia: formData.nomeFantasia,
@@ -443,7 +568,7 @@ const ConfiguracaoEstabelecimento = () => {
         email: formData.email,
       });
       syncGradeFromEstabelecimento(estabelecimentoAtualizado);
-      setSavedDados((prev) => ({ ...prev, formData }));
+      setSavedDados((prev) => ({ ...prev, formData: formDataComCoords }));
       const fotosAtualizadas = Array.isArray(estabelecimentoAtualizado?.fotosUrl) ? estabelecimentoAtualizado.fotosUrl.slice(0, MAX_FOTOS) : fotosUrl;
       setFotosUrl(fotosAtualizadas);
       setSavedFotosUrl(fotosAtualizadas);
@@ -667,8 +792,21 @@ const ConfiguracaoEstabelecimento = () => {
         Endereço
       </Typography>
 
+      {label("CEP")}
+      <TextField
+        fullWidth
+        disabled={!isEditingDados}
+        name="cep"
+        value={formatCep(formData.cep)}
+        onChange={handleInputChange}
+        onBlur={handleCepBlur}
+        error={Boolean(fieldError("cep"))}
+        helperText={fieldError("cep") || (cepLoading ? "Buscando endereço..." : (isEditingDados ? "Preencha o CEP para atualizar o endereço automaticamente." : ""))}
+        sx={inputStyles}
+      />
+
       {label("Rua")}
-      <TextField fullWidth disabled={!isEditingDados} name="rua" value={formData.rua} onChange={handleInputChange} error={Boolean(fieldError("rua"))} helperText={fieldError("rua")} sx={inputStyles} />
+      <TextField fullWidth disabled name="rua" value={formData.rua} onChange={handleInputChange} error={Boolean(fieldError("rua"))} helperText={fieldError("rua") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} />
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box>
@@ -682,19 +820,19 @@ const ConfiguracaoEstabelecimento = () => {
       </Box>
 
       {label("Bairro")}
-      <TextField fullWidth disabled={!isEditingDados} name="bairro" value={formData.bairro} onChange={handleInputChange} error={Boolean(fieldError("bairro"))} helperText={fieldError("bairro")} sx={inputStyles} />
+      <TextField fullWidth disabled name="bairro" value={formData.bairro} onChange={handleInputChange} error={Boolean(fieldError("bairro"))} helperText={fieldError("bairro") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} />
 
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, gap: 2 }}>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
         <Box>
           {label("Cidade")}
-          <TextField fullWidth disabled={!isEditingDados} name="cidade" value={formData.cidade} onChange={handleInputChange} error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} />
+          <TextField fullWidth disabled name="cidade" value={formData.cidade} onChange={handleInputChange} error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} />
         </Box>
         <Box>
           {label("Estado")}
           <FormControl fullWidth error={Boolean(fieldError("estado"))} sx={inputStyles}>
             <Select
               displayEmpty
-              disabled={!isEditingDados}
+              disabled
               name="estado"
               value={formData.estado}
               onChange={handleInputChange}
@@ -716,10 +854,6 @@ const ConfiguracaoEstabelecimento = () => {
               {fieldError("estado")}
             </Typography>
           )}
-        </Box>
-        <Box>
-          {label("CEP")}
-          <TextField fullWidth disabled={!isEditingDados} name="cep" value={formatCep(formData.cep)} onChange={handleInputChange} error={Boolean(fieldError("cep"))} helperText={fieldError("cep")} sx={inputStyles} />
         </Box>
       </Box>
 

@@ -279,6 +279,10 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
         : {}),
     }));
     limparErro(name);
+
+    if (name === "cep" && nextValue.length === 8) {
+      preencherEnderecoPorCep(nextValue);
+    }
   };
 
   const handleCepBlur = () => preencherEnderecoPorCep(formData.cep);
@@ -579,15 +583,15 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
       )}
 
       {label("Rua")}
-      <TextField fullWidth name="rua" value={formData.rua} onChange={handleInputChange} placeholder="Rua A" error={Boolean(fieldError("rua"))} helperText={fieldError("rua")} sx={inputStyles} required />
+      <TextField fullWidth disabled name="rua" value={formData.rua} onChange={handleInputChange} placeholder="Preenchido pelo CEP" error={Boolean(fieldError("rua"))} helperText={fieldError("rua") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} required />
 
       {label("Bairro")}
-      <TextField fullWidth name="bairro" value={formData.bairro} onChange={handleInputChange} placeholder="Centro" error={Boolean(fieldError("bairro"))} helperText={fieldError("bairro")} sx={inputStyles} required />
+      <TextField fullWidth disabled name="bairro" value={formData.bairro} onChange={handleInputChange} placeholder="Preenchido pelo CEP" error={Boolean(fieldError("bairro"))} helperText={fieldError("bairro") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} required />
 
       <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" } }}>
         <Box sx={{ flex: 1 }}>
           {label("Cidade")}
-          <TextField fullWidth name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Florianópolis" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade")} sx={inputStyles} required />
+          <TextField fullWidth disabled name="cidade" value={formData.cidade} onChange={handleInputChange} placeholder="Preenchido pelo CEP" error={Boolean(fieldError("cidade"))} helperText={fieldError("cidade") || "Preenchido automaticamente pelo CEP."} sx={inputStyles} required />
         </Box>
         <Box sx={{ flex: 1 }}>
           {label("Estado")}
@@ -596,6 +600,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
               name="estado"
               value={formData.estado}
               onChange={handleInputChange}
+              disabled
               displayEmpty
               MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
               sx={{
