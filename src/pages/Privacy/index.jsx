@@ -13,16 +13,16 @@ const Privacidade = () => {
           PRIVACIDADE
         </Typography>
         <Typography variant="h3" fontWeight={900} sx={{ mt: 1, mb: 1.5 }}>
-          Politica de Privacidade da IlhaFit
+          Política de Privacidade da IlhaFit
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.85 }}>
-          Esta versao foi estruturada para refletir os recursos atuais do sistema e os parametros gerais da LGPD no Brasil.
+          Esta versão foi estruturada para refletir os recursos atuais do sistema e os parâmetros gerais da LGPD no Brasil.
         </Typography>
       </Box>
 
       <Box sx={{ maxWidth: 960, mx: "auto", mb: 3 }}>
         <Alert severity="warning" sx={{ borderRadius: 2 }}>
-          Antes da publicacao definitiva, revise este texto com os dados oficiais da operacao e com orientacao juridica adequada.
+          Antes da publicação definitiva, revise este texto com os dados oficiais da operação e com orientação jurídica adequada.
         </Alert>
       </Box>
 

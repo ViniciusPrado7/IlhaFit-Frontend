@@ -37,7 +37,7 @@ const PrivacyPolicyConsent = ({ checked, onChange, error }) => {
             <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.65 }}>
               Li e aceito a{" "}
               <Link component="button" type="button" onClick={openModal} sx={{ fontWeight: 800 }}>
-                Politica de Privacidade
+                Política de Privacidade
               </Link>
               .
             </Typography>
@@ -48,7 +48,7 @@ const PrivacyPolicyConsent = ({ checked, onChange, error }) => {
       </FormControl>
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontWeight: 900 }}>Politica de Privacidade da IlhaFit</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 900 }}>Política de Privacidade da IlhaFit</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: "grid", gap: 2.25 }}>
             {politicaPrivacidadeSections.map((section) => (
