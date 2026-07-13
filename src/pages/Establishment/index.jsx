@@ -5,40 +5,8 @@ import { FaMapMarkerAlt, FaSearch } from "react-icons/fa";
 import CardEstabelecimento from "../../components/Card/EstablishmentCard";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/EstablishmentModal";
-import { avaliacaoService } from "../../service/ReviewService";
-import { estabelecimentoService } from "../../service/EstablishmentService";
-import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/review";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { toTitleCase } from "../../utils/titleCase";
-
-const getErrorMessage = (error) => {
-  const data = error?.response?.data;
-
-  if (typeof data === "string") {
-    return data;
-  }
-
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    return Object.values(data).filter(Boolean).join(" ");
-  }
-
-  return error?.message || "Não foi possível carregar os estabelecimentos.";
-};
-
-const normalizeList = (data) => {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.content)) {
-    return data.content;
-  }
-
-  if (Array.isArray(data?.data)) {
-    return data.data;
-  }
-
-  return [];
-};
 
 const PAGE_SIZE = 15;
 
@@ -87,52 +55,21 @@ const estabelecimentoMatchesSearch = (estabelecimento, searchTerm) => {
 const Estabelecimento = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const [estabelecimentos, setEstabelecimentos] = useState([]);
+  const {
+    estabelecimentos,
+    loadingEstabelecimentos: loading,
+    errorEstabelecimentos: error,
+    ensureEstabelecimentos,
+    updateEstabelecimento,
+  } = useCatalog();
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEstabelecimento, setSelectedEstabelecimento] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Reinicia a paginação ao mudar busca/categoria.
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, selectedCategoria]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const carregarEstabelecimentos = async () => {
-      try {
-        const estabelecimentosResponse = await estabelecimentoService.listarEstabelecimentos();
-        const estabelecimentosNormalizados = normalizeList(estabelecimentosResponse.data);
-        const estabelecimentosComMedia = await enriquecerListaEstabelecimentosComAvaliacoes(
-          estabelecimentosNormalizados,
-          avaliacaoService.listarPorEstabelecimento
-        );
-
-        if (isMounted) {
-          setEstabelecimentos(estabelecimentosComMedia);
-          setError("");
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    carregarEstabelecimentos();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    ensureEstabelecimentos();
+  }, [ensureEstabelecimentos]);
 
   const filteredEstabelecimentos = useMemo(
     () =>
@@ -148,9 +85,7 @@ const Estabelecimento = () => {
   );
 
   const handleEstabelecimentoChange = (updatedEstabelecimento) => {
-    setEstabelecimentos((current) =>
-      current.map((item) => (item.id === updatedEstabelecimento.id ? { ...item, ...updatedEstabelecimento } : item))
-    );
+    updateEstabelecimento(updatedEstabelecimento);
     setSelectedEstabelecimento(updatedEstabelecimento);
   };
 
@@ -193,7 +128,10 @@ const Estabelecimento = () => {
               label="Buscar estabelecimento"
               placeholder="Ex.: academia, centro, musculação, bairro..."
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -212,7 +150,10 @@ const Estabelecimento = () => {
             <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
+              onChange={(cat) => {
+                setSelectedCategoria(cat?.nome ?? "Todas");
+                setVisibleCount(PAGE_SIZE);
+              }}
               allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {

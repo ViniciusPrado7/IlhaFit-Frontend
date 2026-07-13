@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import NavBar from "./components/NavBar/index.jsx";
 import { ToastContainer } from "react-toastify";
 import ThemeModeProvider from "./contexts/ThemeModeProvider.jsx";
+import CatalogProvider from "./contexts/CatalogProvider.jsx";
 
 
 createRoot(document.getElementById("root")).render(
@@ -12,11 +13,13 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
      <div className="app-container">
        <ThemeModeProvider>
+        <CatalogProvider>
       <NavBar />
         <main>
           <App />
         </main>
         <ToastContainer position='top-center'/>
+        </CatalogProvider>
         </ThemeModeProvider>
       </div>
     </BrowserRouter>

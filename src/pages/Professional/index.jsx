@@ -4,22 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FaSearch } from "react-icons/fa";
 import CardProfissional from "../../components/Card/ProfessionalCard";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
-import { profissionalService } from "../../service/ProfessionalService";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { toTitleCase } from "../../utils/titleCase";
-
-const getErrorMessage = (error) => {
-  const data = error?.response?.data;
-  if (typeof data === "string") return data;
-  if (data && typeof data === "object") return Object.values(data).filter(Boolean).join(" ");
-  return error?.message || "Não foi possível carregar os profissionais.";
-};
-
-const normalizeList = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.content)) return data.content;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
 
 const PAGE_SIZE = 20;
 
@@ -71,49 +57,24 @@ const profissionalMatchesSearch = (profissional, searchTerm) => {
 const Profissional = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const [profissionais, setProfissionais] = useState([]);
+  const {
+    profissionais,
+    loadingProfissionais: loading,
+    errorProfissionais: error,
+    ensureProfissionais,
+    updateProfissional,
+  } = useCatalog();
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Reinicia a paginação ao mudar busca/categoria.
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchTerm, selectedCategoria]);
-
   const handleProfissionalUpdate = useCallback((updated) => {
-    setProfissionais(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
-  }, []);
+    updateProfissional(updated);
+  }, [updateProfissional]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const carregarProfissionais = async () => {
-      try {
-        const profissionaisResponse = await profissionalService.listarProfissionais();
-        if (mounted) {
-          setProfissionais(normalizeList(profissionaisResponse.data));
-          setError("");
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(getErrorMessage(err));
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    carregarProfissionais();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    ensureProfissionais();
+  }, [ensureProfissionais]);
 
   const filteredProfissionais = useMemo(
     () =>
@@ -163,7 +124,10 @@ const Profissional = () => {
               label="Buscar profissional"
               placeholder="Ex.: personal, fisioterapeuta, pilates, norte..."
               value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
+              onChange={(event) => {
+                setSearchTerm(event.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -182,7 +146,10 @@ const Profissional = () => {
             <CategoriaSelectField
               label="Categoria"
               value={selectedCategoria}
-              onChange={(cat) => setSelectedCategoria(cat?.nome ?? "Todas")}
+              onChange={(cat) => {
+                setSelectedCategoria(cat?.nome ?? "Todas");
+                setVisibleCount(PAGE_SIZE);
+              }}
               allOptionLabel="Todas"
               sx={{
                 "& .MuiOutlinedInput-root": {

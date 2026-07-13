@@ -34,6 +34,7 @@ import {
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { estabelecimentoService } from "../../service";
+import { useCatalog } from "../../contexts/CatalogContext";
 import MapComponent from "../../components/MapComponent";
 import ModalDetalhesEstabelecimento from "../../components/EstablishmentDetailsModal";
 import { toTitleCase } from "../../utils/titleCase";
@@ -103,8 +104,9 @@ const Mapa = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
-    const [loading, setLoading] = useState(true);
-    const [dbEstablishments, setDbEstablishments] = useState([]);
+    const { estabelecimentos, loadingEstabelecimentos, ensureEstabelecimentos } = useCatalog();
+    // Coordenadas obtidas via geocoding para estabelecimentos sem lat/lng cadastrados.
+    const [geocodedCoords, setGeocodedCoords] = useState({});
     const [selectedId, setSelectedId] = useState(null);
     const [search, setSearch] = useState("");
     const [selectedCategories, setSelectedCategories] = useState([]);
@@ -157,6 +159,7 @@ const Mapa = () => {
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- dispara a API assincrona de geolocalizacao do navegador, nao deriva estado de props/state
         requestUserLocation();
     }, [requestUserLocation]);
 
@@ -294,91 +297,82 @@ const Mapa = () => {
     }, [locationStatus, locationError, requestUserLocation, theme, userLocation]);
 
     useEffect(() => {
+        ensureEstabelecimentos();
+    }, [ensureEstabelecimentos]);
+
+    const dbEstablishments = useMemo(
+        () =>
+            estabelecimentos.map((est) => {
+                const override = geocodedCoords[est.id];
+                const lat = override?.lat ?? est.endereco?.latitude ?? null;
+                const lng = override?.lng ?? est.endereco?.longitude ?? null;
+                const gradeAtividades = est.gradeAtividades || [];
+                const atividades = gradeAtividades.map((g) => g.categoriaNome).filter(Boolean);
+                const atividadesTC = atividades.map(toTitleCase);
+
+                return {
+                    id: est.id,
+                    nome: toTitleCase(est.nomeFantasia || est.nome),
+                    categoria: atividadesTC[0] || "Outros",
+                    lat,
+                    lng,
+                    avaliacao: est.avaliacao || 0,
+                    imagem:
+                        est.fotosUrl?.[0] ||
+                        "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=60",
+                    telefone: est.telefone,
+                    aberto: true,
+                    atividades: atividadesTC,
+                    periodosLabel: formatPeriods(gradeAtividades),
+                    bairro: est.endereco?.bairro || "",
+                };
+            }),
+        [estabelecimentos, geocodedCoords]
+    );
+
+    // Geocoding roda em segundo plano, um estabelecimento por vez (rate limit do Nominatim),
+    // so para quem ainda nao tem lat/lng cadastrados nem geocodificados nesta sessao.
+    useEffect(() => {
         let cancelled = false;
 
-        const fetchAll = async () => {
-            let rawData = [];
-            let mapped = [];
+        const pendentes = estabelecimentos.filter((est) => {
+            const temCoordOriginal = Number.isFinite(est.endereco?.latitude) && Number.isFinite(est.endereco?.longitude);
+            return !temCoordOriginal && !geocodedCoords[est.id] && est.endereco;
+        });
+
+        if (pendentes.length === 0) {
+            return undefined;
+        }
+
+        const geocodeProximo = async () => {
+            const est = pendentes[0];
+            const addr = est.endereco;
+            const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
 
             try {
-                rawData = await estabelecimentoService.getAll();
-                if (cancelled) return;
+                const geoRes = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
+                );
+                const geoData = await geoRes.json();
 
-                mapped = rawData.map((est) => {
-                    const lat = est.endereco?.latitude ?? null;
-                    const lng = est.endereco?.longitude ?? null;
-                    const gradeAtividades = est.gradeAtividades || [];
-                    const atividades = (est.gradeAtividades || [])
-                        .map((g) => g.categoriaNome)
-                        .filter(Boolean);
+                if (!cancelled && geoData && geoData.length > 0) {
+                    const lat = parseFloat(geoData[0].lat);
+                    const lng = parseFloat(geoData[0].lon);
+                    setGeocodedCoords((prev) => ({ ...prev, [est.id]: { lat, lng } }));
+                }
 
-                    const atividadesTC = atividades.map(toTitleCase);
-
-                    return {
-                        id: est.id,
-                        nome: toTitleCase(est.nomeFantasia || est.nome),
-                        categoria: atividadesTC[0] || "Outros",
-                        lat,
-                        lng,
-                        avaliacao: est.avaliacao || 0,
-                        imagem:
-                            est.fotosUrl?.[0] ||
-                            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=500&auto=format&fit=crop&q=60",
-                        telefone: est.telefone,
-                        aberto: true,
-                        atividades: atividadesTC,
-                        periodosLabel: formatPeriods(gradeAtividades),
-                        bairro: est.endereco?.bairro || "",
-                    };
-                });
-
-                setDbEstablishments(mapped);
-            } catch (err) {
-                console.error("Erro ao buscar dados do mapa:", err);
-            } finally {
-                if (!cancelled) setLoading(false); // map visible before geocoding
-            }
-
-            // Geocoding runs after the map is already interactive
-            const withoutCoords = mapped.filter(
-                (e) => !Number.isFinite(e.lat) || !Number.isFinite(e.lng)
-            );
-
-            for (const est of withoutCoords) {
-                if (cancelled) break;
-                const original = rawData.find((d) => d.id === est.id);
-                if (!original?.endereco) continue;
-
-                const addr = original.endereco;
-                const query = `${addr.rua || ""}, ${addr.numero || ""}, ${addr.bairro || ""}, ${addr.cidade || ""}, ${addr.estado || ""}, Brasil`;
-
-                try {
-                    const geoRes = await fetch(
-                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`
-                    );
-                    const geoData = await geoRes.json();
-
-                    if (!cancelled && geoData && geoData.length > 0) {
-                        const lat = parseFloat(geoData[0].lat);
-                        const lng = parseFloat(geoData[0].lon);
-
-                        setDbEstablishments((prev) =>
-                            prev.map((p) =>
-                                p.id === est.id ? { ...p, lat, lng } : p
-                            )
-                        );
-                    }
-
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                } catch {
-                    console.warn("Falha ao geocodificar estabelecimento:", est.nome);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+            } catch {
+                console.warn("Falha ao geocodificar estabelecimento:", est.nomeFantasia || est.nome);
+                if (!cancelled) {
+                    setGeocodedCoords((prev) => ({ ...prev, [est.id]: { lat: null, lng: null } }));
                 }
             }
         };
 
-        fetchAll();
+        geocodeProximo();
         return () => { cancelled = true; };
-    }, []);
+    }, [estabelecimentos, geocodedCoords]);
 
     const referenceLocation = userLocation || FALLBACK_COORDS;
 
@@ -773,7 +767,7 @@ const Mapa = () => {
                             selectedId={selectedId}
                             userLocation={userLocation}
                         />
-                        {loading && (
+                        {loadingEstabelecimentos && (
                             <Box
                                 sx={{
                                     position: "absolute",
@@ -1129,13 +1123,13 @@ const Mapa = () => {
                                     </Box>
                                 ))}
 
-                                {loading && (
+                                {loadingEstabelecimentos && (
                                     <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
                                         <CircularProgress size={24} color="primary" />
                                     </Box>
                                 )}
 
-                                {!loading && filteredEstablishments.length === 0 && (
+                                {!loadingEstabelecimentos && filteredEstablishments.length === 0 && (
                                     <Box sx={{ p: 4, textAlign: "center" }}>
                                         <Typography
                                             variant="body2"
