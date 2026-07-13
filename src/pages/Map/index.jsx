@@ -101,8 +101,8 @@ const formatPeriods = (gradeAtividades = []) => {
 const Mapa = () => {
     const theme = useTheme();
     const isDark = theme.palette.mode === "dark";
-    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-    const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
+
+    const isStacked = useMediaQuery(theme.breakpoints.down("lg"));
 
     const { estabelecimentos, loadingEstabelecimentos, ensureEstabelecimentos } = useCatalog();
     // Coordenadas obtidas via geocoding para estabelecimentos sem lat/lng cadastrados.
@@ -183,7 +183,8 @@ const Mapa = () => {
             requesting:
                 "Permita o acesso à localização no navegador para exibirmos os locais próximos de você.",
             pending:
-                "Ao abrir o mapa, o sistema pode pedir acesso à sua localização para mostrar opções próximas.",
+                "Ao abrir o mapa, o sistema pode pedir acess    // Mobile e tablet empilham (mapa em cima, lista embaixo); so desktop (>=lg) fica lado a lado.
+    // Precisa bater com o breakpoint que da altura explicita ao container (abaixo).o à sua localização para mostrar opções próximas.",
             unsupported: locationError,
             denied: locationError,
             error: locationError,
@@ -539,7 +540,9 @@ const Mapa = () => {
                             ),
                         }}
                         sx={{
-                            minWidth: 300,
+                            flex: "1 1 240px",
+                            minWidth: 0,
+                            maxWidth: { xs: "100%", sm: 360 },
                             "& .MuiOutlinedInput-root": {
                                 borderRadius: 3,
                                 bgcolor: "background.paper",
@@ -557,7 +560,7 @@ const Mapa = () => {
                         }}
                     >
                         {allCategories.length > VISIBLE_CHIPS ? (
-                            <FormControl sx={{ minWidth: 220 }} size="small">
+                            <FormControl sx={{ flex: "1 1 200px", minWidth: 0, maxWidth: 260 }} size="small">
                                 {selectedCategories.length === 0 && (
                                     <InputLabel id="categoria-select-label">
                                         Categorias
@@ -733,13 +736,13 @@ const Mapa = () => {
                         gap: 3,
                         flex: 1,
                         minHeight: 0,
-                        flexDirection: isMobile ? "column" : "row",
+                        flexDirection: isStacked ? "column" : "row",
                         alignItems: "stretch",
                     }}
                 >
                     <Box
                         sx={{
-                            flex: isMobile ? "1 1 auto" : "1.2 1 0%",
+                            flex: isStacked ? "1 1 auto" : "1.2 1 0%",
                             bgcolor: "background.paper",
                             borderRadius: 6,
                             overflow: "hidden",
@@ -747,8 +750,8 @@ const Mapa = () => {
                             border: "1px solid",
                             borderColor: "divider",
                             boxShadow: "inset 0 2px 10px rgba(0,0,0,0.05)",
-                            minHeight: isMobile ? 440 : 0,
-                            height: isMobile ? 440 : "100%",
+                            minHeight: isStacked ? 360 : 0,
+                            height: isStacked ? "clamp(360px, 55vh, 560px)" : "100%",
                             flexShrink: 0,
                         }}
                     >
@@ -798,11 +801,11 @@ const Mapa = () => {
 
                     <Box
                         sx={{
-                            width: isMobile ? "100%" : isTablet ? 400 : 520,
+                            width: isStacked ? "100%" : "clamp(360px, 30vw, 520px)",
                             display: "flex",
                             flexDirection: "column",
                             gap: 1.5,
-                            height: isMobile ? "auto" : "100%",
+                            height: isStacked ? "auto" : "100%",
                             minHeight: 0,
                             p: { xs: 1.25, md: 1.5 },
                             borderRadius: 5,
