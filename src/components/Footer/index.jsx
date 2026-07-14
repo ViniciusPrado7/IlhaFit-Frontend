@@ -185,9 +185,6 @@ const Footer = () => {
                 Falar com especialista
               </Button>
 
-              <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
-                Canal de contato ilustrativo para atendimento e orientação comercial. Ajuste depois para o número oficial do WhatsApp.
-              </Typography>
             </Box>
           </Box>
         </Box>
