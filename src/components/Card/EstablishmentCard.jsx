@@ -28,7 +28,7 @@ const getLocalizacao = (estabelecimento) => {
   const endereco = estabelecimento.endereco;
   if (!endereco) return estabelecimento.telefone || "Localização não informada";
 
-  return [endereco.bairro, endereco.cidade].filter(Boolean).join(", ") || endereco.rua || "Localização não informada";
+  return [endereco.bairro, endereco.cidade].filter(Boolean).map(toTitleCase).join(", ") || toTitleCase(endereco.rua) || "Localização não informada";
 };
 
 const getCategorias = (estabelecimento) => {

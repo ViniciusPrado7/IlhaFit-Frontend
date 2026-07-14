@@ -47,7 +47,7 @@ const isExclusivoMulheres = (profissional) => {
     return false;
 };
 
-const getRegiao = (profissional) => profissional.regiao || profissional.zona || "";
+const getRegiao = (profissional) => toTitleCase(profissional.regiao || profissional.zona || "");
 
 const CardProfissional = ({ profissional, onVisualizar, onProfissionalUpdate }) => {
     const theme = useTheme();
