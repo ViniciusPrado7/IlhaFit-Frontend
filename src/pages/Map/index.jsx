@@ -63,7 +63,7 @@ const formatDistance = (distance) =>
 const formatPhone = (value) => {
     const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
 
-    if (!digits) return "Nao informado";
+    if (!digits) return "Não informado";
     if (digits.length <= 2) return digits;
     if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     if (digits.length <= 10) {
@@ -94,7 +94,7 @@ const formatPeriods = (gradeAtividades = []) => {
         .filter(Boolean)
         .sort((a, b) => PERIOD_ORDER.indexOf(a) - PERIOD_ORDER.indexOf(b));
 
-    if (uniquePeriods.length === 0) return "Periodos nao informados";
+    if (uniquePeriods.length === 0) return "Períodos não informados";
     return uniquePeriods.map(formatPeriodLabel).join(" e ");
 };
 
@@ -495,7 +495,7 @@ const Mapa = () => {
                             Mapa de Academias
                         </Typography>
                         <Typography color="text.secondary">
-                            Encontre os melhores lugares para treinar perto de voce
+                            Encontre os melhores lugares para treinar perto de você
                         </Typography>
                     </Box>
                     <Button
@@ -909,8 +909,8 @@ const Mapa = () => {
                                             />
                                             <Typography variant="caption">
                                                 {selectedEstablishment.distancia
-                                                    ? `${selectedEstablishment.distancia}km de voce`
-                                                    : "Distancia indisponivel"}
+                                                    ? `${selectedEstablishment.distancia}km de você`
+                                                    : "Distância indisponível"}
                                             </Typography>
                                         </Box>
                                         <Box

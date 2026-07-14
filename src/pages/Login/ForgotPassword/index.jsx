@@ -13,7 +13,7 @@ import { FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../../service/AuthService";
 
-const RECOVERY_MESSAGE = "Enviamos um codigo de 6 digitos para seu email.";
+const RECOVERY_MESSAGE = "Enviamos um código de 6 dígitos para seu email.";
 
 const onlyDigits = (value) => value.replace(/\D/g, "").slice(0, 6);
 
@@ -106,16 +106,16 @@ const EsqueciSenha = () => {
 
     const emailLimpo = email.trim();
     if (!emailLimpo) {
-      setErrorMessage("Email obrigatorio.");
+      setErrorMessage("Email obrigatório.");
       return;
     }
 
     setLoading(true);
     try {
       await authService.reenviarCodigoRecuperacao(emailLimpo);
-      setSuccessMessage("Enviamos um novo codigo de 6 digitos para seu email.");
+      setSuccessMessage("Enviamos um novo código de 6 dígitos para seu email.");
     } catch (error) {
-      console.error("Erro ao reenviar codigo de recuperacao:", error);
+      console.error("Erro ao reenviar código de recuperação:", error);
       setErrorMessage(getApiError(error));
     } finally {
       setLoading(false);
@@ -263,7 +263,7 @@ const EsqueciSenha = () => {
                   textTransform: "none",
                 }}
               >
-                {loading ? "Reenviando..." : "Reenviar codigo"}
+                {loading ? "Reenviando..." : "Reenviar código"}
               </Button>
             </>
           ) : (

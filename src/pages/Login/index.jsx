@@ -31,7 +31,7 @@ const getApiError = (error) => {
   if (status === 401 || status === 403) {
     return {
       fieldErrors: {},
-      generalError: status === 401 ? "Email ou senha invalidos." : "Sessao invalida ou sem permissao. Faca login novamente."
+      generalError: status === 401 ? "Email ou senha inválidos." : "Sessão inválida ou sem permissão. Faça login novamente."
     };
   }
 
@@ -70,7 +70,7 @@ const getErrorMessage = (error) => {
 
 const requireTokenLogin = (data) => {
   if (!data?.token) {
-    throw new Error("Nao foi possivel iniciar a sessao. Tente novamente.");
+    throw new Error("Não foi possível iniciar a sessão. Tente novamente.");
   }
 
   return data;
@@ -191,7 +191,7 @@ const Login = () => {
     setErroConfirmacao("");
 
     if (!/^\d{6}$/.test(codigoConfirmacao)) {
-      setErroConfirmacao("O codigo deve conter exatamente 6 digitos.");
+      setErroConfirmacao("O código deve conter exatamente 6 dígitos.");
       return;
     }
 
@@ -201,7 +201,7 @@ const Login = () => {
       setModalAberta(false);
       finalizarLogin(data, emailConfirmacao);
     } catch (error) {
-      setErroConfirmacao(getErrorMessage(error) || "Codigo invalido ou expirado.");
+      setErroConfirmacao(getErrorMessage(error) || "Código inválido ou expirado.");
     } finally {
       setConfirmandoCodigo(false);
     }
@@ -212,9 +212,9 @@ const Login = () => {
     setReenviandoCodigo(true);
     try {
       const data = await authService.resendEmailConfirmation(emailConfirmacao);
-      toast.success(data?.mensagem || "Novo codigo enviado com sucesso.");
+      toast.success(data?.mensagem || "Novo código enviado com sucesso.");
     } catch (error) {
-      setErroConfirmacao(getErrorMessage(error) || "Nao foi possivel reenviar o codigo.");
+      setErroConfirmacao(getErrorMessage(error) || "Não foi possível reenviar o código.");
     } finally {
       setReenviandoCodigo(false);
     }
@@ -350,7 +350,7 @@ const Login = () => {
 
             <Box sx={{ mt: 4, textAlign: "center" }}>
               <Typography variant="body2" color="text.secondary">
-                Nao tem conta?{" "}
+                Não tem conta?{" "}
                 <Typography
                   component="span"
                   variant="body2"
@@ -408,10 +408,10 @@ const Login = () => {
             }}
           >
             <Typography variant="body1" color="text.primary" fontWeight={600} sx={{ mb: 0.75 }}>
-              Codigo enviado para o seu email
+              Código enviado para o seu email
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
-              Enviamos um codigo de 6 digitos para <strong>{emailConfirmacao}</strong>
+              Enviamos um código de 6 dígitos para <strong>{emailConfirmacao}</strong>
             </Typography>
           </Box>
 
@@ -427,7 +427,7 @@ const Login = () => {
               inputMode: "numeric",
               pattern: "[0-9]*",
               maxLength: 6,
-              "aria-label": "Codigo de confirmacao de 6 digitos",
+              "aria-label": "Código de confirmação de 6 dígitos",
             }}
             sx={{
               "& .MuiOutlinedInput-root": {

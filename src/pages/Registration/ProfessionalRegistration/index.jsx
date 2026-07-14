@@ -276,8 +276,8 @@ const CadastroProfissional = ({ onSuccess }) => {
     const possuiDuplicadas = new Set(categoriasPreenchidas).size !== categoriasPreenchidas.length;
 
     if (possuiDuplicadas) {
-      errors.gradeAtividades = "Voce nao pode cadastrar a mesma categoria mais de uma vez na grade de atividades.";
-      toastMessages.push("Voce nao pode cadastrar a mesma categoria mais de uma vez na grade de atividades.");
+      errors.gradeAtividades = "Você não pode cadastrar a mesma categoria mais de uma vez na grade de atividades.";
+      toastMessages.push("Você não pode cadastrar a mesma categoria mais de uma vez na grade de atividades.");
     }
 
     const invalida = gradeAtividades.some((item) => (

@@ -341,14 +341,14 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
     if (!formData.email.trim()) errors.email = "Informe o email";
     if (!formData.telefone.trim()) errors.telefone = "Informe o telefone";
     if (!formData.cnpj.trim()) errors.cnpj = "Informe o CNPJ";
-    else if (!cnpjValido(formData.cnpj)) errors.cnpj = "CNPJ deve conter os 14 numeros";
+    else if (!cnpjValido(formData.cnpj)) errors.cnpj = "CNPJ deve conter os 14 números";
     if (!formData.rua.trim()) errors.rua = "Informe a rua";
     if (!formData.numero.trim()) errors.numero = "Informe o número";
     if (!formData.bairro.trim()) errors.bairro = "Informe o bairro";
     if (!formData.cidade.trim()) errors.cidade = "Informe a cidade";
     else if (!contemApenasTexto(formData.cidade)) errors.cidade = "Cidade deve conter apenas letras";
     if (!formData.estado.trim()) errors.estado = "Informe o estado";
-    else if (!ESTADOS_BRASIL.includes(formData.estado)) errors.estado = "Selecione um estado valido";
+    else if (!ESTADOS_BRASIL.includes(formData.estado)) errors.estado = "Selecione um estado válido";
     if (!formData.cep.trim()) errors.cep = "Informe o CEP";
     if (!formData.fotosUrl.length) errors.fotosUrl = "Selecione pelo menos uma imagem";
     if (formData.fotosUrl.length > MAX_FOTOS) errors.fotosUrl = `Selecione no máximo ${MAX_FOTOS} imagens`;
@@ -365,7 +365,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
     if (!privacyAccepted) {
       setFieldErrors((prev) => ({
         ...prev,
-        privacyAccepted: "Voce precisa aceitar a Politica de Privacidade para continuar.",
+        privacyAccepted: "Você precisa aceitar a Política de Privacidade para continuar.",
       }));
       return false;
     }
@@ -378,7 +378,7 @@ const CadastroEstabelecimento = ({ onSuccess }) => {
     if (possuiDuplicadas) {
       setFieldErrors((prev) => ({
         ...prev,
-        gradeAtividades: "Voce nao pode cadastrar a mesma categoria mais de uma vez na grade de atividades.",
+        gradeAtividades: "Você não pode cadastrar a mesma categoria mais de uma vez na grade de atividades.",
       }));
       return false;
     }

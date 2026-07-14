@@ -93,7 +93,7 @@ const Cadastro = () => {
         }
 
         if (!privacyAccepted) {
-            setPrivacyError("Voce precisa aceitar a Politica de Privacidade para continuar.");
+            setPrivacyError("Você precisa aceitar a Política de Privacidade para continuar.");
             return;
         }
 
