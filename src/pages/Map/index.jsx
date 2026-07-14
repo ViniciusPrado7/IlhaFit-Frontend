@@ -183,8 +183,7 @@ const Mapa = () => {
             requesting:
                 "Permita o acesso à localização no navegador para exibirmos os locais próximos de você.",
             pending:
-                "Ao abrir o mapa, o sistema pode pedir acess    // Mobile e tablet empilham (mapa em cima, lista embaixo); so desktop (>=lg) fica lado a lado.
-    // Precisa bater com o breakpoint que da altura explicita ao container (abaixo).o à sua localização para mostrar opções próximas.",
+                "Ao abrir o mapa, o sistema pode pedir acesso à sua localização para mostrar opções próximas.",
             unsupported: locationError,
             denied: locationError,
             error: locationError,
@@ -730,6 +729,8 @@ const Mapa = () => {
 
             </Box>
 
+            {/* Mobile e tablet empilham (mapa em cima, lista embaixo); so desktop (>=lg) fica lado a lado. */}
+            {/* Precisa bater com o breakpoint que da altura explicita ao container (abaixo). */}
             <Box
                     sx={{
                         display: "flex",

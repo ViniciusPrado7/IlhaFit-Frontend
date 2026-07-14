@@ -23,6 +23,7 @@ import {
   getSolicitanteNome,
   getSolicitanteTipo,
 } from "./utils";
+import { toTitleCase } from "../../utils/titleCase";
 
 const CategoriaSolicitacoesList = ({
   solicitacoes = [],
@@ -83,12 +84,12 @@ const CategoriaSolicitacoesList = ({
             return (
               <TableRow key={solicitacao.id} hover>
                 <TableCell sx={{ fontWeight: 700 }}>
-                  {getSolicitacaoNome(solicitacao) || "Sem nome"}
+                  {toTitleCase(getSolicitacaoNome(solicitacao)) || "Sem nome"}
                 </TableCell>
                 {showRequester ? (
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>
-                      {solicitanteNome || "Não informado"}
+                      {toTitleCase(solicitanteNome) || "Não informado"}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block">
                       {solicitanteEmail || "Email não informado"}

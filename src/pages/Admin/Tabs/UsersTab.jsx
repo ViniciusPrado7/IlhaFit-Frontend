@@ -51,6 +51,7 @@ import { adminService, estabelecimentoService, profissionalService } from "../..
 import ModalProfissional from "../../../components/ProfessionalModal";
 import ModalDetalhesEstabelecimento from "../../../components/EstablishmentDetailsModal";
 import ModalNovoUsuario from "../NewUserModal";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const UsuariosTab = () => {
     const theme = useTheme();
@@ -408,7 +409,7 @@ const UsuariosTab = () => {
                                             );
                                         })()}
                                     </TableCell>
-                                    <TableCell>{user.nome || user.nomeFantasia || "N/A"}</TableCell>
+                                    <TableCell>{toTitleCase(user.nome || user.nomeFantasia) || "N/A"}</TableCell>
                                     <TableCell>{user.email || "N/A"}</TableCell>
                                     <TableCell align="right">
                                         <Box sx={{ display: "flex", gap: 0.5, justifyContent: "flex-end" }}>
@@ -477,7 +478,7 @@ const UsuariosTab = () => {
                 <DialogContent>
                     <Typography>
                         Tem certeza que deseja excluir o usuário{" "}
-                        <strong>{deleteDialog.user?.nome || deleteDialog.user?.nomeFantasia}</strong>?
+                        <strong>{toTitleCase(deleteDialog.user?.nome || deleteDialog.user?.nomeFantasia)}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         Esta ação não pode ser desfeita.
@@ -532,7 +533,7 @@ const UsuariosTab = () => {
                                         Nome
                                     </Typography>
                                     <Typography variant="body2">
-                                        {alunoDialog.user.nome || "Não informado"}
+                                        {toTitleCase(alunoDialog.user.nome) || "Não informado"}
                                     </Typography>
                                 </Box>
                             </Box>
