@@ -42,6 +42,7 @@ import { estabelecimentoService } from "../../../service/EstablishmentService";
 import ModalProfissional from "../../../components/ProfessionalModal";
 import ModalDetalhesEstabelecimento from "../../../components/EstablishmentDetailsModal";
 import { toast } from "react-toastify";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const MOTIVO_LABELS = {
     PRECONCEITO: "Preconceito / Discurso de Ódio",
@@ -232,7 +233,10 @@ const AvaliacoesTab = () => {
         return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     };
 
-    const contextLabel = (g) => g.estabelecimentoNome || g.profissionalNome || null;
+    const contextLabel = (g) => {
+        const nome = g.estabelecimentoNome || g.profissionalNome;
+        return nome ? toTitleCase(nome) : null;
+    };
 
     const handleOpenContexto = async (d) => {
         if (d.profissionalId) {
@@ -408,7 +412,7 @@ const AvaliacoesTab = () => {
                                                     ))}
                                                 </Box>
                                                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.3 }}>
-                                                    {group.nomeAutorAvaliacao}
+                                                    {toTitleCase(group.nomeAutorAvaliacao)}
                                                     {contextLabel(group) && ` · ${contextLabel(group)}`}
                                                 </Typography>
                                                 {group.isAlert && (
@@ -507,7 +511,7 @@ const AvaliacoesTab = () => {
                                                                 {group.denuncias.map(d => (
                                                                     <TableRow key={d.id} hover>
                                                                         <TableCell>
-                                                                            <Typography variant="body2" fontWeight={600}>{d.nomeAutorAvaliacao}</Typography>
+                                                                            <Typography variant="body2" fontWeight={600}>{toTitleCase(d.nomeAutorAvaliacao)}</Typography>
                                                                         </TableCell>
                                                                         <TableCell>
                                                                             <Chip
@@ -527,7 +531,7 @@ const AvaliacoesTab = () => {
                                                                         <TableCell>
                                                                             {(d.estabelecimentoNome || d.profissionalNome) ? (
                                                                                 <Chip
-                                                                                    label={d.estabelecimentoNome || d.profissionalNome}
+                                                                                    label={toTitleCase(d.estabelecimentoNome || d.profissionalNome)}
                                                                                     size="small"
                                                                                     icon={<FaEye size={10} />}
                                                                                     onClick={() => handleOpenContexto(d)}
@@ -616,7 +620,7 @@ const AvaliacoesTab = () => {
                                     "{detailDialog.denuncia.comentarioAvaliacao}"
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    — {detailDialog.denuncia.nomeAutorAvaliacao}
+                                    — {toTitleCase(detailDialog.denuncia.nomeAutorAvaliacao)}
                                 </Typography>
                             </Paper>
 
@@ -649,8 +653,8 @@ const AvaliacoesTab = () => {
                                     <Box sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <Typography variant="body2" fontWeight={600}>
                                             {detailDialog.denuncia.estabelecimentoNome
-                                                ? `Estabelecimento: ${detailDialog.denuncia.estabelecimentoNome}`
-                                                : `Profissional: ${detailDialog.denuncia.profissionalNome}`}
+                                                ? `Estabelecimento: ${toTitleCase(detailDialog.denuncia.estabelecimentoNome)}`
+                                                : `Profissional: ${toTitleCase(detailDialog.denuncia.profissionalNome)}`}
                                         </Typography>
                                         <Tooltip title="Ver perfil">
                                             <IconButton
@@ -713,7 +717,7 @@ const AvaliacoesTab = () => {
                 </DialogTitle>
                 <DialogContent>
                     <Typography>
-                        Tem certeza que deseja excluir a avaliação de <strong>{deleteDialog.group?.nomeAutorAvaliacao}</strong>?
+                        Tem certeza que deseja excluir a avaliação de <strong>{toTitleCase(deleteDialog.group?.nomeAutorAvaliacao)}</strong>?
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                         A avaliação e {deleteDialog.group?.count} denúncia{deleteDialog.group?.count !== 1 ? 's' : ''} associada{deleteDialog.group?.count !== 1 ? 's' : ''} serão marcadas como excluídas e não aparecerão mais nas listagens.

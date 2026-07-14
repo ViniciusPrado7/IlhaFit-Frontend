@@ -41,6 +41,7 @@ import {
     profissionalService,
 } from "../../../service";
 import { toast } from "react-toastify";
+import { toTitleCase } from "../../../utils/titleCase";
 
 const MOTIVO_LABELS = {
     PRECONCEITO: "Preconceito / Ódio",
@@ -123,9 +124,12 @@ const DashboardTab = ({ onTabChange }) => {
     useEffect(() => {
         loadAll(false);
 
+        // Atualizacao periodica em segundo plano. Antes era 5s, o que disparava
+        // 6 consultas pesadas a cada 5 segundos (~72 req/min) e prejudicava a
+        // performance. 30s mantem o painel atualizado sem sobrecarregar a API.
         const interval = setInterval(() => {
             loadAll(true);
-        }, 5000);
+        }, 30000);
 
         return () => clearInterval(interval);
     }, []);
@@ -820,7 +824,7 @@ const DashboardTab = ({ onTabChange }) => {
                                                     #{i + 1}
                                                 </Typography>
                                                 <Typography variant="body2" fontWeight={600}>
-                                                    {nome}
+                                                    {toTitleCase(nome)}
                                                 </Typography>
                                             </Box>
                                             <Typography
@@ -909,7 +913,7 @@ const DashboardTab = ({ onTabChange }) => {
                                                     </Box>
                                                     <Box sx={{ minWidth: 0 }}>
                                                         <Typography variant="body2" fontWeight={700} noWrap sx={{ color: 'text.primary', mb: 0.5 }}>
-                                                            {r.nome}
+                                                            {toTitleCase(r.nome)}
                                                         </Typography>
                                                         <Chip
                                                             label={config.label}
