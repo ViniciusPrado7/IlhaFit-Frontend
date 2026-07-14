@@ -142,7 +142,14 @@ const MapComponent = ({
         estLayerRef.current = L.layerGroup().addTo(mapInstance.current);
         userLayerRef.current = L.layerGroup().addTo(mapInstance.current);
 
+
+        const resizeObserver = new ResizeObserver(() => {
+            mapInstance.current?.invalidateSize();
+        });
+        resizeObserver.observe(mapRef.current);
+
         return () => {
+            resizeObserver.disconnect();
             if (batchRafRef.current) cancelAnimationFrame(batchRafRef.current);
             if (mapInstance.current) {
                 mapInstance.current.remove();

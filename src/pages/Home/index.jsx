@@ -28,29 +28,8 @@ import CardEstabelecimento from "../../components/Card/EstablishmentCard";
 import CardProfissional from "../../components/Card/ProfessionalCard";
 import CategoriaSelectField from "../../components/CategoriaSelectField";
 import { ModalEstabelecimentoContent } from "../../components/EstablishmentModal";
-import { avaliacaoService } from "../../service/ReviewService";
-import { estabelecimentoService } from "../../service/EstablishmentService";
-import { profissionalService } from "../../service/ProfessionalService";
-import { enriquecerListaEstabelecimentosComAvaliacoes } from "../../utils/review";
+import { useCatalog } from "../../contexts/CatalogContext";
 import { toTitleCase } from "../../utils/titleCase";
-
-const normalizeList = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.content)) return data.content;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
-
-const getErrorMessage = (error, fallback) => {
-  const data = error?.response?.data;
-
-  if (typeof data === "string") return data;
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    return Object.values(data).filter(Boolean).join(" ");
-  }
-
-  return error?.message || fallback;
-};
 
 const byRating = (a, b) => {
   const diff = (b.item.avaliacao ?? 0) - (a.item.avaliacao ?? 0);
@@ -149,53 +128,27 @@ const Home = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const isDark = theme.palette.mode === "dark";
-  const [estabelecimentos, setEstabelecimentos] = useState([]);
-  const [profissionais, setProfissionais] = useState([]);
+  const {
+    estabelecimentos,
+    profissionais,
+    loadingEstabelecimentos,
+    loadingProfissionais,
+    errorEstabelecimentos,
+    ensureEstabelecimentos,
+    ensureProfissionais,
+    updateEstabelecimento,
+  } = useCatalog();
   const [selectedCategoria, setSelectedCategoria] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedEstabelecimento, setSelectedEstabelecimento] = useState(null);
 
+  const loading = loadingEstabelecimentos || loadingProfissionais;
+  const error = errorEstabelecimentos;
+
   useEffect(() => {
-    let isMounted = true;
-
-    const carregarHome = async () => {
-      try {
-        const [estabelecimentosResponse, profissionaisResponse] = await Promise.all([
-          estabelecimentoService.listarEstabelecimentos(),
-          profissionalService.listarProfissionais(),
-        ]);
-
-        if (!isMounted) return;
-
-        const estabelecimentosNormalizados = normalizeList(estabelecimentosResponse.data);
-        const estabelecimentosComMedia = await enriquecerListaEstabelecimentosComAvaliacoes(
-          estabelecimentosNormalizados,
-          avaliacaoService.listarPorEstabelecimento
-        );
-
-        if (!isMounted) return;
-
-        setEstabelecimentos(estabelecimentosComMedia);
-        setProfissionais(normalizeList(profissionaisResponse.data));
-        setError("");
-      } catch (err) {
-        if (!isMounted) return;
-        setError(getErrorMessage(err, "Não foi possível carregar a home no momento."));
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    carregarHome();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    ensureEstabelecimentos();
+    ensureProfissionais();
+  }, [ensureEstabelecimentos, ensureProfissionais]);
 
   const featuredEstabelecimentos = useMemo(
     () =>
@@ -222,9 +175,7 @@ const Home = () => {
   );
 
   const handleEstabelecimentoChange = (updatedEstabelecimento) => {
-    setEstabelecimentos((current) =>
-      current.map((item) => (item.id === updatedEstabelecimento.id ? { ...item, ...updatedEstabelecimento } : item))
-    );
+    updateEstabelecimento(updatedEstabelecimento);
     setSelectedEstabelecimento(updatedEstabelecimento);
   };
 

@@ -8,7 +8,7 @@ export const profissionalService = {
   },
 
   listarProfissionais() {
-    return api.get("/profissionais/profissionais");
+    return api.get("/profissionais/profissionais", { params: { size: 200 } });
   },
 
   buscarProfissionalPorId(id) {

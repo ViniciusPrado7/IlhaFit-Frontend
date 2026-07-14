@@ -8,7 +8,7 @@ export const estabelecimentoService = {
   },
 
   listarEstabelecimentos() {
-    return api.get("/estabelecimentos/estabelecimentos");
+    return api.get("/estabelecimentos/estabelecimentos", { params: { size: 200 } });
   },
 
   buscarEstabelecimentoPorId(id) {
